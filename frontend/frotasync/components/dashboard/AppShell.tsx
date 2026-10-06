@@ -7,9 +7,11 @@ import { Icon } from "@/components/dashboard/Icons";
 
 export function AppShell({
   activeTab,
+  breadcrumb = "section",
   children,
 }: {
   activeTab: "documentos" | "tarefas" | "unidades";
+  breadcrumb?: "section" | "newUnit";
   children: ReactNode;
 }) {
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
@@ -97,9 +99,23 @@ export function AppShell({
               <Icon name="menu" />
             </button>
             {isUnitsSection ? (
-              <span className="hidden text-xs font-semibold text-slate-800 sm:block">
-                Unidades
-              </span>
+              breadcrumb === "newUnit" ? (
+                <div className="hidden items-center gap-2 text-xs sm:flex">
+                  <Link
+                    href="/unidades"
+                    className="text-slate-500 hover:text-indigo-700">
+                    Unidades
+                  </Link>
+                  <span className="text-slate-300">/</span>
+                  <span className="font-semibold text-slate-800">
+                    Cadastrar Unidade
+                  </span>
+                </div>
+              ) : (
+                <span className="hidden text-xs font-semibold text-slate-800 sm:block">
+                  Unidades
+                </span>
+              )
             ) : (
               <div className="hidden items-center gap-2 text-xs sm:flex">
                 <span className="text-slate-500">Dashboard Global</span>

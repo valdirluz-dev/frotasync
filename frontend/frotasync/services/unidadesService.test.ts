@@ -1,6 +1,11 @@
 import { describe, expect, it } from "vitest";
 
-import { listarUnidades } from "./unidadesService";
+import { mockUnidades } from "../mocks/dashboard";
+import {
+  criarUnidade,
+  IdentificadorUnidadeDuplicadoError,
+  listarUnidades,
+} from "./unidadesService";
 
 describe("listarUnidades", () => {
   it("pagina 12 unidades por página e retorna a última página parcial", async () => {
@@ -50,5 +55,43 @@ describe("listarUnidades", () => {
     expect(result.items.every((item) => item.status === "Ativa")).toBe(true);
     expect(result.items.every((item) => item.totalDocumentos >= 0)).toBe(true);
     expect(result.items.every((item) => item.totalTarefas >= 0)).toBe(true);
+  });
+});
+
+describe("criarUnidade", () => {
+  const values = {
+    nome: "Unidade de teste",
+    identificador: "NOVO-UNIT",
+    cep: "50000000",
+    logradouro: "Rua de Teste",
+    numero: "S/N",
+    complemento: "",
+    cidade: "Recife",
+    bairro: "Centro",
+    uf: "PE" as const,
+    descricao: "",
+  };
+
+  it("recusa um identificador já usado", async () => {
+    await expect(
+      criarUnidade({ ...values, identificador: "001" }),
+    ).rejects.toBeInstanceOf(IdentificadorUnidadeDuplicadoError);
+  });
+
+  it("cria unidade ativa, registra datas e adiciona ao mock compartilhado", async () => {
+    const unidade = await criarUnidade(values);
+
+    try {
+      expect(unidade.status).toBe("Ativa");
+      expect(unidade.codigo).toBe(values.identificador);
+      expect(unidade.criadoEm).toEqual(expect.any(String));
+      expect(unidade.atualizadoEm).toBe(unidade.criadoEm);
+      expect(mockUnidades).toContain(unidade);
+    } finally {
+      const createdIndex = mockUnidades.findIndex(
+        (item) => item.id === unidade.id,
+      );
+      if (createdIndex >= 0) mockUnidades.splice(createdIndex, 1);
+    }
   });
 });

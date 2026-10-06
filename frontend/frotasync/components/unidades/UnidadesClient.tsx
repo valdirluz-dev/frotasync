@@ -1,6 +1,7 @@
 "use client";
 
 import { usePathname, useRouter, useSearchParams } from "next/navigation";
+import Link from "next/link";
 import { useCallback, useEffect, useMemo } from "react";
 
 import { AppShell } from "@/components/dashboard/AppShell";
@@ -123,18 +124,16 @@ export function UnidadesClient() {
           }}
         />
 
-        <button
-          type="button"
-          disabled
-          title="Em breve"
-          className="inline-flex h-9 items-center gap-1.5 rounded-lg bg-indigo-600 px-3.5 text-xs font-semibold text-white shadow-sm disabled:cursor-not-allowed disabled:opacity-90">
+        <Link
+          href="/unidades/nova"
+          className="inline-flex h-9 items-center gap-1.5 rounded-lg bg-indigo-600 px-3.5 text-xs font-semibold text-white shadow-sm hover:bg-indigo-700 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-indigo-500 focus-visible:ring-offset-2">
           <span
             aria-hidden="true"
             className="text-base font-normal leading-none">
             +
           </span>
           Nova Unidade
-        </button>
+        </Link>
 
         {unidadesQuery.isError ? (
           <div className="rounded-2xl border border-slate-200 bg-white">

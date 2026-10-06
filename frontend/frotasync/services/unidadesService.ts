@@ -1,12 +1,22 @@
 import { mockDocumentos, mockTarefas, mockUnidades } from "../mocks/dashboard";
+import { normalizarCep } from "../lib/cep";
+import type { UnidadeFormValues } from "../schemas/unidade";
 import type {
   Paginated,
+  Unidade,
   UnidadeListItem,
   UnidadesFilters,
 } from "../types/dashboard";
 
 const DEFAULT_PAGE_SIZE = 12;
 const SIMULATED_LATENCY_MS = 120;
+
+export class IdentificadorUnidadeDuplicadoError extends Error {
+  constructor() {
+    super("Já existe uma unidade com este identificador");
+    this.name = "IdentificadorUnidadeDuplicadoError";
+  }
+}
 
 function normalizeSearch(value: string): string {
   return value
@@ -59,4 +69,46 @@ export async function listarUnidades({
     total,
     totalPages,
   };
+}
+
+export async function criarUnidade(data: UnidadeFormValues): Promise<Unidade> {
+  await new Promise<void>((resolve) =>
+    setTimeout(resolve, SIMULATED_LATENCY_MS),
+  );
+
+  const identificador = data.identificador.trim();
+  const duplicate = mockUnidades.some(
+    (unidade) =>
+      normalizeSearch(unidade.codigo) === normalizeSearch(identificador),
+  );
+  if (duplicate) throw new IdentificadorUnidadeDuplicadoError();
+
+  const nextSequence =
+    mockUnidades.reduce((maximum, unidade) => {
+      const matched = /^u-(\d+)$/.exec(unidade.id);
+      return Math.max(maximum, matched ? Number(matched[1]) : 0);
+    }, 0) + 1;
+  const timestamp = new Date().toISOString();
+
+  const unidade: Unidade = {
+    id: `u-${String(nextSequence).padStart(3, "0")}`,
+    nome: data.nome.trim(),
+    codigo: identificador,
+    status: "Ativa",
+    endereco: {
+      logradouro: data.logradouro.trim(),
+      numero: data.numero.trim(),
+      bairro: data.bairro.trim(),
+      cidade: data.cidade.trim(),
+      uf: data.uf,
+      cep: normalizarCep(data.cep),
+      complemento: data.complemento?.trim() || undefined,
+    },
+    descricao: data.descricao?.trim() || undefined,
+    criadoEm: timestamp,
+    atualizadoEm: timestamp,
+  };
+
+  mockUnidades.push(unidade);
+  return unidade;
 }

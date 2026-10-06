@@ -2,12 +2,47 @@ export type UnidadeStatus = "Ativa" | "Inativa";
 export type DocumentoStatus = "Válido" | "Próximo do vencimento" | "Expirado";
 export type TarefaStatus = "Pendente" | "Em andamento" | "Concluída";
 
+export const UF_SIGLAS = [
+  "AC",
+  "AL",
+  "AP",
+  "AM",
+  "BA",
+  "CE",
+  "DF",
+  "ES",
+  "GO",
+  "MA",
+  "MT",
+  "MS",
+  "MG",
+  "PA",
+  "PB",
+  "PR",
+  "PE",
+  "PI",
+  "RJ",
+  "RN",
+  "RS",
+  "RO",
+  "RR",
+  "SC",
+  "SP",
+  "SE",
+  "TO",
+] as const;
+
+export type Uf = (typeof UF_SIGLAS)[number];
+
 export type Unidade = {
   id: string;
   nome: string;
   codigo: string;
   status: UnidadeStatus;
   endereco: EnderecoUnidade;
+  descricao?: string;
+  criadoEm?: string;
+  atualizadoEm?: string;
 };
 
 export type EnderecoUnidade = {
@@ -15,8 +50,15 @@ export type EnderecoUnidade = {
   numero: string;
   bairro: string;
   cidade: string;
-  uf: string;
+  uf: Uf;
+  cep?: string;
+  complemento?: string;
 };
+
+export type EnderecoCep = Pick<
+  EnderecoUnidade,
+  "logradouro" | "bairro" | "cidade" | "uf"
+>;
 
 export type UnidadeListItem = Unidade & {
   totalDocumentos: number;
