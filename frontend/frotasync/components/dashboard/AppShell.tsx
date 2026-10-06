@@ -9,10 +9,11 @@ export function AppShell({
   activeTab,
   children,
 }: {
-  activeTab: "documentos" | "tarefas";
+  activeTab: "documentos" | "tarefas" | "unidades";
   children: ReactNode;
 }) {
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
+  const isUnitsSection = activeTab === "unidades";
 
   return (
     <div className="min-h-screen bg-[#F8F9FC] font-[Inter,ui-sans-serif,system-ui,sans-serif] text-slate-900">
@@ -21,17 +22,16 @@ export function AppShell({
         <nav aria-label="Menu principal" className="mt-10 space-y-2">
           <Link
             href="/dashboard"
-            className="flex items-center gap-3 rounded-xl bg-indigo-50 px-4 py-3 text-sm font-semibold text-indigo-700">
+            className={`flex items-center gap-3 rounded-xl px-4 py-3 text-sm ${isUnitsSection ? "text-slate-600 hover:bg-slate-50" : "bg-indigo-50 font-semibold text-indigo-700"}`}>
             <Icon name="dashboard" />
             Dashboard
           </Link>
-          <a
-            href="#"
-            onClick={(event) => event.preventDefault()}
-            className="flex items-center gap-3 rounded-xl px-4 py-3 text-sm text-slate-600 hover:bg-slate-50">
+          <Link
+            href="/unidades"
+            className={`flex items-center gap-3 rounded-xl px-4 py-3 text-sm ${isUnitsSection ? "bg-indigo-50 font-semibold text-indigo-700" : "text-slate-600 hover:bg-slate-50"}`}>
             <Icon name="units" />
             Unidades
-          </a>
+          </Link>
           <a
             href="#"
             onClick={(event) => event.preventDefault()}
@@ -63,17 +63,17 @@ export function AppShell({
               <Link
                 onClick={() => setMobileMenuOpen(false)}
                 href="/dashboard"
-                className="flex items-center gap-3 rounded-xl bg-indigo-50 px-4 py-3 text-sm font-semibold text-indigo-700">
+                className={`flex items-center gap-3 rounded-xl px-4 py-3 text-sm ${isUnitsSection ? "text-slate-600" : "bg-indigo-50 font-semibold text-indigo-700"}`}>
                 <Icon name="dashboard" />
                 Dashboard
               </Link>
-              <a
-                href="#"
-                onClick={(event) => event.preventDefault()}
-                className="flex items-center gap-3 rounded-xl px-4 py-3 text-sm text-slate-600">
+              <Link
+                onClick={() => setMobileMenuOpen(false)}
+                href="/unidades"
+                className={`flex items-center gap-3 rounded-xl px-4 py-3 text-sm ${isUnitsSection ? "bg-indigo-50 font-semibold text-indigo-700" : "text-slate-600"}`}>
                 <Icon name="units" />
                 Unidades
-              </a>
+              </Link>
               <a
                 href="#"
                 onClick={(event) => event.preventDefault()}
@@ -96,13 +96,19 @@ export function AppShell({
               className="rounded-lg p-2 text-slate-600 hover:bg-slate-100 lg:hidden">
               <Icon name="menu" />
             </button>
-            <div className="hidden items-center gap-2 text-xs sm:flex">
-              <span className="text-slate-500">Dashboard Global</span>
-              <span className="text-slate-300">/</span>
-              <span className="font-semibold capitalize text-slate-800">
-                {activeTab}
+            {isUnitsSection ? (
+              <span className="hidden text-xs font-semibold text-slate-800 sm:block">
+                Unidades
               </span>
-            </div>
+            ) : (
+              <div className="hidden items-center gap-2 text-xs sm:flex">
+                <span className="text-slate-500">Dashboard Global</span>
+                <span className="text-slate-300">/</span>
+                <span className="font-semibold capitalize text-slate-800">
+                  {activeTab}
+                </span>
+              </div>
+            )}
           </div>
           <div className="flex items-center gap-3 sm:gap-5">
             <label className="hidden h-10 w-[220px] items-center gap-2 rounded-xl border border-slate-200 bg-[#F8F9FC] px-3 text-slate-400 md:flex xl:w-[270px]">

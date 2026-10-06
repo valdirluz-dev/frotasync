@@ -7,6 +7,27 @@ export type Unidade = {
   nome: string;
   codigo: string;
   status: UnidadeStatus;
+  endereco: EnderecoUnidade;
+};
+
+export type EnderecoUnidade = {
+  logradouro: string;
+  numero: string;
+  bairro: string;
+  cidade: string;
+  uf: string;
+};
+
+export type UnidadeListItem = Unidade & {
+  totalDocumentos: number;
+  totalTarefas: number;
+};
+
+export type UnidadesFilters = {
+  page?: number;
+  size?: number;
+  q?: string;
+  status?: UnidadeStatus | "Todos";
 };
 
 export type Documento = {

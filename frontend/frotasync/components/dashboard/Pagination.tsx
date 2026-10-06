@@ -12,7 +12,7 @@ export function Pagination({
   totalPages: number;
   total: number;
   pageSize: number;
-  entity: "documentos" | "tarefas";
+  entity: "documentos" | "tarefas" | "unidades";
   onChange: (nextPage: number) => void;
 }) {
   const first = total === 0 ? 0 : (page - 1) * pageSize + 1;
@@ -36,7 +36,11 @@ export function Pagination({
   return (
     <div className="flex flex-col gap-3 border-t border-slate-100 px-4 py-3 text-[11px] text-slate-500 sm:flex-row sm:items-center sm:justify-between">
       <span>
-        Mostrando {first} a {last} de {total} {entity}
+        Mostrando{" "}
+        <strong className="font-semibold text-slate-700">{first}</strong> a{" "}
+        <strong className="font-semibold text-slate-700">{last}</strong> de{" "}
+        <strong className="font-semibold text-slate-700">{total}</strong>{" "}
+        {entity}
       </span>
       <nav aria-label="Paginação" className="flex items-center gap-1">
         <button
