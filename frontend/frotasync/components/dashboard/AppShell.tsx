@@ -11,7 +11,10 @@ export function AppShell({
   children,
 }: {
   activeTab: "documentos" | "tarefas" | "unidades";
-  breadcrumb?: "section" | "newUnit";
+  breadcrumb?:
+    | "section"
+    | "newUnit"
+    | { unitName: string; unitCode: string; tab: "documentos" | "tarefas" };
   children: ReactNode;
 }) {
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
@@ -109,6 +112,22 @@ export function AppShell({
                   <span className="text-slate-300">/</span>
                   <span className="font-semibold text-slate-800">
                     Cadastrar Unidade
+                  </span>
+                </div>
+              ) : typeof breadcrumb === "object" ? (
+                <div className="hidden min-w-0 items-center gap-2 text-xs sm:flex">
+                  <Link
+                    href="/unidades"
+                    className="shrink-0 text-slate-500 hover:text-indigo-700">
+                    Unidades
+                  </Link>
+                  <span className="text-slate-300">/</span>
+                  <span className="max-w-[220px] truncate text-slate-500">
+                    {breadcrumb.unitName} (ID {breadcrumb.unitCode})
+                  </span>
+                  <span className="text-slate-300">/</span>
+                  <span className="font-semibold capitalize text-slate-800">
+                    {breadcrumb.tab}
                   </span>
                 </div>
               ) : (

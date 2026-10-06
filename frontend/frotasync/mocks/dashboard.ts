@@ -1,6 +1,7 @@
 import type {
   Documento,
   Tarefa,
+  TarefaStatus,
   Unidade,
   UnidadeStatus,
 } from "../types/dashboard";
@@ -16,20 +17,20 @@ type UnidadeSeed = [
 
 const unitSeeds: UnidadeSeed[] = [
   [
-    "Recife Centro",
-    "Ativa",
+    "Centro",
+    "Inativa",
     "Recife",
     "Av. Conde da Boa Vista",
     "120",
     "Boa Vista",
   ],
   [
-    "Boa Viagem",
+    "Caruaru",
     "Ativa",
-    "Recife",
-    "Av. Domingos Ferreira",
-    "1850",
-    "Boa Viagem",
+    "Caruaru",
+    "Av. Agamenon Magalhães",
+    "720",
+    "Maurício de Nassau",
   ],
   ["Olinda", "Ativa", "Olinda", "Av. Getúlio Vargas", "640", "Bairro Novo"],
   [
@@ -41,12 +42,12 @@ const unitSeeds: UnidadeSeed[] = [
     "Prazeres",
   ],
   [
-    "Caruaru",
-    "Inativa",
-    "Caruaru",
-    "Av. Agamenon Magalhães",
-    "720",
-    "Maurício de Nassau",
+    "Boa Viagem",
+    "Ativa",
+    "Recife",
+    "Av. Domingos Ferreira",
+    "1850",
+    "Boa Viagem",
   ],
   ["Paulista", "Ativa", "Paulista", "Av. Sen. Salgado Filho", "98", "Centro"],
   [
@@ -199,6 +200,8 @@ const units: Unidade[] = unitSeeds.map(
     nome,
     status,
     endereco: { logradouro, numero, bairro, cidade, uf: "PE" },
+    criadoEm: new Date(Date.UTC(2023 + Math.floor(index / 12), index % 12, 5)).toISOString(),
+    atualizadoEm: new Date(Date.UTC(2024 + Math.floor(index / 18), (index + 1) % 12, 12)).toISOString(),
   }),
 );
 
@@ -255,37 +258,45 @@ export const mockCategorias = [
 export const mockDocumentos: Documento[] = Array.from(
   { length: 128 },
   (_, index) => {
-    const [nome, categoria, baseValidityOffset] =
-      docSeeds[index % docSeeds.length];
-    const cycle = Math.floor(index / docSeeds.length);
+    const [nome, categoria] = docSeeds[index % docSeeds.length];
+    const unidadeIndex = index % units.length;
+    const unitDocumentIndex = Math.floor(index / units.length);
+    const statusIndex = (unidadeIndex + unitDocumentIndex) % 3;
     const validityOffset =
-      baseValidityOffset > 15
-        ? baseValidityOffset + (cycle % 3) * 17
-        : baseValidityOffset;
+      statusIndex === 0
+        ? 45 + (unidadeIndex % 30)
+        : statusIndex === 1
+          ? 1 + (unidadeIndex % 14)
+          : -(1 + (unidadeIndex % 35));
 
     return {
       id: `doc-${String(index + 1).padStart(3, "0")}`,
       nome,
       categoria,
-      unidadeId: units[index % units.length].id,
+      unidadeId: units[unidadeIndex].id,
       dataEmissao: dateOffset(-365 - (index % 90)),
       dataValidade: dateOffset(validityOffset),
     };
   },
 );
 
+const taskStatuses: TarefaStatus[] = ["Concluída", "Em andamento", "Pendente"];
+
 export const mockTarefas: Tarefa[] = Array.from({ length: 128 }, (_, index) => {
-  const [titulo, status] = taskSeeds[index % taskSeeds.length];
+  const [titulo] = taskSeeds[index % taskSeeds.length];
+  const unidadeIndex = index % units.length;
+  const unitTaskIndex = Math.floor(index / units.length);
+  const status = taskStatuses[(unidadeIndex + unitTaskIndex) % taskStatuses.length];
   const startOffset = -((index % 70) + 1);
   const completed = status === "Concluída";
 
   return {
     id: `task-${String(index + 1).padStart(3, "0")}`,
     titulo,
-    unidadeId: units[index % units.length].id,
+    unidadeId: units[unidadeIndex].id,
     dataInicio: dateOffset(startOffset),
     prazoFinal: dateOffset(startOffset + (index % 24) + 3),
     status,
-    dataConclusao: completed ? dateOffset(startOffset + 2) : null,
+    dataConclusao: completed ? dateOffset(Math.min(startOffset + 2, -1)) : null,
   };
 });

@@ -1,4 +1,5 @@
 export type UnidadeStatus = "Ativa" | "Inativa";
+export type PerfilUsuario = "Administrador" | "Gestor" | "Colaborador";
 export type DocumentoStatus = "Válido" | "Próximo do vencimento" | "Expirado";
 export type TarefaStatus = "Pendente" | "Em andamento" | "Concluída";
 
@@ -43,6 +44,11 @@ export type Unidade = {
   descricao?: string;
   criadoEm?: string;
   atualizadoEm?: string;
+};
+
+export type UsuarioSessao = {
+  nome: string;
+  perfil: PerfilUsuario;
 };
 
 export type EnderecoUnidade = {
@@ -105,6 +111,15 @@ export type DashboardIndicators = {
   documentosAVencer: number;
   tarefasConcluidas: number;
   variacaoDocumentosAVencer: number | null;
+  variacaoTarefasConcluidas: number | null;
+};
+
+export type UnidadeIndicadores = {
+  documentos: DashboardDistribution[];
+  tarefas: DashboardDistribution[];
+  documentosExpirados: number;
+  tarefasConcluidas: number;
+  variacaoDocumentosExpirados: number | null;
   variacaoTarefasConcluidas: number | null;
 };
 

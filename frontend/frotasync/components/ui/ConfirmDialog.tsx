@@ -11,6 +11,7 @@ type ConfirmDialogProps = {
   cancelLabel?: string;
   confirmLabel?: string;
   isLoading?: boolean;
+  showCancel?: boolean;
   onCancel: () => void;
   onConfirm: () => void | Promise<void>;
 };
@@ -22,6 +23,7 @@ export function ConfirmDialog({
   cancelLabel = "Cancelar",
   confirmLabel = "Confirmar",
   isLoading = false,
+  showCancel = true,
   onCancel,
   onConfirm,
 }: ConfirmDialogProps) {
@@ -33,7 +35,8 @@ export function ConfirmDialog({
 
     const previouslyFocused = document.activeElement;
     if (isLoading) dialogRef.current?.focus();
-    else cancelButtonRef.current?.focus();
+    else if (showCancel) cancelButtonRef.current?.focus();
+    else dialogRef.current?.focus();
 
     function handleKeyDown(event: KeyboardEvent) {
       if (event.key === "Escape") {
@@ -56,7 +59,10 @@ export function ConfirmDialog({
 
       const first = focusable[0];
       const last = focusable[focusable.length - 1];
-      if (event.shiftKey && document.activeElement === first) {
+      if (document.activeElement === dialogRef.current) {
+        event.preventDefault();
+        (event.shiftKey ? last : first).focus();
+      } else if (event.shiftKey && document.activeElement === first) {
         event.preventDefault();
         last.focus();
       } else if (!event.shiftKey && document.activeElement === last) {
@@ -70,7 +76,7 @@ export function ConfirmDialog({
       document.removeEventListener("keydown", handleKeyDown);
       if (previouslyFocused instanceof HTMLElement) previouslyFocused.focus();
     };
-  }, [isLoading, onCancel, open]);
+  }, [isLoading, onCancel, open, showCancel]);
 
   if (!open) return null;
 
@@ -99,15 +105,17 @@ export function ConfirmDialog({
           {description}
         </div>
         <div className="mt-7 flex flex-col-reverse justify-end gap-3 sm:flex-row">
-          <Button
-            ref={cancelButtonRef}
-            type="button"
-            variant="outline"
-            disabled={isLoading}
-            onClick={onCancel}
-            className="min-w-32 shadow-md">
-            {cancelLabel}
-          </Button>
+          {showCancel ? (
+            <Button
+              ref={cancelButtonRef}
+              type="button"
+              variant="outline"
+              disabled={isLoading}
+              onClick={onCancel}
+              className="min-w-32 shadow-md">
+              {cancelLabel}
+            </Button>
+          ) : null}
           <Button
             type="button"
             variant="outline"

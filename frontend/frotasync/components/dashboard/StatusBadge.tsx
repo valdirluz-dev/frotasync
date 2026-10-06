@@ -52,11 +52,21 @@ const statusPresentation: Record<
   },
 };
 
-export function StatusBadge({ status }: { status: BadgeStatus }) {
+export function getStatusBadgeClasses(status: BadgeStatus) {
+  return statusPresentation[status].badge;
+}
+
+export function StatusBadge({
+  status,
+  uppercase = false,
+}: {
+  status: BadgeStatus;
+  uppercase?: boolean;
+}) {
   return (
     <span
       className={`inline-flex max-w-[120px] items-center justify-center rounded-md border px-2 py-1 text-center text-[10px] font-medium leading-tight ${statusPresentation[status].badge}`}>
-      {status}
+      {uppercase ? status.toLocaleUpperCase("pt-BR") : status}
     </span>
   );
 }

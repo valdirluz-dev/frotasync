@@ -2,24 +2,20 @@
 
 import { useRouter, useSearchParams } from "next/navigation";
 import { useMemo, useState, type ReactNode } from "react";
-import { getCoreRowModel, useLegacyTable } from "@tanstack/react-table/legacy";
 
 import { AppShell } from "@/components/dashboard/AppShell";
 import { Icon } from "@/components/dashboard/Icons";
-import { Pagination } from "@/components/dashboard/Pagination";
-import {
-  EmptyState,
-  ErrorState,
-  LoadingState,
-} from "@/components/dashboard/StateViews";
-import { StatusBadge } from "@/components/dashboard/StatusBadge";
+import { StatTrend } from "@/components/dashboard/StatTrend";
+import { ErrorState } from "@/components/dashboard/StateViews";
 import { StatusDonutCard } from "@/components/dashboard/StatusDonutCard";
+import { TabPill } from "@/components/dashboard/TabPill";
+import { DocumentosTable } from "@/components/documentos/DocumentosTable";
+import { TarefasTable } from "@/components/tarefas/TarefasTable";
 import {
   useDashboardDocuments,
   useDashboardIndicators,
   useDashboardTasks,
 } from "@/hooks/useDashboard";
-import { calcularStatusDocumento } from "@/lib/status";
 import { mockCategorias, mockUnidades } from "@/mocks/dashboard";
 import type { DocumentoStatus, TarefaStatus } from "@/types/dashboard";
 
@@ -35,17 +31,6 @@ const taskStatuses: Array<TarefaStatus | "Todos"> = [
   "Em andamento",
   "Concluída",
 ];
-const dateFormatter = new Intl.DateTimeFormat("pt-BR", {
-  day: "2-digit",
-  month: "2-digit",
-  year: "numeric",
-  timeZone: "UTC",
-});
-const formatDate = (date: string | null) =>
-  date
-    ? dateFormatter.format(new Date(`${date.slice(0, 10)}T00:00:00.000Z`))
-    : "—";
-
 export function DashboardClient() {
   const router = useRouter();
   const searchParams = useSearchParams();
@@ -79,23 +64,12 @@ export function DashboardClient() {
     status: taskStatus,
   });
 
-  const documentsTable = useLegacyTable({
-    data: documentQuery.data?.items ?? [],
-    columns: [{ accessorKey: "id", header: "id" }],
-    getCoreRowModel: getCoreRowModel(),
-    manualPagination: true,
-    pageCount: documentQuery.data?.totalPages ?? -1,
-  });
-  const tasksTable = useLegacyTable({
-    data: taskQuery.data?.items ?? [],
-    columns: [{ accessorKey: "id", header: "id" }],
-    getCoreRowModel: getCoreRowModel(),
-    manualPagination: true,
-    pageCount: taskQuery.data?.totalPages ?? -1,
-  });
-
   const unitNames = useMemo(
     () => new Map(mockUnidades.map((unit) => [unit.id, unit.nome])),
+    [],
+  );
+  const unitStatuses = useMemo(
+    () => new Map(mockUnidades.map((unit) => [unit.id, unit.status])),
     [],
   );
   const indicators = indicatorQuery.data;
@@ -157,46 +131,18 @@ export function DashboardClient() {
 
       <section aria-label="Lista global" className="mt-8">
         <div className="mb-5 flex flex-col gap-4 xl:flex-row xl:items-center">
-          <div className="inline-flex w-fit shrink-0 overflow-hidden rounded-full border border-slate-900 p-[2px]">
-            {activeTab === "tarefas" ? (
-              <>
-                <button
-                  type="button"
-                  onClick={() => switchTab("documentos")}
-                  className="inline-flex items-center gap-1 rounded-full bg-indigo-600 px-3 py-1.5 text-xs font-semibold text-white sm:px-4">
-                  <span>ver Docs</span>
-                  <Icon name="right" className="h-3.5 w-3.5" />
-                </button>
-                <span className="px-3 py-1.5 text-xs font-bold text-slate-900 sm:px-4">
-                  Tarefas
-                </span>
-              </>
-            ) : (
-              <>
-                <span className="px-3 py-1.5 text-xs font-bold text-slate-900 sm:px-4">
-                  Documentos
-                </span>
-                <button
-                  type="button"
-                  onClick={() => switchTab("tarefas")}
-                  className="inline-flex items-center gap-1 rounded-full bg-indigo-600 px-3 py-1.5 text-xs font-semibold text-white sm:px-4">
-                  <Icon name="left" className="h-3.5 w-3.5" />
-                  <span>ver tarefas</span>
-                </button>
-              </>
-            )}
-          </div>
+          <TabPill activeTab={activeTab} onChange={switchTab} />
 
           <div className="min-w-0 flex-1 xl:pl-1">
             {activeTab === "documentos" ? (
-              <TrendHeading
+              <StatTrend
                 label="Total de documentos a vencer"
                 value={indicators?.documentosAVencer}
                 variation={indicators?.variacaoDocumentosAVencer}
                 inverse
               />
             ) : (
-              <TrendHeading
+              <StatTrend
                 label="Total de Tarefas Concluídas"
                 value={indicators?.tarefasConcluidas}
                 variation={indicators?.variacaoTarefasConcluidas}
@@ -289,93 +235,20 @@ export function DashboardClient() {
               </FilterField>
             </div>
 
-            <div className="mt-7 overflow-hidden rounded-2xl bg-white">
-              {documentQuery.isPending ? (
-                <LoadingState label="Carregando documentos..." />
-              ) : documentQuery.isError ? (
-                <ErrorState
-                  label="Não foi possível carregar os documentos."
-                  onRetry={() => void documentQuery.refetch()}
-                />
-              ) : documentQuery.data?.items.length ? (
-                <div className="overflow-x-auto">
-                  <table className="w-full min-w-[900px] border-separate border-spacing-0 text-left">
-                    <thead>
-                      <tr>
-                        {[
-                          "Documento",
-                          "Unidade",
-                          "Categoria",
-                          "Emissão",
-                          "Validade",
-                          "Status",
-                          "Ações",
-                        ].map((heading) => (
-                          <th
-                            key={heading}
-                            className="px-3 py-4 text-[11px] font-bold text-slate-800 first:pl-4">
-                            {heading}
-                          </th>
-                        ))}
-                      </tr>
-                    </thead>
-                    <tbody>
-                      {documentsTable
-                        .getRowModel()
-                        .rows.map(({ original: document }) => (
-                          <tr
-                            key={document.id}
-                            className="group hover:bg-slate-50/80">
-                            <td className="whitespace-nowrap px-3 py-3 text-xs font-semibold text-slate-900 first:pl-4">
-                              {document.nome}
-                            </td>
-                            <td className="whitespace-nowrap px-3 py-3 text-xs text-slate-700">
-                              {unitNames.get(document.unidadeId) ?? "—"}
-                            </td>
-                            <td className="whitespace-nowrap px-3 py-3 text-xs text-slate-700">
-                              {document.categoria}
-                            </td>
-                            <td className="whitespace-nowrap px-3 py-3 text-xs tabular-nums text-slate-700">
-                              {formatDate(document.dataEmissao)}
-                            </td>
-                            <td className="whitespace-nowrap px-3 py-3 text-xs tabular-nums text-slate-700">
-                              {formatDate(document.dataValidade)}
-                            </td>
-                            <td className="px-3 py-3">
-                              <StatusBadge
-                                status={calcularStatusDocumento(
-                                  document.dataValidade,
-                                )}
-                              />
-                            </td>
-                            <td className="px-3 py-3">
-                              <button
-                                type="button"
-                                disabled
-                                title="Em breve"
-                                className="inline-flex items-center gap-1 rounded-md border border-slate-200 px-2 py-1 text-[10px] font-medium text-slate-500 disabled:cursor-not-allowed disabled:opacity-75">
-                                <Icon name="edit" className="h-3 w-3" />
-                                Editar
-                              </button>
-                            </td>
-                          </tr>
-                        ))}
-                    </tbody>
-                  </table>
-                </div>
-              ) : (
-                <EmptyState label="Nenhum documento encontrado para os filtros selecionados." />
-              )}
-              {documentQuery.data ? (
-                <Pagination
-                  page={documentQuery.data.page}
-                  totalPages={documentQuery.data.totalPages}
-                  total={documentQuery.data.total}
-                  pageSize={documentQuery.data.pageSize}
-                  entity="documentos"
-                  onChange={setDocumentPage}
-                />
-              ) : null}
+            <div className="mt-7">
+              <DocumentosTable
+                items={documentQuery.data?.items ?? []}
+                mode="global"
+                unidadeNames={unitNames}
+                isLoading={documentQuery.isPending}
+                isError={documentQuery.isError}
+                onRetry={() => void documentQuery.refetch()}
+                page={documentQuery.data?.page ?? documentPage}
+                totalPages={documentQuery.data?.totalPages ?? 1}
+                total={documentQuery.data?.total ?? 0}
+                pageSize={documentQuery.data?.pageSize ?? 10}
+                onPageChange={setDocumentPage}
+              />
             </div>
           </>
         ) : (
@@ -435,89 +308,21 @@ export function DashboardClient() {
               </FilterField>
             </div>
 
-            <div className="mt-7 overflow-hidden rounded-2xl bg-white">
-              {taskQuery.isPending ? (
-                <LoadingState label="Carregando tarefas..." />
-              ) : taskQuery.isError ? (
-                <ErrorState
-                  label="Não foi possível carregar as tarefas."
-                  onRetry={() => void taskQuery.refetch()}
-                />
-              ) : taskQuery.data?.items.length ? (
-                <div className="overflow-x-auto">
-                  <table className="w-full min-w-[900px] border-separate border-spacing-0 text-left">
-                    <thead>
-                      <tr>
-                        {[
-                          "Tarefa",
-                          "Unidade",
-                          "Data de início",
-                          "Prazo final",
-                          "Status",
-                          "Data de conclusão",
-                          "Ações",
-                        ].map((heading) => (
-                          <th
-                            key={heading}
-                            className="px-3 py-4 text-[11px] font-bold text-slate-800 first:pl-4">
-                            {heading}
-                          </th>
-                        ))}
-                      </tr>
-                    </thead>
-                    <tbody>
-                      {tasksTable
-                        .getRowModel()
-                        .rows.map(({ original: task }) => (
-                          <tr
-                            key={task.id}
-                            className="group hover:bg-slate-50/80">
-                            <td className="whitespace-nowrap px-3 py-3 text-xs font-semibold text-slate-900 first:pl-4">
-                              {task.titulo}
-                            </td>
-                            <td className="whitespace-nowrap px-3 py-3 text-xs text-slate-700">
-                              {unitNames.get(task.unidadeId) ?? "—"}
-                            </td>
-                            <td className="whitespace-nowrap px-3 py-3 text-xs tabular-nums text-slate-700">
-                              {formatDate(task.dataInicio)}
-                            </td>
-                            <td className="whitespace-nowrap px-3 py-3 text-xs tabular-nums text-slate-700">
-                              {formatDate(task.prazoFinal)}
-                            </td>
-                            <td className="px-3 py-3">
-                              <StatusBadge status={task.status} />
-                            </td>
-                            <td className="whitespace-nowrap px-3 py-3 text-xs tabular-nums text-slate-700">
-                              {formatDate(task.dataConclusao)}
-                            </td>
-                            <td className="px-3 py-3">
-                              <button
-                                type="button"
-                                disabled
-                                title="Em breve"
-                                className="inline-flex items-center gap-1 rounded-md border border-slate-200 px-2 py-1 text-[10px] font-medium text-slate-500 disabled:cursor-not-allowed disabled:opacity-75">
-                                <Icon name="edit" className="h-3 w-3" />
-                                Editar
-                              </button>
-                            </td>
-                          </tr>
-                        ))}
-                    </tbody>
-                  </table>
-                </div>
-              ) : (
-                <EmptyState label="Nenhuma tarefa encontrada para os filtros selecionados." />
-              )}
-              {taskQuery.data ? (
-                <Pagination
-                  page={taskQuery.data.page}
-                  totalPages={taskQuery.data.totalPages}
-                  total={taskQuery.data.total}
-                  pageSize={taskQuery.data.pageSize}
-                  entity="tarefas"
-                  onChange={setTaskPage}
-                />
-              ) : null}
+            <div className="mt-7">
+              <TarefasTable
+                items={taskQuery.data?.items ?? []}
+                mode="global"
+                unidadeNames={unitNames}
+                unidadeStatuses={unitStatuses}
+                isLoading={taskQuery.isPending}
+                isError={taskQuery.isError}
+                onRetry={() => void taskQuery.refetch()}
+                page={taskQuery.data?.page ?? taskPage}
+                totalPages={taskQuery.data?.totalPages ?? 1}
+                total={taskQuery.data?.total ?? 0}
+                pageSize={taskQuery.data?.pageSize ?? 10}
+                onPageChange={setTaskPage}
+              />
             </div>
           </>
         )}
@@ -543,44 +348,6 @@ function FilterField({
       </span>
       {children}
     </label>
-  );
-}
-
-function TrendHeading({
-  label,
-  value,
-  variation,
-  inverse = false,
-}: {
-  label: string;
-  value?: number;
-  variation?: number | null;
-  inverse?: boolean;
-}) {
-  const hasVariation = typeof variation === "number";
-  const isUp = (variation ?? 0) > 0;
-  const isDown = (variation ?? 0) < 0;
-  const isBad = inverse ? isUp : isDown;
-  const color = !hasVariation
-    ? "text-slate-400"
-    : isBad
-      ? "text-red-600"
-      : isUp || isDown
-        ? "text-emerald-600"
-        : "text-slate-400";
-  const arrow = !hasVariation || variation === 0 ? "—" : isUp ? "↑" : "↓";
-
-  return (
-    <div>
-      <p className="text-xs font-bold text-slate-900">
-        {label}: {value ?? "—"}
-      </p>
-      <p className={`mt-0.5 text-[9px] font-medium ${color}`}>
-        {arrow}
-        {hasVariation ? ` ${Math.abs(variation)}%` : ""} em relação ao mês
-        anterior
-      </p>
-    </div>
   );
 }
 
