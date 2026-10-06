@@ -16,14 +16,22 @@ describe("serviços de detalhe da unidade", () => {
   it("obtém indicadores calculados apenas com os dados da unidade", async () => {
     const unitId = "u-001";
     const indicadores = await obterIndicadoresUnidade(unitId);
-    const documents = mockDocumentos.filter((item) => item.unidadeId === unitId);
+    const documents = mockDocumentos.filter(
+      (item) => item.unidadeId === unitId,
+    );
     const tasks = mockTarefas.filter((item) => item.unidadeId === unitId);
 
     expect(indicadores).not.toBeNull();
-    expect(indicadores?.documentos.reduce((sum, item) => sum + item.value, 0)).toBe(documents.length);
-    expect(indicadores?.tarefas.reduce((sum, item) => sum + item.value, 0)).toBe(tasks.length);
+    expect(
+      indicadores?.documentos.reduce((sum, item) => sum + item.value, 0),
+    ).toBe(documents.length);
+    expect(
+      indicadores?.tarefas.reduce((sum, item) => sum + item.value, 0),
+    ).toBe(tasks.length);
     expect(indicadores?.documentosExpirados).toBe(
-      documents.filter((item) => calcularStatusDocumento(item.dataValidade) === "Expirado").length,
+      documents.filter(
+        (item) => calcularStatusDocumento(item.dataValidade) === "Expirado",
+      ).length,
     );
     expect(indicadores?.tarefasConcluidas).toBe(
       tasks.filter((item) => item.status === "Concluída").length,
@@ -32,7 +40,9 @@ describe("serviços de detalhe da unidade", () => {
 
   it("mantém dados e três status variados inclusive nas unidades inativas", () => {
     for (const unit of mockUnidades) {
-      const documents = mockDocumentos.filter((item) => item.unidadeId === unit.id);
+      const documents = mockDocumentos.filter(
+        (item) => item.unidadeId === unit.id,
+      );
       const tasks = mockTarefas.filter((item) => item.unidadeId === unit.id);
       const documentStatuses = new Set(
         documents.map((item) => calcularStatusDocumento(item.dataValidade)),
@@ -57,11 +67,16 @@ describe("serviços de detalhe da unidade", () => {
       unidadeId: unitId,
       status: "Todos" as const,
     };
-    const documents = await getDashboardDocuments({ ...common, categoria: "todas" });
+    const documents = await getDashboardDocuments({
+      ...common,
+      categoria: "todas",
+    });
     const tasks = await getDashboardTasks(common);
 
     expect(documents.items.length).toBeGreaterThan(0);
-    expect(documents.items.every((item) => item.unidadeId === unitId)).toBe(true);
+    expect(documents.items.every((item) => item.unidadeId === unitId)).toBe(
+      true,
+    );
     expect(tasks.items.length).toBeGreaterThan(0);
     expect(tasks.items.every((item) => item.unidadeId === unitId)).toBe(true);
   });
@@ -87,7 +102,9 @@ describe("serviços de detalhe da unidade", () => {
   });
 
   it("registra a conclusão e limpa dataConclusao ao reabrir a tarefa", async () => {
-    const taskIndex = mockTarefas.findIndex((item) => item.unidadeId === "u-002");
+    const taskIndex = mockTarefas.findIndex(
+      (item) => item.unidadeId === "u-002",
+    );
     const unitIndex = mockUnidades.findIndex((item) => item.id === "u-002");
     const originalTask = mockTarefas[taskIndex];
     const originalUnit = mockUnidades[unitIndex];
@@ -96,9 +113,14 @@ describe("serviços de detalhe da unidade", () => {
       const completed = await alterarStatusTarefa(originalTask.id, "Concluída");
       expect(completed.status).toBe("Concluída");
       expect(completed.dataConclusao).toEqual(expect.any(String));
-      expect(Number.isNaN(Date.parse(completed.dataConclusao ?? ""))).toBe(false);
+      expect(Number.isNaN(Date.parse(completed.dataConclusao ?? ""))).toBe(
+        false,
+      );
 
-      const reopened = await alterarStatusTarefa(originalTask.id, "Em andamento");
+      const reopened = await alterarStatusTarefa(
+        originalTask.id,
+        "Em andamento",
+      );
       expect(reopened.status).toBe("Em andamento");
       expect(reopened.dataConclusao).toBeNull();
     } finally {

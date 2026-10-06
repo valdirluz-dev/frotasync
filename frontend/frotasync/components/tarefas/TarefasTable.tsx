@@ -4,7 +4,11 @@ import { getCoreRowModel, useLegacyTable } from "@tanstack/react-table/legacy";
 
 import { Icon } from "@/components/dashboard/Icons";
 import { Pagination } from "@/components/dashboard/Pagination";
-import { EmptyState, ErrorState, LoadingState } from "@/components/dashboard/StateViews";
+import {
+  EmptyState,
+  ErrorState,
+  LoadingState,
+} from "@/components/dashboard/StateViews";
 import { TaskStatusSelect } from "@/components/tarefas/TaskStatusSelect";
 import type { Tarefa, UnidadeStatus } from "@/types/dashboard";
 
@@ -110,7 +114,8 @@ export function TarefasTable({
             <tbody>
               {table.getRowModel().rows.map(({ original: task }) => {
                 const rowIsReadOnly =
-                  isReadOnly || unidadeStatuses?.get(task.unidadeId) === "Inativa";
+                  isReadOnly ||
+                  unidadeStatuses?.get(task.unidadeId) === "Inativa";
 
                 return (
                   <tr key={task.id} className="hover:bg-slate-50/80">
@@ -129,7 +134,10 @@ export function TarefasTable({
                       {formatDate(task.prazoFinal)}
                     </td>
                     <td className="px-3 py-3">
-                      <TaskStatusSelect tarefa={task} disabled={rowIsReadOnly} />
+                      <TaskStatusSelect
+                        tarefa={task}
+                        disabled={rowIsReadOnly}
+                      />
                     </td>
                     <td className="whitespace-nowrap px-3 py-3 text-xs text-slate-700">
                       <span className="inline-flex rounded-md bg-slate-100 px-2 py-1 tabular-nums text-[10px] text-slate-600">

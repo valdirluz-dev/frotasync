@@ -9,10 +9,7 @@ import {
   obterUnidade,
 } from "@/services/dashboardService";
 import { useSessao } from "@/hooks/useSessao";
-import type {
-  TarefaStatus,
-  UnidadeStatus,
-} from "@/types/dashboard";
+import type { TarefaStatus, UnidadeStatus } from "@/types/dashboard";
 
 export function useUnidade(id: string) {
   return useQuery({
@@ -61,7 +58,9 @@ export function useAlterarStatusTarefa() {
       await Promise.all([
         queryClient.invalidateQueries({ queryKey: ["dashboard"] }),
         queryClient.invalidateQueries({ queryKey: ["unidades"] }),
-        queryClient.invalidateQueries({ queryKey: ["unidades", "indicadores", tarefa.unidadeId] }),
+        queryClient.invalidateQueries({
+          queryKey: ["unidades", "indicadores", tarefa.unidadeId],
+        }),
       ]);
     },
   });

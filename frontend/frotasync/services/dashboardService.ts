@@ -51,7 +51,9 @@ function monthKey(value: string | null): string | null {
 }
 
 function offsetMonthKey(value: Date, offset: number): string {
-  const date = new Date(Date.UTC(value.getUTCFullYear(), value.getUTCMonth() + offset, 1));
+  const date = new Date(
+    Date.UTC(value.getUTCFullYear(), value.getUTCMonth() + offset, 1),
+  );
   return `${date.getUTCFullYear()}-${String(date.getUTCMonth() + 1).padStart(2, "0")}`;
 }
 
@@ -217,19 +219,37 @@ export async function obterIndicadoresUnidade(
 
   return {
     documentos: [
-      { label: "Válido", value: countDocumentStatus("Válido"), color: "#22C55E" },
-      { label: "Próximo do vencimento", value: countDocumentStatus("Próximo do vencimento"), color: "#FACC15" },
+      {
+        label: "Válido",
+        value: countDocumentStatus("Válido"),
+        color: "#22C55E",
+      },
+      {
+        label: "Próximo do vencimento",
+        value: countDocumentStatus("Próximo do vencimento"),
+        color: "#FACC15",
+      },
       { label: "Expirado", value: documentsExpired, color: "#EF4444" },
     ],
     tarefas: [
       { label: "Concluída", value: tasksCompleted, color: "#22C55E" },
-      { label: "Em andamento", value: countTasks("Em andamento"), color: "#FACC15" },
+      {
+        label: "Em andamento",
+        value: countTasks("Em andamento"),
+        color: "#FACC15",
+      },
       { label: "Pendente", value: countTasks("Pendente"), color: "#EF4444" },
     ],
     documentosExpirados: documentsExpired,
     tarefasConcluidas: tasksCompleted,
-    variacaoDocumentosExpirados: percentVariation(expiredThisMonth, expiredPreviousMonth),
-    variacaoTarefasConcluidas: percentVariation(tasksCompletedThisMonth, tasksCompletedPreviousMonth),
+    variacaoDocumentosExpirados: percentVariation(
+      expiredThisMonth,
+      expiredPreviousMonth,
+    ),
+    variacaoTarefasConcluidas: percentVariation(
+      tasksCompletedThisMonth,
+      tasksCompletedPreviousMonth,
+    ),
   };
 }
 

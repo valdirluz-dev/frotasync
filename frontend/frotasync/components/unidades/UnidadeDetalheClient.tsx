@@ -176,11 +176,13 @@ export function UnidadeDetalheClient({ id }: { id: string }) {
     }
   }
 
-  const breadcrumb: "section" | {
-    unitName: string;
-    unitCode: string;
-    tab: "documentos" | "tarefas";
-  } = unidade
+  const breadcrumb:
+    | "section"
+    | {
+        unitName: string;
+        unitCode: string;
+        tab: "documentos" | "tarefas";
+      } = unidade
     ? {
         unitName: unidade.nome,
         unitCode: unidade.codigo,
@@ -195,7 +197,10 @@ export function UnidadeDetalheClient({ id }: { id: string }) {
           <div className="h-20 animate-pulse rounded-xl bg-slate-200" />
           <div className="grid gap-5 xl:grid-cols-3">
             {Array.from({ length: 3 }, (_, index) => (
-              <div key={index} className="h-[390px] animate-pulse rounded-[30px] bg-indigo-100" />
+              <div
+                key={index}
+                className="h-[390px] animate-pulse rounded-[30px] bg-indigo-100"
+              />
             ))}
           </div>
         </div>
@@ -216,7 +221,9 @@ export function UnidadeDetalheClient({ id }: { id: string }) {
               onStatusAction={setStatusToSet}
             />
 
-            <section aria-label="Resumo da unidade" className="grid gap-5 xl:grid-cols-3">
+            <section
+              aria-label="Resumo da unidade"
+              className="grid gap-5 xl:grid-cols-3">
               <UnidadeInfoCard unidade={unidade} />
               {indicatorsQuery.isPending ? (
                 <>
@@ -251,7 +258,12 @@ export function UnidadeDetalheClient({ id }: { id: string }) {
                 <TabPill
                   activeTab={activeTab}
                   onChange={(nextTab) => {
-                    updateQuery({ aba: nextTab, status: "Todos", categoria: "todas", page: 1 });
+                    updateQuery({
+                      aba: nextTab,
+                      status: "Todos",
+                      categoria: "todas",
+                      page: 1,
+                    });
                   }}
                 />
                 <div className="min-w-0 flex-1">
@@ -259,14 +271,18 @@ export function UnidadeDetalheClient({ id }: { id: string }) {
                     <StatTrend
                       label="Total de documentos expirados"
                       value={indicatorsQuery.data?.documentosExpirados}
-                      variation={indicatorsQuery.data?.variacaoDocumentosExpirados}
+                      variation={
+                        indicatorsQuery.data?.variacaoDocumentosExpirados
+                      }
                       inverse
                     />
                   ) : (
                     <StatTrend
                       label="Total de Tarefas Concluídas"
                       value={indicatorsQuery.data?.tarefasConcluidas}
-                      variation={indicatorsQuery.data?.variacaoTarefasConcluidas}
+                      variation={
+                        indicatorsQuery.data?.variacaoTarefasConcluidas
+                      }
                     />
                   )}
                 </div>
@@ -308,9 +324,15 @@ export function UnidadeDetalheClient({ id }: { id: string }) {
                 documentStatus={documentStatus}
                 taskStatus={taskStatus}
                 onQueryCommit={commitSearch}
-                onCategoryChange={(value) => updateQuery({ categoria: value, page: 1 })}
-                onDocumentStatusChange={(value) => updateQuery({ status: value, page: 1 })}
-                onTaskStatusChange={(value) => updateQuery({ status: value, page: 1 })}
+                onCategoryChange={(value) =>
+                  updateQuery({ categoria: value, page: 1 })
+                }
+                onDocumentStatusChange={(value) =>
+                  updateQuery({ status: value, page: 1 })
+                }
+                onTaskStatusChange={(value) =>
+                  updateQuery({ status: value, page: 1 })
+                }
               />
 
               {activeTab === "documentos" ? (
@@ -348,14 +370,22 @@ export function UnidadeDetalheClient({ id }: { id: string }) {
           {statusToSet ? (
             <ConfirmDialog
               open
-              title={statusToSet === "Inativa" ? "Deseja desativar a unidade?" : "Deseja ativar a unidade?"}
+              title={
+                statusToSet === "Inativa"
+                  ? "Deseja desativar a unidade?"
+                  : "Deseja ativar a unidade?"
+              }
               description={
                 statusToSet === "Inativa"
                   ? "Após a desativação os documentos e tarefas não poderão ser modificados, deseja prosseguir?"
                   : "Após a reativação os documentos e tarefas poderão ser modificados novamente, deseja prosseguir?"
               }
               cancelLabel="Cancelar"
-              confirmLabel={statusToSet === "Inativa" ? "Confirmar desativação" : "Confirmar reativação"}
+              confirmLabel={
+                statusToSet === "Inativa"
+                  ? "Confirmar desativação"
+                  : "Confirmar reativação"
+              }
               isLoading={changeStatusMutation.isPending}
               onCancel={() => setStatusToSet(null)}
               onConfirm={confirmUnitStatus}

@@ -4,7 +4,11 @@ import { getCoreRowModel, useLegacyTable } from "@tanstack/react-table/legacy";
 
 import { Icon } from "@/components/dashboard/Icons";
 import { Pagination } from "@/components/dashboard/Pagination";
-import { EmptyState, ErrorState, LoadingState } from "@/components/dashboard/StateViews";
+import {
+  EmptyState,
+  ErrorState,
+  LoadingState,
+} from "@/components/dashboard/StateViews";
 import { StatusBadge } from "@/components/dashboard/StatusBadge";
 import { calcularStatusDocumento } from "@/lib/status";
 import type { Documento } from "@/types/dashboard";

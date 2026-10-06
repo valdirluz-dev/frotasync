@@ -58,10 +58,16 @@ export function UnidadeDetailFilters({
         <span className="flex h-11 items-center gap-2 rounded-xl border border-slate-200 bg-white px-3 focus-within:border-indigo-400 focus-within:ring-2 focus-within:ring-indigo-100">
           <Icon name="search" className="h-4 w-4 shrink-0 text-slate-400" />
           <input
-            aria-label={tab === "documentos" ? "Buscar documento" : "Buscar Tarefas"}
+            aria-label={
+              tab === "documentos" ? "Buscar documento" : "Buscar Tarefas"
+            }
             value={draft}
             onChange={(event) => setDraft(event.target.value)}
-            placeholder={tab === "documentos" ? "Digite o nome do documento..." : "Digite o nome da tarefa..."}
+            placeholder={
+              tab === "documentos"
+                ? "Digite o nome do documento..."
+                : "Digite o nome da tarefa..."
+            }
             className="min-w-0 flex-1 bg-transparent text-xs outline-none placeholder:text-slate-400"
           />
         </span>
@@ -93,7 +99,11 @@ export function UnidadeDetailFilters({
             <select
               aria-label="Filtrar por status do documento"
               value={documentStatus}
-              onChange={(event) => onDocumentStatusChange(event.target.value as DocumentoStatus | "Todos")}
+              onChange={(event) =>
+                onDocumentStatusChange(
+                  event.target.value as DocumentoStatus | "Todos",
+                )
+              }
               className={selectClass}>
               {documentStatuses.map((value) => (
                 <option key={value} value={value}>
@@ -111,7 +121,9 @@ export function UnidadeDetailFilters({
           <select
             aria-label="Filtrar por status da tarefa"
             value={taskStatus}
-            onChange={(event) => onTaskStatusChange(event.target.value as TarefaStatus | "Todos")}
+            onChange={(event) =>
+              onTaskStatusChange(event.target.value as TarefaStatus | "Todos")
+            }
             className={selectClass}>
             {taskStatuses.map((value) => (
               <option key={value} value={value}>
@@ -125,4 +137,5 @@ export function UnidadeDetailFilters({
   );
 }
 
-const selectClass = "h-11 w-full appearance-none rounded-xl border border-slate-200 bg-white px-3 pr-8 text-xs text-slate-700 outline-none focus:border-indigo-400 focus:ring-2 focus:ring-indigo-100";
+const selectClass =
+  "h-11 w-full appearance-none rounded-xl border border-slate-200 bg-white px-3 pr-8 text-xs text-slate-700 outline-none focus:border-indigo-400 focus:ring-2 focus:ring-indigo-100";

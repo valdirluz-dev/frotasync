@@ -4,7 +4,10 @@ import { useState } from "react";
 
 import { ConfirmDialog } from "@/components/ui/ConfirmDialog";
 import { Icon } from "@/components/dashboard/Icons";
-import { getStatusBadgeClasses, StatusBadge } from "@/components/dashboard/StatusBadge";
+import {
+  getStatusBadgeClasses,
+  StatusBadge,
+} from "@/components/dashboard/StatusBadge";
 import { useAlterarStatusTarefa } from "@/hooks/useUnidadeDetalhe";
 import { useToast } from "@/components/ui/Toast";
 import { UnidadeInativaError } from "@/services/dashboardService";
@@ -62,7 +65,9 @@ export function TaskStatusSelect({
           <select
             aria-label={`Alterar status da tarefa ${tarefa.titulo}`}
             value={tarefa.status}
-            onChange={(event) => handleChange(event.target.value as TarefaStatus)}
+            onChange={(event) =>
+              handleChange(event.target.value as TarefaStatus)
+            }
             disabled={mutation.isPending}
             className={`max-w-[145px] appearance-none rounded-md border py-1 pl-2 pr-7 text-center text-[10px] font-bold uppercase leading-tight outline-none focus-visible:ring-2 focus-visible:ring-indigo-500 disabled:opacity-60 ${getStatusBadgeClasses(tarefa.status)}`}>
             {taskStatuses.map((status) => (

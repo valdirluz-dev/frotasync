@@ -31,7 +31,8 @@ export function StatTrend({
       </p>
       <p className={`mt-0.5 text-[9px] font-medium ${color}`}>
         {arrow}
-        {hasVariation ? ` ${Math.abs(variation)}%` : ""} em relação ao mês anterior
+        {hasVariation ? ` ${Math.abs(variation)}%` : ""} em relação ao mês
+        anterior
       </p>
     </div>
   );

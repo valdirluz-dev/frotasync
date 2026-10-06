@@ -16,14 +16,7 @@ type UnidadeSeed = [
 ];
 
 const unitSeeds: UnidadeSeed[] = [
-  [
-    "Centro",
-    "Inativa",
-    "Recife",
-    "Av. Conde da Boa Vista",
-    "120",
-    "Boa Vista",
-  ],
+  ["Centro", "Inativa", "Recife", "Av. Conde da Boa Vista", "120", "Boa Vista"],
   [
     "Caruaru",
     "Ativa",
@@ -200,8 +193,12 @@ const units: Unidade[] = unitSeeds.map(
     nome,
     status,
     endereco: { logradouro, numero, bairro, cidade, uf: "PE" },
-    criadoEm: new Date(Date.UTC(2023 + Math.floor(index / 12), index % 12, 5)).toISOString(),
-    atualizadoEm: new Date(Date.UTC(2024 + Math.floor(index / 18), (index + 1) % 12, 12)).toISOString(),
+    criadoEm: new Date(
+      Date.UTC(2023 + Math.floor(index / 12), index % 12, 5),
+    ).toISOString(),
+    atualizadoEm: new Date(
+      Date.UTC(2024 + Math.floor(index / 18), (index + 1) % 12, 12),
+    ).toISOString(),
   }),
 );
 
@@ -286,7 +283,8 @@ export const mockTarefas: Tarefa[] = Array.from({ length: 128 }, (_, index) => {
   const [titulo] = taskSeeds[index % taskSeeds.length];
   const unidadeIndex = index % units.length;
   const unitTaskIndex = Math.floor(index / units.length);
-  const status = taskStatuses[(unidadeIndex + unitTaskIndex) % taskStatuses.length];
+  const status =
+    taskStatuses[(unidadeIndex + unitTaskIndex) % taskStatuses.length];
   const startOffset = -((index % 70) + 1);
   const completed = status === "Concluída";
 
