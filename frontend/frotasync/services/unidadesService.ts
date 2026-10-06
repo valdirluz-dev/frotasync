@@ -112,3 +112,39 @@ export async function criarUnidade(data: UnidadeFormValues): Promise<Unidade> {
   mockUnidades.push(unidade);
   return unidade;
 }
+
+export async function obterUnidadeParaEdicao(id: string): Promise<Unidade | null> {
+  await new Promise<void>((resolve) => setTimeout(resolve, SIMULATED_LATENCY_MS));
+  return mockUnidades.find((unidade) => unidade.id === id) ?? null;
+}
+
+export async function atualizarUnidade(id: string, data: UnidadeFormValues): Promise<Unidade> {
+  await new Promise<void>((resolve) => setTimeout(resolve, SIMULATED_LATENCY_MS));
+  const index = mockUnidades.findIndex((unidade) => unidade.id === id);
+  if (index < 0) throw new Error("Unidade não encontrada.");
+  const identificador = data.identificador.trim();
+  const duplicate = mockUnidades.some(
+    (unidade) => unidade.id !== id && normalizeSearch(unidade.codigo) === normalizeSearch(identificador),
+  );
+  if (duplicate) throw new IdentificadorUnidadeDuplicadoError();
+
+  const current = mockUnidades[index];
+  const updated: Unidade = {
+    ...current,
+    nome: data.nome.trim(),
+    codigo: identificador,
+    endereco: {
+      logradouro: data.logradouro.trim(),
+      numero: data.numero.trim(),
+      complemento: data.complemento?.trim() || undefined,
+      bairro: data.bairro.trim(),
+      cidade: data.cidade.trim(),
+      uf: data.uf,
+      cep: normalizarCep(data.cep),
+    },
+    descricao: data.descricao?.trim() || undefined,
+    atualizadoEm: new Date().toISOString(),
+  };
+  mockUnidades[index] = updated;
+  return updated;
+}

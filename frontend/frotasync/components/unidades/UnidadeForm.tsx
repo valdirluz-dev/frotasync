@@ -17,6 +17,7 @@ type UnidadeFormProps = {
   defaultValues?: Partial<UnidadeFormInput>;
   mode?: "criar" | "editar";
   isSaving?: boolean;
+  onNoChanges?: () => void;
 };
 
 export type UnidadeFormHandle = {
@@ -39,7 +40,7 @@ const initialValues: UnidadeFormInput = {
 
 export const UnidadeForm = forwardRef<UnidadeFormHandle, UnidadeFormProps>(
   function UnidadeForm(
-    { onSubmit, onCancel, defaultValues, mode = "criar", isSaving = false },
+    { onSubmit, onCancel, defaultValues, mode = "criar", isSaving = false, onNoChanges },
     ref,
   ) {
     const {
@@ -50,7 +51,7 @@ export const UnidadeForm = forwardRef<UnidadeFormHandle, UnidadeFormProps>(
       setFocus,
       setError,
       watch,
-      formState: { errors, isSubmitting },
+      formState: { errors, isSubmitting, isDirty },
     } = useForm<UnidadeFormInput, unknown, UnidadeFormValues>({
       resolver: zodResolver(unidadeSchema),
       defaultValues: { ...initialValues, ...defaultValues },
@@ -71,6 +72,14 @@ export const UnidadeForm = forwardRef<UnidadeFormHandle, UnidadeFormProps>(
     const cep = watch("cep");
     const [cepMessage, setCepMessage] = useState<string | null>(null);
     const busy = isSaving || isSubmitting;
+
+    function handleValidSubmit(values: UnidadeFormValues) {
+      if (mode === "editar" && !isDirty) {
+        onNoChanges?.();
+        return;
+      }
+      onSubmit(values);
+    }
     const cepReady = normalizarCep(cep ?? "").length === 8;
 
     function fieldError(field: keyof UnidadeFormInput): string | undefined {
@@ -120,7 +129,7 @@ export const UnidadeForm = forwardRef<UnidadeFormHandle, UnidadeFormProps>(
 
     return (
       <form
-        onSubmit={handleSubmit(onSubmit)}
+        onSubmit={handleSubmit(handleValidSubmit)}
         noValidate
         className="grid grid-cols-1 gap-x-10 gap-y-7 lg:grid-cols-2">
         <div className="space-y-5">

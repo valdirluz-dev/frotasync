@@ -273,6 +273,8 @@ export const mockDocumentos: Documento[] = Array.from(
       unidadeId: units[unidadeIndex].id,
       dataEmissao: dateOffset(-365 - (index % 90)),
       dataValidade: dateOffset(validityOffset),
+      descricao: `Documento ${nome.toLocaleLowerCase("pt-BR")} da unidade ${units[unidadeIndex].nome}.`,
+      anexo: { nome: `${nome}.pdf`, tamanhoBytes: 420_000 + (index % 9) * 73_000, tipo: "application/pdf" },
     };
   },
 );
@@ -296,5 +298,6 @@ export const mockTarefas: Tarefa[] = Array.from({ length: 128 }, (_, index) => {
     prazoFinal: dateOffset(startOffset + (index % 24) + 3),
     status,
     dataConclusao: completed ? dateOffset(Math.min(startOffset + 2, -1)) : null,
+    descricao: `Detalhes da tarefa: ${titulo.toLocaleLowerCase("pt-BR")}.`,
   };
 });

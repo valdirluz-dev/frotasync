@@ -1,6 +1,7 @@
 "use client";
 
 import { getCoreRowModel, useLegacyTable } from "@tanstack/react-table/legacy";
+import Link from "next/link";
 
 import { Icon } from "@/components/dashboard/Icons";
 import { Pagination } from "@/components/dashboard/Pagination";
@@ -30,6 +31,7 @@ type DocumentosTableProps = {
   mode: "global" | "unidade";
   isReadOnly?: boolean;
   unidadeNames?: ReadonlyMap<string, string>;
+  unidadeStatuses?: ReadonlyMap<string, "Ativa" | "Inativa">;
   isLoading: boolean;
   isError: boolean;
   onRetry: () => void;
@@ -45,6 +47,7 @@ export function DocumentosTable({
   mode,
   isReadOnly = false,
   unidadeNames,
+  unidadeStatuses,
   isLoading,
   isError,
   onRetry,
@@ -97,42 +100,42 @@ export function DocumentosTable({
               </tr>
             </thead>
             <tbody>
-              {table.getRowModel().rows.map(({ original: document }) => (
-                <tr key={document.id} className="hover:bg-slate-50/80">
-                  <td className="whitespace-nowrap px-3 py-3 text-xs font-semibold text-slate-900 first:pl-4">
-                    {document.nome}
-                  </td>
-                  {showUnit ? (
-                    <td className="whitespace-nowrap px-3 py-3 text-xs text-slate-700">
-                      {unidadeNames?.get(document.unidadeId) ?? "—"}
+              {table.getRowModel().rows.map(({ original: document }) => {
+                const rowIsReadOnly =
+                  isReadOnly || unidadeStatuses?.get(document.unidadeId) === "Inativa";
+                const href = mode === "unidade"
+                  ? `/unidades/${document.unidadeId}/documentos/${document.id}/editar`
+                  : `/documentos/${document.id}/editar`;
+                return (
+                  <tr key={document.id} className="hover:bg-slate-50/80">
+                    <td className="whitespace-nowrap px-3 py-3 text-xs font-semibold text-slate-900 first:pl-4">
+                      {document.nome}
                     </td>
-                  ) : null}
-                  <td className="whitespace-nowrap px-3 py-3 text-xs text-slate-700">
-                    {document.categoria}
-                  </td>
-                  <td className="whitespace-nowrap px-3 py-3 text-xs tabular-nums text-slate-700">
-                    {formatDate(document.dataEmissao)}
-                  </td>
-                  <td className="whitespace-nowrap px-3 py-3 text-xs tabular-nums text-slate-700">
-                    {formatDate(document.dataValidade)}
-                  </td>
-                  <td className="px-3 py-3">
-                    <StatusBadge
-                      status={calcularStatusDocumento(document.dataValidade)}
-                    />
-                  </td>
-                  <td className="px-3 py-3">
-                    <button
-                      type="button"
-                      disabled
-                      title={isReadOnly ? "Unidade inativa" : "Em breve"}
-                      className={`inline-flex items-center gap-1 rounded-md border px-2 py-1 text-[10px] font-medium disabled:cursor-not-allowed ${isReadOnly ? "border-slate-200 bg-slate-100 text-slate-400" : "border-slate-200 text-slate-500"}`}>
-                      <Icon name="edit" className="h-3 w-3" />
-                      {mode === "unidade" ? "Editar informações" : "Editar"}
-                    </button>
-                  </td>
-                </tr>
-              ))}
+                    {showUnit ? (
+                      <td className="whitespace-nowrap px-3 py-3 text-xs text-slate-700">
+                        {unidadeNames?.get(document.unidadeId) ?? "—"}
+                      </td>
+                    ) : null}
+                    <td className="whitespace-nowrap px-3 py-3 text-xs text-slate-700">{document.categoria}</td>
+                    <td className="whitespace-nowrap px-3 py-3 text-xs tabular-nums text-slate-700">{formatDate(document.dataEmissao)}</td>
+                    <td className="whitespace-nowrap px-3 py-3 text-xs tabular-nums text-slate-700">{formatDate(document.dataValidade)}</td>
+                    <td className="px-3 py-3"><StatusBadge status={calcularStatusDocumento(document.dataValidade)} /></td>
+                    <td className="px-3 py-3">
+                      {rowIsReadOnly ? (
+                        <button type="button" disabled title="Unidade inativa" className="inline-flex cursor-not-allowed items-center gap-1 rounded-md border border-slate-200 bg-slate-100 px-2 py-1 text-[10px] font-medium text-slate-400">
+                          <Icon name="edit" className="h-3 w-3" />
+                          {mode === "unidade" ? "Editar informações" : "Editar"}
+                        </button>
+                      ) : (
+                        <Link href={href} className="inline-flex items-center gap-1 rounded-md border border-slate-200 px-2 py-1 text-[10px] font-medium text-slate-500 hover:border-indigo-200 hover:text-indigo-700">
+                          <Icon name="edit" className="h-3 w-3" />
+                          {mode === "unidade" ? "Editar informações" : "Editar"}
+                        </Link>
+                      )}
+                    </td>
+                  </tr>
+                );
+              })}
             </tbody>
           </table>
         </div>

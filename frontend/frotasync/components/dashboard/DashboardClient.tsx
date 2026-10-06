@@ -240,6 +240,7 @@ export function DashboardClient() {
                 items={documentQuery.data?.items ?? []}
                 mode="global"
                 unidadeNames={unitNames}
+                unidadeStatuses={unitStatuses}
                 isLoading={documentQuery.isPending}
                 isError={documentQuery.isError}
                 onRetry={() => void documentQuery.refetch()}

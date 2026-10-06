@@ -14,7 +14,8 @@ export function AppShell({
   breadcrumb?:
     | "section"
     | "newUnit"
-    | { unitName: string; unitCode: string; tab: "documentos" | "tarefas" };
+    | { unitName: string; unitCode: string; tab: "documentos" | "tarefas" }
+    | { custom: ReactNode };
   children: ReactNode;
 }) {
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
@@ -101,7 +102,9 @@ export function AppShell({
               className="rounded-lg p-2 text-slate-600 hover:bg-slate-100 lg:hidden">
               <Icon name="menu" />
             </button>
-            {isUnitsSection ? (
+            {typeof breadcrumb === "object" && "custom" in breadcrumb ? (
+              breadcrumb.custom
+            ) : isUnitsSection ? (
               breadcrumb === "newUnit" ? (
                 <div className="hidden items-center gap-2 text-xs sm:flex">
                   <Link
