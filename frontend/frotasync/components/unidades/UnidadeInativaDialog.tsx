@@ -8,26 +8,25 @@ export function UnidadeInativaDialog({
   open,
   onClose,
   onReturnToUnits,
+  resource = "tarefa",
 }: {
   unidade: Unidade;
   open: boolean;
   onClose: () => void;
   onReturnToUnits: () => void;
+  resource?: "tarefa" | "documento";
 }) {
+  const article = resource === "documento" ? "o documento" : "a tarefa";
   return (
     <ConfirmDialog
       open={open}
-      title="Não é possível cadastrar a tarefa"
+      title={`Não é possível editar ${article}`}
       description={
         <div className="space-y-2">
           <p>
-            A unidade &quot;
-            <strong>
-              {unidade.nome} (ID {unidade.codigo})
-            </strong>
-            &quot; está inativa.
+            A unidade &quot;<strong>{unidade.nome} (ID {unidade.codigo})</strong>&quot; está inativa.
           </p>
-          <p>Novas tarefas não podem ser cadastradas em unidades inativas.</p>
+          <p>Documentos e tarefas de unidades inativas não podem ser modificados.</p>
         </div>
       }
       confirmLabel="Voltar para unidades"

@@ -1,3 +1,5 @@
+import Link from "next/link";
+
 import type { Unidade, UnidadeStatus } from "@/types/dashboard";
 
 type UnidadeHeaderProps = {
@@ -30,6 +32,11 @@ export function UnidadeHeader({
           {unidade.endereco.logradouro}, {unidade.endereco.numero} -{" "}
           {unidade.endereco.cidade}/{unidade.endereco.uf}
         </p>
+        {canManageStatus ? (
+          <Link href={`/unidades/${unidade.id}/editar`} className="mt-3 inline-flex items-center rounded-lg border border-indigo-200 px-3 py-1.5 text-xs font-semibold text-indigo-700 hover:bg-indigo-50 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-indigo-500 focus-visible:ring-offset-2">
+            ✎ Editar unidade
+          </Link>
+        ) : null}
       </div>
 
       {canManageStatus ? (

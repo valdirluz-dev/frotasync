@@ -4,33 +4,7 @@ export type DocumentoStatus = "Válido" | "Próximo do vencimento" | "Expirado";
 export type TarefaStatus = "Pendente" | "Em andamento" | "Concluída";
 
 export const UF_SIGLAS = [
-  "AC",
-  "AL",
-  "AP",
-  "AM",
-  "BA",
-  "CE",
-  "DF",
-  "ES",
-  "GO",
-  "MA",
-  "MT",
-  "MS",
-  "MG",
-  "PA",
-  "PB",
-  "PR",
-  "PE",
-  "PI",
-  "RJ",
-  "RN",
-  "RS",
-  "RO",
-  "RR",
-  "SC",
-  "SP",
-  "SE",
-  "TO",
+  "AC", "AL", "AP", "AM", "BA", "CE", "DF", "ES", "GO", "MA", "MT", "MS", "MG", "PA", "PB", "PR", "PE", "PI", "RJ", "RN", "RS", "RO", "RR", "SC", "SP", "SE", "TO",
 ] as const;
 
 export type Uf = (typeof UF_SIGLAS)[number];
@@ -46,10 +20,7 @@ export type Unidade = {
   atualizadoEm?: string;
 };
 
-export type UsuarioSessao = {
-  nome: string;
-  perfil: PerfilUsuario;
-};
+export type UsuarioSessao = { nome: string; perfil: PerfilUsuario };
 
 export type EnderecoUnidade = {
   logradouro: string;
@@ -61,23 +32,11 @@ export type EnderecoUnidade = {
   complemento?: string;
 };
 
-export type EnderecoCep = Pick<
-  EnderecoUnidade,
-  "logradouro" | "bairro" | "cidade" | "uf"
->;
+export type EnderecoCep = Pick<EnderecoUnidade, "logradouro" | "bairro" | "cidade" | "uf">;
+export type UnidadeListItem = Unidade & { totalDocumentos: number; totalTarefas: number };
+export type UnidadesFilters = { page?: number; size?: number; q?: string; status?: UnidadeStatus | "Todos" };
 
-export type UnidadeListItem = Unidade & {
-  totalDocumentos: number;
-  totalTarefas: number;
-};
-
-export type UnidadesFilters = {
-  page?: number;
-  size?: number;
-  q?: string;
-  status?: UnidadeStatus | "Todos";
-};
-
+export type DocumentoAnexo = { nome: string; tamanhoBytes: number; tipo?: string };
 export type Documento = {
   id: string;
   nome: string;
@@ -85,6 +44,8 @@ export type Documento = {
   categoria: string;
   dataEmissao: string | null;
   dataValidade: string;
+  descricao?: string;
+  anexo?: DocumentoAnexo;
 };
 
 export type Tarefa = {
@@ -95,14 +56,10 @@ export type Tarefa = {
   prazoFinal: string;
   status: TarefaStatus;
   dataConclusao: string | null;
+  descricao?: string;
 };
 
-export type DashboardDistribution = {
-  label: string;
-  value: number;
-  color: string;
-};
-
+export type DashboardDistribution = { label: string; value: number; color: string };
 export type DashboardIndicators = {
   unidades: DashboardDistribution[];
   documentos: DashboardDistribution[];
@@ -113,7 +70,6 @@ export type DashboardIndicators = {
   variacaoDocumentosAVencer: number | null;
   variacaoTarefasConcluidas: number | null;
 };
-
 export type UnidadeIndicadores = {
   documentos: DashboardDistribution[];
   tarefas: DashboardDistribution[];
@@ -122,28 +78,6 @@ export type UnidadeIndicadores = {
   variacaoDocumentosExpirados: number | null;
   variacaoTarefasConcluidas: number | null;
 };
-
-export type Paginated<T> = {
-  items: T[];
-  page: number;
-  pageSize: number;
-  total: number;
-  totalPages: number;
-};
-
-export type DocumentFilters = {
-  page: number;
-  pageSize: number;
-  search: string;
-  unidadeId: string;
-  categoria: string;
-  status: DocumentoStatus | "Todos";
-};
-
-export type TaskFilters = {
-  page: number;
-  pageSize: number;
-  search: string;
-  unidadeId: string;
-  status: TarefaStatus | "Todos";
-};
+export type Paginated<T> = { items: T[]; page: number; pageSize: number; total: number; totalPages: number };
+export type DocumentFilters = { page: number; pageSize: number; search: string; unidadeId: string; categoria: string; status: DocumentoStatus | "Todos" };
+export type TaskFilters = { page: number; pageSize: number; search: string; unidadeId: string; status: TarefaStatus | "Todos" };

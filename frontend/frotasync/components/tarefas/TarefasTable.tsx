@@ -1,6 +1,7 @@
 "use client";
 
 import { getCoreRowModel, useLegacyTable } from "@tanstack/react-table/legacy";
+import Link from "next/link";
 
 import { Icon } from "@/components/dashboard/Icons";
 import { Pagination } from "@/components/dashboard/Pagination";
@@ -147,11 +148,10 @@ export function TarefasTable({
                     <td className="px-3 py-3">
                       <button
                         type="button"
-                        disabled
-                        title={rowIsReadOnly ? "Unidade inativa" : "Em breve"}
-                        className={`inline-flex items-center gap-1 rounded-md border px-2 py-1 text-[10px] font-medium disabled:cursor-not-allowed ${rowIsReadOnly ? "border-slate-200 bg-slate-100 text-slate-400" : "border-slate-200 text-slate-500"}`}>
-                        <Icon name="edit" className="h-3 w-3" />
-                        Editar
+                        disabled={rowIsReadOnly}
+                        title={rowIsReadOnly ? "Unidade inativa" : undefined}
+                        className={`inline-flex items-center gap-1 rounded-md border px-2 py-1 text-[10px] font-medium disabled:cursor-not-allowed ${rowIsReadOnly ? "border-slate-200 bg-slate-100 text-slate-400" : "border-slate-200 text-slate-500 hover:border-indigo-200 hover:text-indigo-700"}`}>
+                        {rowIsReadOnly ? <><Icon name="edit" className="h-3 w-3" />Editar</> : <Link href={mode === "unidade" ? `/unidades/${task.unidadeId}/tarefas/${task.id}/editar` : `/tarefas/${task.id}/editar`} className="inline-flex items-center gap-1"><Icon name="edit" className="h-3 w-3" />Editar</Link>}
                       </button>
                     </td>
                   </tr>
