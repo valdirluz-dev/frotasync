@@ -11,7 +11,7 @@ import { UnidadeForm, type UnidadeFormHandle } from "@/components/unidades/Unida
 import { ConfirmDialog } from "@/components/ui";
 import { useToast } from "@/components/ui/Toast";
 import { useEditarUnidade, useUnidadeParaEdicao } from "@/hooks/useEdicao";
-import { IdentificadorUnidadeDuplicadoError } from "@/services/unidadesService";
+import { IdentificadorUnidadeDuplicadoError } from "@/lib/errors";
 import type { UnidadeFormValues } from "@/schemas/unidade";
 
 function formatDate(value?: string) {

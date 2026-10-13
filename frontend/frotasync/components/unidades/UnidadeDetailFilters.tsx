@@ -2,9 +2,9 @@
 
 import { useEffect, useState } from "react";
 
-import { Icon } from "@/components/dashboard/Icons";
+import { Icon } from "@/components/ui/Icons";
 import { mockCategorias } from "@/mocks/dashboard";
-import type { DocumentoStatus, TarefaStatus } from "@/types/dashboard";
+import type { DocumentoStatus, TarefaStatus } from "@/types/domain";
 
 const documentStatuses: Array<DocumentoStatus | "Todos"> = [
   "Todos",

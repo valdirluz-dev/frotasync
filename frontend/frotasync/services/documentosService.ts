@@ -1,17 +1,23 @@
 import { calcularStatusDocumento } from "@/lib/status";
 import { mockDocumentos, mockUnidades } from "@/mocks/dashboard";
-import type { Documento, DocumentoAnexo } from "@/types/dashboard";
-import { UnidadeInativaError, RecursoNaoEncontradoError } from "@/services/dashboardService";
+import type { Documento, DocumentoAnexo } from "@/types/domain";
+import {
+  UnidadeInativaError,
+  RecursoNaoEncontradoError,
+} from "@/lib/errors";
+import { wait } from "@/lib/mockApi";
 import type { DocumentoFormValues } from "@/schemas/documento";
-
-const wait = (ms = 140) => new Promise<void>((resolve) => setTimeout(resolve, ms));
 
 export async function obterDocumento(id: string): Promise<Documento | null> {
   await wait(120);
   return mockDocumentos.find((item) => item.id === id) ?? null;
 }
 
-export async function atualizarDocumento(id: string, data: DocumentoFormValues, anexo?: DocumentoAnexo): Promise<Documento> {
+export async function atualizarDocumento(
+  id: string,
+  data: DocumentoFormValues,
+  anexo?: DocumentoAnexo,
+): Promise<Documento> {
   await wait();
   const index = mockDocumentos.findIndex((item) => item.id === id);
   if (index < 0) throw new RecursoNaoEncontradoError("Documento");
@@ -30,6 +36,5 @@ export async function atualizarDocumento(id: string, data: DocumentoFormValues, 
     anexo: anexo ?? current.anexo,
   };
   mockDocumentos[index] = updated;
-  void calcularStatusDocumento(updated.dataValidade);
   return updated;
 }

@@ -3,7 +3,7 @@
 import Link from "next/link";
 import { useState, type ReactNode } from "react";
 
-import { Icon } from "@/components/dashboard/Icons";
+import { Icon } from "@/components/ui/Icons";
 
 export function AppShell({
   activeTab,
@@ -22,7 +22,7 @@ export function AppShell({
   const isUnitsSection = activeTab === "unidades";
 
   return (
-    <div className="min-h-screen bg-[#F8F9FC] font-[Inter,ui-sans-serif,system-ui,sans-serif] text-slate-900">
+    <div className="min-h-screen bg-surface font-[Inter,ui-sans-serif,system-ui,sans-serif] text-slate-900">
       <aside className="fixed inset-y-0 left-0 z-40 hidden w-[300px] border-r border-slate-200 bg-white px-6 pt-5 lg:block">
         <Brand />
         <nav aria-label="Menu principal" className="mt-10 space-y-2">
@@ -149,7 +149,7 @@ export function AppShell({
             )}
           </div>
           <div className="flex items-center gap-3 sm:gap-5">
-            <label className="hidden h-10 w-[220px] items-center gap-2 rounded-xl border border-slate-200 bg-[#F8F9FC] px-3 text-slate-400 md:flex xl:w-[270px]">
+            <label className="hidden h-10 w-[220px] items-center gap-2 rounded-xl border border-slate-200 bg-surface px-3 text-slate-400 md:flex xl:w-[270px]">
               <Icon name="search" className="h-4 w-4" />
               <input
                 aria-label="Buscar no sistema"

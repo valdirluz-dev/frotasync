@@ -1,6 +1,6 @@
-import { EmptyState } from "@/components/dashboard/StateViews";
+import { EmptyState } from "@/components/ui/StateViews";
 import { UnidadeCard } from "@/components/unidades/UnidadeCard";
-import type { UnidadeListItem } from "@/types/dashboard";
+import type { UnidadeListItem } from "@/types/domain";
 
 export function UnidadesGrid({
   items,

@@ -1,7 +1,6 @@
-import { normalizarCep } from "../lib/cep";
-import type { EnderecoCep } from "../types/dashboard";
-
-const SIMULATED_LATENCY_MS = 100;
+import { normalizarCep } from "@/lib/cep";
+import { wait } from "@/lib/mockApi";
+import type { EnderecoCep } from "@/types/domain";
 
 const cepAddresses: Record<string, EnderecoCep> = {
   "50030230": {
@@ -55,8 +54,6 @@ const cepAddresses: Record<string, EnderecoCep> = {
 };
 
 export async function buscarCep(cep: string): Promise<EnderecoCep | null> {
-  await new Promise<void>((resolve) =>
-    setTimeout(resolve, SIMULATED_LATENCY_MS),
-  );
+  await wait(100);
   return cepAddresses[normalizarCep(cep)] ?? null;
 }

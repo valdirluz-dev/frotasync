@@ -1,7 +1,7 @@
 "use client";
 
 import { ConfirmDialog } from "@/components/ui/ConfirmDialog";
-import type { Unidade } from "@/types/dashboard";
+import type { Unidade } from "@/types/domain";
 
 export function UnidadeInativaDialog({
   unidade,

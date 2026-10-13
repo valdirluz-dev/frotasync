@@ -4,14 +4,14 @@ import { usePathname, useRouter, useSearchParams } from "next/navigation";
 import Link from "next/link";
 import { useCallback, useEffect, useMemo } from "react";
 
-import { AppShell } from "@/components/dashboard/AppShell";
-import { ErrorState } from "@/components/dashboard/StateViews";
-import { Pagination } from "@/components/dashboard/Pagination";
+import { AppShell } from "@/components/layout/AppShell";
+import { ErrorState } from "@/components/ui/StateViews";
+import { Pagination } from "@/components/ui/Pagination";
 import { UnidadesFilters } from "@/components/unidades/UnidadesFilters";
 import { UnidadesGrid } from "@/components/unidades/UnidadesGrid";
 import { useUnidades } from "@/hooks/useUnidades";
 import { mockUnidades } from "@/mocks/dashboard";
-import type { UnidadeStatus } from "@/types/dashboard";
+import type { UnidadeStatus } from "@/types/domain";
 
 const PAGE_SIZE = 12;
 const VALID_STATUSES: UnidadeStatus[] = ["Ativa", "Inativa"];

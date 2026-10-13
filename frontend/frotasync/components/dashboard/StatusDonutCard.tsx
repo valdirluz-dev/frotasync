@@ -1,4 +1,4 @@
-import type { DashboardDistribution } from "@/types/dashboard";
+import type { DashboardDistribution } from "@/types/domain";
 
 type StatusDonutCardProps = {
   title: string;

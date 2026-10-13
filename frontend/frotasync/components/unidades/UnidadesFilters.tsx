@@ -1,7 +1,7 @@
 "use client";
 
-import { Icon } from "@/components/dashboard/Icons";
-import type { UnidadeStatus } from "@/types/dashboard";
+import { Icon } from "@/components/ui/Icons";
+import type { UnidadeStatus } from "@/types/domain";
 import { useEffect, useState } from "react";
 
 export function UnidadesFilters({

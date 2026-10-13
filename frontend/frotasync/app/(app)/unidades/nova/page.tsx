@@ -4,15 +4,15 @@ import { useCallback, useRef, useState } from "react";
 import { useRouter } from "next/navigation";
 import type { SubmitHandler } from "react-hook-form";
 
-import { AppShell } from "@/components/dashboard/AppShell";
-import { Icon } from "@/components/dashboard/Icons";
+import { AppShell } from "@/components/layout/AppShell";
+import { Icon } from "@/components/ui/Icons";
 import { Button, ConfirmDialog, useToast } from "@/components/ui";
 import {
   UnidadeForm,
   type UnidadeFormHandle,
 } from "@/components/unidades/UnidadeForm";
 import { useCriarUnidade } from "@/hooks/useCriarUnidade";
-import { IdentificadorUnidadeDuplicadoError } from "@/services/unidadesService";
+import { IdentificadorUnidadeDuplicadoError } from "@/lib/errors";
 import type { UnidadeFormValues } from "@/schemas/unidade";
 
 export default function NovaUnidadePage() {

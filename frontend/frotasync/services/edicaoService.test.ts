@@ -3,8 +3,8 @@ import { describe, expect, it } from "vitest";
 import { atualizarUnidade } from "./unidadesService";
 import { atualizarDocumento } from "./documentosService";
 import { atualizarTarefa } from "./tarefasService";
-import { mockDocumentos, mockTarefas, mockUnidades } from "../mocks/dashboard";
-import { UnidadeInativaError } from "./dashboardService";
+import { mockDocumentos, mockTarefas, mockUnidades } from "@/mocks/dashboard";
+import { UnidadeInativaError } from "@/lib/errors";
 
 const unidadeValues = (unidade: (typeof mockUnidades)[number]) => ({
   nome: unidade.nome,

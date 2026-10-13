@@ -1,4 +1,4 @@
-import type { DocumentoStatus } from "@/types/dashboard";
+import type { DocumentoStatus } from "@/types/domain";
 
 const DAY_MS = 24 * 60 * 60 * 1000;
 

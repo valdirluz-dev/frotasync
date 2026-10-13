@@ -1,7 +1,7 @@
 import Link from "next/link";
 
 import { UnidadeStatusPill } from "@/components/unidades/UnidadeStatusPill";
-import type { UnidadeListItem } from "@/types/dashboard";
+import type { UnidadeListItem } from "@/types/domain";
 
 export function UnidadeCard({ unidade }: { unidade: UnidadeListItem }) {
   const activeBorder =

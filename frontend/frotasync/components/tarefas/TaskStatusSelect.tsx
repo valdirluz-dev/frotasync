@@ -3,15 +3,15 @@
 import { useState } from "react";
 
 import { ConfirmDialog } from "@/components/ui/ConfirmDialog";
-import { Icon } from "@/components/dashboard/Icons";
+import { Icon } from "@/components/ui/Icons";
 import {
   getStatusBadgeClasses,
   StatusBadge,
 } from "@/components/dashboard/StatusBadge";
 import { useAlterarStatusTarefa } from "@/hooks/useUnidadeDetalhe";
 import { useToast } from "@/components/ui/Toast";
-import { UnidadeInativaError } from "@/services/dashboardService";
-import type { Tarefa, TarefaStatus } from "@/types/dashboard";
+import { UnidadeInativaError } from "@/lib/errors";
+import type { Tarefa, TarefaStatus } from "@/types/domain";
 
 const taskStatuses: TarefaStatus[] = ["Pendente", "Em andamento", "Concluída"];
 

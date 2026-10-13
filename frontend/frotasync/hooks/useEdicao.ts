@@ -8,7 +8,7 @@ import { atualizarTarefa, obterTarefa } from "@/services/tarefasService";
 import type { DocumentoFormValues } from "@/schemas/documento";
 import type { TarefaFormValues } from "@/schemas/tarefa";
 import type { UnidadeFormValues } from "@/schemas/unidade";
-import type { DocumentoAnexo } from "@/types/dashboard";
+import type { DocumentoAnexo } from "@/types/domain";
 
 async function invalidateEntity(queryClient: ReturnType<typeof useQueryClient>, kind: "unidade" | "documento" | "tarefa", id: string, unidadeId?: string) {
   const keys = [

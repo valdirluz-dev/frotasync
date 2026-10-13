@@ -1,6 +1,6 @@
 "use client";
 
-import { Icon } from "@/components/dashboard/Icons";
+import { Icon } from "@/components/ui/Icons";
 
 export function LoadingState({ label }: { label: string }) {
   return (

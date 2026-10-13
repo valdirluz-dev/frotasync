@@ -3,13 +3,13 @@
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 
 import {
-  alterarStatusTarefa,
   alterarStatusUnidade,
   obterIndicadoresUnidade,
   obterUnidade,
-} from "@/services/dashboardService";
+} from "@/services/unidadesService";
+import { alterarStatusTarefa } from "@/services/tarefasService";
 import { useSessao } from "@/hooks/useSessao";
-import type { TarefaStatus, UnidadeStatus } from "@/types/dashboard";
+import type { TarefaStatus, UnidadeStatus } from "@/types/domain";
 
 export function useUnidade(id: string) {
   return useQuery({

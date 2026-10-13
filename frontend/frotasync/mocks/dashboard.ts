@@ -4,7 +4,7 @@ import type {
   TarefaStatus,
   Unidade,
   UnidadeStatus,
-} from "../types/dashboard";
+} from "../types/domain";
 
 type UnidadeSeed = [
   nome: string,

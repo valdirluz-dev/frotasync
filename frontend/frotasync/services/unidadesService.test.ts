@@ -1,9 +1,9 @@
 import { describe, expect, it } from "vitest";
 
-import { mockUnidades } from "../mocks/dashboard";
+import { mockUnidades } from "@/mocks/dashboard";
+import { IdentificadorUnidadeDuplicadoError } from "@/lib/errors";
 import {
   criarUnidade,
-  IdentificadorUnidadeDuplicadoError,
   listarUnidades,
 } from "./unidadesService";
 

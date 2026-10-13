@@ -3,10 +3,10 @@
 import { useRouter, useSearchParams } from "next/navigation";
 import { useMemo, useState, type ReactNode } from "react";
 
-import { AppShell } from "@/components/dashboard/AppShell";
-import { Icon } from "@/components/dashboard/Icons";
+import { AppShell } from "@/components/layout/AppShell";
+import { Icon } from "@/components/ui/Icons";
 import { StatTrend } from "@/components/dashboard/StatTrend";
-import { ErrorState } from "@/components/dashboard/StateViews";
+import { ErrorState } from "@/components/ui/StateViews";
 import { StatusDonutCard } from "@/components/dashboard/StatusDonutCard";
 import { TabPill } from "@/components/dashboard/TabPill";
 import { DocumentosTable } from "@/components/documentos/DocumentosTable";
@@ -17,7 +17,7 @@ import {
   useDashboardTasks,
 } from "@/hooks/useDashboard";
 import { mockCategorias, mockUnidades } from "@/mocks/dashboard";
-import type { DocumentoStatus, TarefaStatus } from "@/types/dashboard";
+import type { DocumentoStatus, TarefaStatus } from "@/types/domain";
 
 const documentStatuses: Array<DocumentoStatus | "Todos"> = [
   "Todos",

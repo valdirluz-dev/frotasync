@@ -12,6 +12,7 @@ const config: Config = {
           purple: "#6D28D9",
           blue: "#2563EB",
         },
+        surface: "#F8F9FC",
         status: {
           success: "#15803D",
           danger: "#B91C1C",

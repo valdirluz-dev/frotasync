@@ -1,7 +1,7 @@
 import { z } from "zod";
 
-import { normalizarCep } from "../lib/cep";
-import { UF_SIGLAS } from "../types/dashboard";
+import { normalizarCep } from "@/lib/cep";
+import { UF_SIGLAS } from "@/types/domain";
 
 export const unidadeSchema = z
   .object({

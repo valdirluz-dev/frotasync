@@ -1,5 +1,5 @@
 import { getUnitStatusPillClasses } from "@/components/dashboard/StatusBadge";
-import type { UnidadeStatus } from "@/types/dashboard";
+import type { UnidadeStatus } from "@/types/domain";
 
 export function UnidadeStatusPill({ status }: { status: UnidadeStatus }) {
   const presentation = getUnitStatusPillClasses(status);

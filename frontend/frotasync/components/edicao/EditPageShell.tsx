@@ -2,8 +2,8 @@
 
 import type { ReactNode } from "react";
 
-import { AppShell } from "@/components/dashboard/AppShell";
-import { Icon } from "@/components/dashboard/Icons";
+import { AppShell } from "@/components/layout/AppShell";
+import { Icon } from "@/components/ui/Icons";
 import { Button } from "@/components/ui";
 
 export function EditPageShell({

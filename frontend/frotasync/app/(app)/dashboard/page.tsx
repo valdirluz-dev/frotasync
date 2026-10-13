@@ -7,7 +7,7 @@ export default function DashboardPage() {
     <Suspense
       fallback={
         <div
-          className="min-h-screen bg-[#F8F9FC]"
+          className="min-h-screen bg-surface"
           aria-label="Carregando Dashboard Global"
         />
       }>

@@ -1,5 +1,5 @@
 import { Select } from "@/components/ui/Select";
-import { UF_SIGLAS } from "@/types/dashboard";
+import { UF_SIGLAS } from "@/types/domain";
 import type { SelectHTMLAttributes } from "react";
 
 export function UnidadeSelect(props: SelectHTMLAttributes<HTMLSelectElement>) {

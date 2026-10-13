@@ -1,15 +1,22 @@
 import { describe, expect, it } from "vitest";
 
-import { calcularStatusDocumento } from "../lib/status";
-import { mockDocumentos, mockTarefas, mockUnidades } from "../mocks/dashboard";
+import { calcularStatusDocumento } from "@/lib/status";
+import { mockDocumentos, mockTarefas, mockUnidades } from "@/mocks/dashboard";
 import {
-  alterarStatusTarefa,
-  alterarStatusUnidade,
-  getDashboardDocuments,
-  getDashboardTasks,
-  obterIndicadoresUnidade,
   PerfilSemPermissaoError,
   UnidadeInativaError,
+} from "@/lib/errors";
+import {
+  alterarStatusTarefa,
+} from "./tarefasService";
+import {
+  alterarStatusUnidade,
+  obterIndicadoresUnidade,
+  obterUnidade,
+} from "./unidadesService";
+import {
+  getDashboardDocuments,
+  getDashboardTasks,
 } from "./dashboardService";
 
 describe("serviços de detalhe da unidade", () => {

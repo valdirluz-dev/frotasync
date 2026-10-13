@@ -1,5 +1,5 @@
 import { Button } from "@/components/ui/Button";
-import type { Unidade } from "@/types/dashboard";
+import type { Unidade } from "@/types/domain";
 
 const dateFormatter = new Intl.DateTimeFormat("pt-BR", {
   day: "2-digit",

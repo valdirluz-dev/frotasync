@@ -7,7 +7,7 @@ import {
   getDashboardIndicators,
   getDashboardTasks,
 } from "@/services/dashboardService";
-import type { DocumentFilters, TaskFilters } from "@/types/dashboard";
+import type { DocumentFilters, TaskFilters } from "@/types/domain";
 
 export function useDashboardIndicators() {
   return useQuery({

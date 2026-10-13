@@ -2,7 +2,7 @@ import type {
   DocumentoStatus,
   TarefaStatus,
   UnidadeStatus,
-} from "@/types/dashboard";
+} from "@/types/domain";
 
 export type BadgeStatus = DocumentoStatus | TarefaStatus | UnidadeStatus;
 

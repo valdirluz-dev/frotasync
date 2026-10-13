@@ -3,9 +3,9 @@
 import { usePathname, useRouter, useSearchParams } from "next/navigation";
 import { useCallback, useEffect, useState } from "react";
 
-import { AppShell } from "@/components/dashboard/AppShell";
-import { Icon } from "@/components/dashboard/Icons";
-import { ErrorState } from "@/components/dashboard/StateViews";
+import { AppShell } from "@/components/layout/AppShell";
+import { Icon } from "@/components/ui/Icons";
+import { ErrorState } from "@/components/ui/StateViews";
 import { StatTrend } from "@/components/dashboard/StatTrend";
 import { StatusDonutCard } from "@/components/dashboard/StatusDonutCard";
 import { TabPill } from "@/components/dashboard/TabPill";
@@ -28,7 +28,7 @@ import type {
   DocumentoStatus,
   TarefaStatus,
   UnidadeStatus,
-} from "@/types/dashboard";
+} from "@/types/domain";
 
 const documentStatuses: Array<DocumentoStatus | "Todos"> = [
   "Todos",

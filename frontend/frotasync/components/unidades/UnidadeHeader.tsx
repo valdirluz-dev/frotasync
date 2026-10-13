@@ -1,6 +1,6 @@
 import Link from "next/link";
 
-import type { Unidade, UnidadeStatus } from "@/types/dashboard";
+import type { Unidade, UnidadeStatus } from "@/types/domain";
 
 type UnidadeHeaderProps = {
   unidade: Unidade;

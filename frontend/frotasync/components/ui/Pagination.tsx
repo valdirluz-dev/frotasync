@@ -1,4 +1,4 @@
-import { Icon } from "@/components/dashboard/Icons";
+import { Icon } from "@/components/ui/Icons";
 
 export function Pagination({
   page,

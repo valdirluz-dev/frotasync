@@ -3,16 +3,16 @@
 import { getCoreRowModel, useLegacyTable } from "@tanstack/react-table/legacy";
 import Link from "next/link";
 
-import { Icon } from "@/components/dashboard/Icons";
-import { Pagination } from "@/components/dashboard/Pagination";
+import { Icon } from "@/components/ui/Icons";
+import { Pagination } from "@/components/ui/Pagination";
 import {
   EmptyState,
   ErrorState,
   LoadingState,
-} from "@/components/dashboard/StateViews";
+} from "@/components/ui/StateViews";
 import { StatusBadge } from "@/components/dashboard/StatusBadge";
 import { calcularStatusDocumento } from "@/lib/status";
-import type { Documento } from "@/types/dashboard";
+import type { Documento } from "@/types/domain";
 
 const dateFormatter = new Intl.DateTimeFormat("pt-BR", {
   day: "2-digit",
