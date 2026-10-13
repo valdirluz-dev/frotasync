@@ -1,7 +1,7 @@
 import { mockTarefas, mockUnidades } from "@/mocks/dashboard";
 import { RecursoNaoEncontradoError, UnidadeInativaError } from "@/lib/errors";
 import { wait } from "@/lib/mockApi";
-import type { Tarefa } from "@/types/domain";
+import type { Tarefa, TarefaStatus } from "@/types/domain";
 import type { TarefaFormValues } from "@/schemas/tarefa";
 
 export async function obterTarefa(id: string): Promise<Tarefa | null> {
@@ -33,7 +33,7 @@ export async function atualizarTarefa(id: string, data: TarefaFormValues): Promi
 
 export async function alterarStatusTarefa(
   tarefaId: string,
-  status: string,
+  status: TarefaStatus,
 ): Promise<Tarefa> {
   await wait(120);
   const tarefaIndex = mockTarefas.findIndex((tarefa) => tarefa.id === tarefaId);
