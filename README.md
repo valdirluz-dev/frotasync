@@ -4,7 +4,7 @@
 
 **Units, Documents & Tasks Management System** — a frontend web app for tracking branches, yards, compliance documents, and related tasks.
 
-**FrotaSync** is a 100% frontend application built with **Next.js** and **TypeScript**. It centralizes management of **units** (branches and yards), **documents** with automatic validity status, and **tasks** linked to each unit. Business rules (authentication, inactive units, document expiry, task workflow) are simulated with **mock data** served through **TanStack Query**, aligned with the future API contract described in [`plan/versao_1.1.0/`](plan/versao_1.1.0/).
+**FrotaSync** is a 100% frontend application built with **Next.js** and **TypeScript**. It centralizes management of **units** (branches and yards), **documents** with automatic validity status, and **tasks** linked to each unit. Business rules (authentication, inactive units, document expiry, task workflow) are simulated with **mock data** served through **TanStack Query**, aligned with the future API contract described in [`plan/versao_1.2.0/`](plan/versao_1.2.0/).
 
 The scenario is a fictional carrier (**FrotaSync**) with branches and yards. Example documents: Environmental License, ANTT Registration, Cargo Insurance. Example task: *“Renew Recife yard license.”*
 
@@ -34,14 +34,19 @@ Add screenshots under `docs/images/` and link them here when the UI is available
 **Document validity rule** (computed on read — never stored or edited manually):
 
 ```ts
-// RF 011 — reference date: today; threshold: 15 days
-function documentValidityStatus(dataValidade: Date, today = new Date()): string {
-  const diffDays = Math.ceil(
-    (dataValidade.getTime() - today.getTime()) / (1000 * 60 * 60 * 24)
+// lib/status.ts — UTC, Math.floor
+const DAY_MS = 24 * 60 * 60 * 1000;
+function utcDay(value: Date | string): number { ... }
+export function calcularStatusDocumento(
+  dataValidade: Date | string,
+  hoje: Date = new Date(),
+): DocumentoStatus {
+  const diasRestantes = Math.floor(
+    (utcDay(dataValidade) - utcDay(hoje)) / DAY_MS,
   );
-  if (diffDays < 0) return "expirado";
-  if (diffDays <= 15) return "proximo_vencimento";
-  return "valido";
+  if (diasRestantes < 0) return "Expirado";
+  if (diasRestantes <= 15) return "Próximo do vencimento";
+  return "Válido";
 }
 ```
 
@@ -64,6 +69,16 @@ function documentValidityStatus(dataValidade: Date, today = new Date()): string 
 - **UX & quality** — Responsive layout, loading/error/empty states, shared UI components, Zod schemas as data contract (RNF 009–014).
 - **Optional (v1.1 backlog)** — Delete unit blocked when open items exist; change audit log; light/dark theme; simulated API layer (MSW/Route Handlers); automated tests; production deploy.
 
+
+## Funcionalidade | Status
+
+| Funcionalidade | Status |
+| --- | --- |
+| Login | Pronto |
+| Cadastro (unidades) | Pronto |
+| Documentos | Em andamento |
+| Tarefas | Pendente |
+
 ## Architecture
 
 ```text
@@ -79,7 +94,7 @@ function documentValidityStatus(dataValidade: Date, today = new Date()): string 
 └─────────────────────────────────────────────────────────────┘
 ```
 
-Future backend reference (not in current scope): **NestJS**, **PostgreSQL**, **JWT** — see [`Design_de_API_v1_1.md`](plan/versao_1.1.0/Design_de_API_v1_1.md) and [`Modelagem_de_Dados_v1_1.md`](plan/versao_1.1.0/Modelagem_de_Dados_v1_1.md).
+Future backend reference (not in current scope): **NestJS**, **PostgreSQL**, **JWT** — see [`Design_de_API_v1_1.md`](plan/versao_1.2.0/Design_de_API_v1_1.md) and [`Modelagem_de_Dados_v1_1.md`](plan/versao_1.2.0/Modelagem_de_Dados_v1_1.md).
 
 ## Installation and usage
 
@@ -91,14 +106,9 @@ Future backend reference (not in current scope): **NestJS**, **PostgreSQL**, **J
 ### Setup
 
 ```bash
-git clone https://github.com/<owner>/frotasync.git
+git clone https://github.com/valdirluz-dev/frotasync.git
 cd frotasync
-npm install
-```
-
-When the application source is added to the repository:
-
-```bash
+npm run install:app
 npm run dev
 ```
 
@@ -131,10 +141,10 @@ Open [http://localhost:3000](http://localhost:3000). Use mock credentials define
 
 | Document | Description |
 | --- | --- |
-| [`Analise_de_Requisitos_v1_1_FrotaSync.md`](plan/versao_1.1.0/Analise_de_Requisitos_v1_1_FrotaSync.md) | Functional & non-functional requirements (v1.1) |
-| [`Estorias_de_Usuario_e_Backlog_v1_1.md`](plan/versao_1.1.0/Estorias_de_Usuario_e_Backlog_v1_1.md) | User stories and MoSCoW backlog |
-| [`Design_de_API_v1_1.md`](plan/versao_1.1.0/Design_de_API_v1_1.md) | REST API contract (future integration) |
-| [`Modelagem_de_Dados_v1_1.md`](plan/versao_1.1.0/Modelagem_de_Dados_v1_1.md) | Data model (PostgreSQL reference) |
+| [`Analise_de_Requisitos_v1_1_FrotaSync.md`](plan/versao_1.2.0/Analise_de_Requisitos_v1_1_FrotaSync.md) | Functional & non-functional requirements (v1.1) |
+| [`Estorias_de_Usuario_e_Backlog_v1_1.md`](plan/versao_1.2.0/Estorias_de_Usuario_e_Backlog_v1_1.md) | User stories and MoSCoW backlog |
+| [`Design_de_API_v1_1.md`](plan/versao_1.2.0/Design_de_API_v1_1.md) | REST API contract (future integration) |
+| [`Modelagem_de_Dados_v1_1.md`](plan/versao_1.2.0/Modelagem_de_Dados_v1_1.md) | Data model (PostgreSQL reference) |
 
 ## Contributors and license
 
