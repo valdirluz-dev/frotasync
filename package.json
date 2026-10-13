@@ -1,11 +1,11 @@
 {
   "private": true,
   "scripts": {
-    "install:app": "npm --prefix frontend/frotasync ci",
-    "dev": "npm --prefix frontend/frotasync run dev",
-    "build": "npm --prefix frontend/frotasync run build",
-    "lint": "npm --prefix frontend/frotasync run lint",
-    "test": "npm --prefix frontend/frotasync run test",
+    "install:app": "npm --prefix frontend ci",
+    "dev": "npm --prefix frontend run dev",
+    "build": "npm --prefix frontend run build",
+    "lint": "npm --prefix frontend run lint",
+    "test": "npm --prefix frontend run test",
     "typecheck": "next typegen && tsc --noEmit"
   }
 }

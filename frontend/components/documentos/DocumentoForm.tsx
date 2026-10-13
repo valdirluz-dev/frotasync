@@ -62,6 +62,7 @@ export function DocumentoForm({
     register,
     handleSubmit,
     watch,
+    control,
     setError,
     formState: { errors, isDirty, isSubmitting },
   } = useForm<DocumentoFormInput, unknown, DocumentoFormValues>({
@@ -81,8 +82,8 @@ export function DocumentoForm({
       });
   }, [selectedFile, setError]);
 
-  const validade = useWatch("dataValidade");
-  const descricao = useWatch("descricao") ?? "";
+  const validade = useWatch({ control, name: "dataValidade" });
+  const descricao = useWatch({ control, name: "descricao" }) ?? "";
   const statusPreview = validade ? calcularStatusDocumento(validade) : null;
   const busy = isSaving || isSubmitting;
 
