@@ -1,0 +1,11 @@
+{
+  "private": true,
+  "scripts": {
+    "install:app": "npm --prefix frontend/frotasync ci",
+    "dev": "npm --prefix frontend/frotasync run dev",
+    "build": "npm --prefix frontend/frotasync run build",
+    "lint": "npm --prefix frontend/frotasync run lint",
+    "test": "npm --prefix frontend/frotasync run test",
+    "typecheck": "next typegen && tsc --noEmit"
+  }
+}
