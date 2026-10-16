@@ -53,8 +53,8 @@ export function TarefaEditarClient({ id, unidadeId, porUnidade = false }: { id: 
       backLabel="Voltar para tarefas"
       onBack={back}
     >
-      <TarefaForm tarefa={tarefa} unidadeNome={unidade.nome} mode="editar" isSaving={mutation.isPending} onNoChanges={() => showToast("Nenhuma alteração para salvar", "info")} onCancel={back} onSubmit={submit} />
-      <ConfirmDialog open={dialogOpen} title="Deseja salvar as alterações?" description={<p>Você está alterando a tarefa "&lt;strong&gt;{tarefa?.titulo || ''}&lt;/strong&gt;", na unidade "&lt;strong&gt;{unidade?.nome ?? ''}&lt;/strong&gt;", deseja prosseguir com as alterações?</p>} cancelLabel="Cancelar" confirmLabel="Salvar alterações" isLoading={mutation.isPending} onCancel={() => { if (!mutation.isPending) setDialogOpen(false); }} onConfirm={confirm} />
+      <TarefaForm tarefa={tarefa} unidadeNome={unidade?.nome ?? ""} mode="editar" isSaving={mutation.isPending} onNoChanges={() => showToast("Nenhuma alteração para salvar", "info")} onCancel={back} onSubmit={submit} />
+      <ConfirmDialog open={dialogOpen} title="Deseja salvar as alterações?" description={<p>Você está alterando a tarefa &quot;<strong>{tarefa?.titulo || ''}</strong>&quot;, na unidade &quot;<strong>{unidade?.nome ?? ''}</strong>&quot;, deseja prosseguir com as alterações?</p>} cancelLabel="Cancelar" confirmLabel="Salvar alterações" isLoading={mutation.isPending} onCancel={() => { if (!mutation.isPending) setDialogOpen(false); }} onConfirm={confirm} />
     </EditPageShell>
   );
 }

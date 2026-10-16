@@ -55,7 +55,7 @@ export function DocumentoEditarClient({ id, unidadeId, porUnidade = false }: { i
       onBack={back}
     >
       <DocumentoForm documento={documento} unidadeNome={unidade?.nome ?? ""} categorias={mockCategorias} mode="editar" isSaving={mutation.isPending} onNoChanges={() => showToast("Nenhuma alteração para salvar", "info")} onCancel={back} onSubmit={submit} />
-      <ConfirmDialog open={dialogOpen} title="Deseja salvar as alterações?" description={<p>Você está alterando o documento "&lt;strong&gt;{documento?.nome || ''}&lt;/strong&gt;", na unidade "&lt;strong&gt;{unidade?.nome ?? ''}&lt;/strong&gt;", deseja prosseguir com as alterações?</p>} cancelLabel="Cancelar" confirmLabel="Salvar alterações" isLoading={mutation.isPending} onCancel={() => { if (!mutation.isPending) setDialogOpen(false); }} onConfirm={confirm} />
+      <ConfirmDialog open={dialogOpen} title="Deseja salvar as alterações?" description={<p>Você está alterando o documento &quot;<strong>{documento?.nome || ''}</strong>&quot;, na unidade &quot;<strong>{unidade?.nome ?? ''}</strong>&quot;, deseja prosseguir com as alterações?</p>} cancelLabel="Cancelar" confirmLabel="Salvar alterações" isLoading={mutation.isPending} onCancel={() => { if (!mutation.isPending) setDialogOpen(false); }} onConfirm={confirm} />
     </EditPageShell>
   );
 }
