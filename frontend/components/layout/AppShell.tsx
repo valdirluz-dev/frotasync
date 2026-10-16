@@ -38,6 +38,13 @@ export function AppShell({
             <Icon name="units" />
             Unidades
           </Link>
+          {/*Novos itens movidos do centro para a lateral */}
+           <Link
+            href="/dashboard?tab=documentos"
+            className={`flex items-center gap-3 rounded-xl px-4 py-3 text-sm ${isUnitsSection ? "text-slate-600" : "bg-indigo-50 font-semibold text-indigo-700"}`}>
+            <Icon name="document" />
+            Documentos
+          </Link>
           <a
             href="#"
             onClick={(event) => event.preventDefault()}
@@ -79,6 +86,13 @@ export function AppShell({
                 className={`flex items-center gap-3 rounded-xl px-4 py-3 text-sm ${isUnitsSection ? "bg-indigo-50 font-semibold text-indigo-700" : "text-slate-600"}`}>
                 <Icon name="units" />
                 Unidades
+              </Link>
+               <Link
+                onClick={() => setMobileMenuOpen(false)}
+                href="/documentos"
+                className={`flex items-center gap-3 rounded-xl px-4 py-3 text-sm ${isUnitsSection ? "text-slate-600" : "bg-indigo-50 font-semibold text-indigo-700"}`}>
+                <Icon name="document" />
+                Documentos
               </Link>
               <a
                 href="#"
