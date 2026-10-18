@@ -10,7 +10,7 @@ export function AppShell({
   breadcrumb = "section",
   children,
 }: {
-  activeTab: "dashboard" | "documentos" | "tarefas" | "unidades";
+  activeTab: "dashboard" | "documentos" | "tarefas" | "unidades" | "configuracoes";
   breadcrumb?:
     | "section"
     | "newUnit"
@@ -19,56 +19,79 @@ export function AppShell({
   children: ReactNode;
 }) {
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
-  const isDashboardSection = activeTab === "dashboard"
+  
+  // Variáveis isoladas e estritas para controlar exatamente qual aba está ativa
+  const isDashboardSection = activeTab === "dashboard";
   const isUnitsSection = activeTab === "unidades";
   const isDocumentsSection = activeTab === "documentos";
   const isTasksSection = activeTab === "tarefas";
+  const isConfigSection = activeTab === "configuracoes";
 
   return (
     <div className="min-h-screen bg-surface font-[Inter,ui-sans-serif,system-ui,sans-serif] text-slate-900">
       <aside className="fixed inset-y-0 left-0 z-40 hidden w-[300px] border-r border-slate-200 bg-white px-6 pt-5 lg:block">
         <Brand />
         <nav aria-label="Menu principal" className="mt-10 space-y-2">
+          
+          {/* Botão do Dashboard */}
           <Link
-          //Botão do dashboard
             href="/dashboard"
-            className={`flex items-center gap-3 rounded-xl px-4 py-3 text-sm ${isDashboardSection ? "bg-indigo-50 font-semibold text-indigo-700" : "text-slate-600 hover:bg-slate-50"}`}>
+            className={`flex items-center gap-3 rounded-xl px-4 py-3 text-sm ${
+              isDashboardSection
+                ? "bg-indigo-50 font-semibold text-indigo-700"
+                : "text-slate-600 hover:bg-slate-50"
+            }`}>
             <Icon name="dashboard" />
             Dashboard
+          </Link>
 
-                <span className="hidden text-xs font-semibold text-slate-800 sm:block">
-                  Unidades
-                </span>
-                        </Link>
+          {/* Botão Unidades */}
           <Link
-          //Botão unidades
             href="/unidades"
-            className={`flex items-center gap-3 rounded-xl px-4 py-3 text-sm ${isUnitsSection ? "bg-indigo-50 font-semibold text-indigo-700" : "text-slate-600 hover:bg-slate-50"}`}>
+            className={`flex items-center gap-3 rounded-xl px-4 py-3 text-sm ${
+              isUnitsSection
+                ? "bg-indigo-50 font-semibold text-indigo-700"
+                : "text-slate-600 hover:bg-slate-50"
+            }`}>
             <Icon name="units" />
             Unidades
           </Link>
         
-           <Link
-           //Botão documentos movido do centro para a lateral 
+          {/* Botão Documentos */}
+          <Link
             href="/documentos"
-            className={`flex items-center gap-3 rounded-xl px-4 py-3 text-sm ${isDocumentsSection ? "bg-indigo-50 font-semibold text-indigo-700" : "text-slate-600 hover:bg-slate-50"}`}>
+            className={`flex items-center gap-3 rounded-xl px-4 py-3 text-sm ${
+              isDocumentsSection
+                ? "bg-indigo-50 font-semibold text-indigo-700"
+                : "text-slate-600 hover:bg-slate-50"
+            }`}>
             <Icon name="document" />
             Documentos
           </Link>
-           <Link
-           //Botão tarefas movido do centro para a lateral
+
+          {/* Botão Tarefas */}
+          <Link
             href="/tarefas"
-            className={`flex items-center gap-3 rounded-xl px-4 py-3 text-sm ${isTasksSection ? "bg-indigo-50 font-semibold text-indigo-700" : "text-slate-600 hover:bg-slate-50"}`}>
+            className={`flex items-center gap-3 rounded-xl px-4 py-3 text-sm ${
+              isTasksSection
+                ? "bg-indigo-50 font-semibold text-indigo-700"
+                : "text-slate-600 hover:bg-slate-50"
+            }`}>
             <Icon name="tasks" />
             Tarefas
           </Link>
-          <a
-            href="#"
-            onClick={(event) => event.preventDefault()}
-            className="flex items-center gap-3 rounded-xl px-4 py-3 text-sm text-slate-600 hover:bg-slate-50">
+
+          {/* Botão Configurações */}
+          <Link
+            href="/configuracoes"
+            className={`flex items-center gap-3 rounded-xl px-4 py-3 text-sm ${
+              isConfigSection
+                ? "bg-indigo-50 font-semibold text-indigo-700"
+                : "text-slate-600 hover:bg-slate-50"
+            }`}>
             <Icon name="settings" />
             Configurações
-          </a>
+          </Link>
         </nav>
       </aside>
 
@@ -93,38 +116,58 @@ export function AppShell({
               <Link
                 onClick={() => setMobileMenuOpen(false)}
                 href="/dashboard"
-                className={`flex items-center gap-3 rounded-xl px-4 py-3 text-sm ${isUnitsSection ? "text-slate-600" : "bg-indigo-50 font-semibold text-indigo-700"}`}>
+                className={`flex items-center gap-3 rounded-xl px-4 py-3 text-sm ${
+                  isDashboardSection
+                    ? "bg-indigo-50 font-semibold text-indigo-700"
+                    : "text-slate-600"
+                }`}>
                 <Icon name="dashboard" />
                 Dashboard
               </Link>
               <Link
                 onClick={() => setMobileMenuOpen(false)}
                 href="/unidades"
-                className={`flex items-center gap-3 rounded-xl px-4 py-3 text-sm ${isUnitsSection ? "bg-indigo-50 font-semibold text-indigo-700" : "text-slate-600"}`}>
+                className={`flex items-center gap-3 rounded-xl px-4 py-3 text-sm ${
+                  isUnitsSection
+                    ? "bg-indigo-50 font-semibold text-indigo-700"
+                    : "text-slate-600"
+                }`}>
                 <Icon name="units" />
                 Unidades
               </Link>
-               <Link
+              <Link
                 onClick={() => setMobileMenuOpen(false)}
                 href="/documentos"
-                className={`flex items-center gap-3 rounded-xl px-4 py-3 text-sm ${isDocumentsSection ? "bg-indigo-50 font-semibold text-indigo-700" : "text-slate-600"}`}>
+                className={`flex items-center gap-3 rounded-xl px-4 py-3 text-sm ${
+                  isDocumentsSection
+                    ? "bg-indigo-50 font-semibold text-indigo-700"
+                    : "text-slate-600"
+                }`}>
                 <Icon name="document" />
                 Documentos
               </Link>
               <Link
                 onClick={() => setMobileMenuOpen(false)}
                 href="/tarefas"
-                className={`flex items-center gap-3 rounded-xl px-4 py-3 text-sm ${isTasksSection ? "bg-indigo-50 font-semibold text-indigo-700" : "text-slate-600"}`}>
+                className={`flex items-center gap-3 rounded-xl px-4 py-3 text-sm ${
+                  isTasksSection
+                    ? "bg-indigo-50 font-semibold text-indigo-700"
+                    : "text-slate-600"
+                }`}>
                 <Icon name="tasks" />
                 Tarefas
               </Link>
-              <a
-                href="#"
-                onClick={(event) => event.preventDefault()}
-                className="flex items-center gap-3 rounded-xl px-4 py-3 text-sm text-slate-600">
+              <Link
+                onClick={() => setMobileMenuOpen(false)}
+                href="/configuracoes"
+                className={`flex items-center gap-3 rounded-xl px-4 py-3 text-sm ${
+                  isConfigSection
+                    ? "bg-indigo-50 font-semibold text-indigo-700"
+                    : "text-slate-600"
+                }`}>
                 <Icon name="settings" />
                 Configurações
-              </a>
+              </Link>
             </nav>
           </aside>
         </div>
@@ -172,6 +215,11 @@ export function AppShell({
                   </span>
                 </div>
               ) : (
+                <span className="hidden text-xs font-semibold text-slate-800 sm:block">
+                  Unidades
+                </span>
+              )
+            ) : (
               <div className="hidden items-center gap-2 text-xs sm:flex">
                 <span className="text-slate-500">Dashboard Global</span>
                 <span className="text-slate-300">/</span>
@@ -179,7 +227,7 @@ export function AppShell({
                   {activeTab}
                 </span>
               </div>
-            ) 
+            )}
           </div>
           <div className="flex items-center gap-3 sm:gap-5">
             <label className="hidden h-10 w-[220px] items-center gap-2 rounded-xl border border-slate-200 bg-surface px-3 text-slate-400 md:flex xl:w-[270px]">
