@@ -241,10 +241,13 @@ export function AppShell({
             <button
               type="button"
               aria-label="Notificações"
-              className="relative text-slate-500">
-              <Icon name="bell" className="h-[18px] w-[18px]" />
+              className="group relative text-slate-500">
+              <Icon name="bell" className="h-[18px] w-[18px] group-hover:animate-wiggle" />
               <span className="absolute -right-0.5 -top-0.5 h-1.5 w-1.5 rounded-full bg-red-500 ring-2 ring-white" />
             </button>
+
+            
+
             <button type="button" aria-label="Ajuda" className="text-slate-500">
               <Icon name="help" className="h-[18px] w-[18px]" />
             </button>
