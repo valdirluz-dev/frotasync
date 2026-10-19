@@ -4,7 +4,7 @@
 
 **Sistema de Gestão de Unidades, Documentos e Tarefas** — aplicação web frontend para acompanhar filiais, pátios, documentos de conformidade e tarefas relacionadas.
 
-O **FrotaSync** é uma aplicação **100% frontend** em **Next.js** e **TypeScript** que centraliza a gestão de **unidades** (filiais e pátios), **documentos** com status de validade calculado automaticamente e **tarefas** vinculadas a cada unidade. Regras de negócio (autenticação, unidades inativas, validade documental, fluxo de tarefas) são simuladas com **dados mockados** via **TanStack Query**, alinhados ao contrato de API futuro em [`plan/versao_1.1.0/`](plan/versao_1.1.0/).
+O **FrotaSync** é uma aplicação **100% frontend** em **Next.js** e **TypeScript** que centraliza a gestão de **unidades** (filiais e pátios), **documentos** com status de validade calculado automaticamente e **tarefas** vinculadas a cada unidade. Regras de negócio (autenticação, unidades inativas, validade documental, fluxo de tarefas) são simuladas com **dados mockados** via **TanStack Query**, alinhados ao contrato de API futuro em [`plan/versao_1.2.0/`](plan/versao_1.2.0/).
 
 Cenário: transportadora fictícia **FrotaSync**. Documentos exemplo: Licença Ambiental, Registro na ANTT, Seguro de Carga. Tarefa exemplo: *“Renovar licença do pátio de Recife”*.
 
@@ -34,14 +34,19 @@ Inclua capturas em `docs/images/` e atualize os links quando a interface estiver
 **Regra de validade do documento** (calculada na leitura — nunca persistida nem editada manualmente):
 
 ```ts
-// RF 011 — referência: data atual; limiar: 15 dias
-function statusValidadeDocumento(dataValidade: Date, hoje = new Date()): string {
-  const diffDias = Math.ceil(
-    (dataValidade.getTime() - hoje.getTime()) / (1000 * 60 * 60 * 24)
+// lib/status.ts — UTC, Math.floor
+const DAY_MS = 24 * 60 * 60 * 1000;
+function utcDay(value: Date | string): number { ... }
+export function calcularStatusDocumento(
+  dataValidade: Date | string,
+  hoje: Date = new Date(),
+): DocumentoStatus {
+  const diasRestantes = Math.floor(
+    (utcDay(dataValidade) - utcDay(hoje)) / DAY_MS,
   );
-  if (diffDias < 0) return "expirado";
-  if (diffDias <= 15) return "proximo_vencimento";
-  return "valido";
+  if (diasRestantes < 0) return "Expirado";
+  if (diasRestantes <= 15) return "Próximo do vencimento";
+  return "Válido";
 }
 ```
 
@@ -64,6 +69,16 @@ function statusValidadeDocumento(dataValidade: Date, hoje = new Date()): string 
 - **UX e qualidade** — Layout responsivo, estados de carregamento/erro/vazio, componentes reutilizáveis, schemas Zod como contrato de dados (RNF 009–014).
 - **Opcionais (backlog v1.1)** — Bloqueio de exclusão de unidade com pendências; histórico de alterações; tema claro/escuro; camada de API simulada (MSW/Route Handlers); testes automatizados; deploy.
 
+
+## Funcionalidade | Status
+
+| Funcionalidade | Status |
+| --- | --- |
+| Login | Pronto |
+| Cadastro (unidades) | Pronto |
+| Documentos | Em andamento |
+| Tarefas | Pendente |
+
 ## Arquitetura
 
 ```text
@@ -79,7 +94,7 @@ function statusValidadeDocumento(dataValidade: Date, hoje = new Date()): string 
 └─────────────────────────────────────────────────────────────┘
 ```
 
-Referência de backend futuro (fora do escopo atual): **NestJS**, **PostgreSQL**, **JWT** — ver [`Design_de_API_v1_1.md`](plan/versao_1.1.0/Design_de_API_v1_1.md) e [`Modelagem_de_Dados_v1_1.md`](plan/versao_1.1.0/Modelagem_de_Dados_v1_1.md).
+Referência de backend futuro (fora do escopo atual): **NestJS**, **PostgreSQL**, **JWT** — ver [`Design_de_API_v1_1.md`](plan/versao_1.2.0/Design_de_API_v1_1.md) e [`Modelagem_de_Dados_v1_1.md`](plan/versao_1.2.0/Modelagem_de_Dados_v1_1.md).
 
 ## Instalação e uso
 
@@ -91,14 +106,9 @@ Referência de backend futuro (fora do escopo atual): **NestJS**, **PostgreSQL**
 ### Configuração
 
 ```bash
-git clone https://github.com/<owner>/frotasync.git
+git clone https://github.com/valdirluz-dev/frotasync.git
 cd frotasync
-npm install
-```
-
-Quando o código da aplicação estiver no repositório:
-
-```bash
+npm run install:app
 npm run dev
 ```
 
@@ -131,10 +141,10 @@ Acesse [http://localhost:3000](http://localhost:3000). Use as credenciais mock d
 
 | Documento | Descrição |
 | --- | --- |
-| [`Analise_de_Requisitos_v1_1_FrotaSync.md`](plan/versao_1.1.0/Analise_de_Requisitos_v1_1_FrotaSync.md) | Requisitos funcionais e não funcionais (v1.1) |
-| [`Estorias_de_Usuario_e_Backlog_v1_1.md`](plan/versao_1.1.0/Estorias_de_Usuario_e_Backlog_v1_1.md) | Estórias de usuário e backlog MoSCoW |
-| [`Design_de_API_v1_1.md`](plan/versao_1.1.0/Design_de_API_v1_1.md) | Contrato REST (integração futura) |
-| [`Modelagem_de_Dados_v1_1.md`](plan/versao_1.1.0/Modelagem_de_Dados_v1_1.md) | Modelagem de dados (referência PostgreSQL) |
+| [`Analise_de_Requisitos_v1_1_FrotaSync.md`](plan/versao_1.2.0/Analise_de_Requisitos_v1_1_FrotaSync.md) | Requisitos funcionais e não funcionais (v1.1) |
+| [`Estorias_de_Usuario_e_Backlog_v1_1.md`](plan/versao_1.2.0/Estorias_de_Usuario_e_Backlog_v1_1.md) | Estórias de usuário e backlog MoSCoW |
+| [`Design_de_API_v1_1.md`](plan/versao_1.2.0/Design_de_API_v1_1.md) | Contrato REST (integração futura) |
+| [`Modelagem_de_Dados_v1_1.md`](plan/versao_1.2.0/Modelagem_de_Dados_v1_1.md) | Modelagem de dados (referência PostgreSQL) |
 
 ## Contribuidores e licença
 
