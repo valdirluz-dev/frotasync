@@ -10,7 +10,7 @@ export function AppShell({
   breadcrumb = "section",
   children,
 }: {
-  activeTab: "documentos" | "tarefas" | "unidades";
+  activeTab: "dashboard" | "documentos" | "tarefas" | "unidades" | "configuracoes";
   breadcrumb?:
     | "section"
     | "newUnit"
@@ -19,32 +19,79 @@ export function AppShell({
   children: ReactNode;
 }) {
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
+  
+  // Variáveis isoladas e estritas para controlar exatamente qual aba está ativa
+  const isDashboardSection = activeTab === "dashboard";
   const isUnitsSection = activeTab === "unidades";
+  const isDocumentsSection = activeTab === "documentos";
+  const isTasksSection = activeTab === "tarefas";
+  const isConfigSection = activeTab === "configuracoes";
 
   return (
     <div className="min-h-screen bg-surface font-[Inter,ui-sans-serif,system-ui,sans-serif] text-slate-900">
       <aside className="fixed inset-y-0 left-0 z-40 hidden w-[300px] border-r border-slate-200 bg-white px-6 pt-5 lg:block">
         <Brand />
         <nav aria-label="Menu principal" className="mt-10 space-y-2">
+          
+          {/* Botão do Dashboard */}
           <Link
             href="/dashboard"
-            className={`flex items-center gap-3 rounded-xl px-4 py-3 text-sm ${isUnitsSection ? "text-slate-600 hover:bg-slate-50" : "bg-indigo-50 font-semibold text-indigo-700"}`}>
+            className={`flex items-center gap-3 rounded-xl px-4 py-3 text-sm ${
+              isDashboardSection
+                ? "bg-indigo-50 font-semibold text-indigo-700"
+                : "text-slate-600 hover:bg-slate-50"
+            }`}>
             <Icon name="dashboard" />
             Dashboard
           </Link>
+
+          {/* Botão Unidades */}
           <Link
             href="/unidades"
-            className={`flex items-center gap-3 rounded-xl px-4 py-3 text-sm ${isUnitsSection ? "bg-indigo-50 font-semibold text-indigo-700" : "text-slate-600 hover:bg-slate-50"}`}>
+            className={`flex items-center gap-3 rounded-xl px-4 py-3 text-sm ${
+              isUnitsSection
+                ? "bg-indigo-50 font-semibold text-indigo-700"
+                : "text-slate-600 hover:bg-slate-50"
+            }`}>
             <Icon name="units" />
             Unidades
           </Link>
-          <a
-            href="#"
-            onClick={(event) => event.preventDefault()}
-            className="flex items-center gap-3 rounded-xl px-4 py-3 text-sm text-slate-600 hover:bg-slate-50">
+        
+          {/* Botão Documentos */}
+          <Link
+            href="/documentos"
+            className={`flex items-center gap-3 rounded-xl px-4 py-3 text-sm ${
+              isDocumentsSection
+                ? "bg-indigo-50 font-semibold text-indigo-700"
+                : "text-slate-600 hover:bg-slate-50"
+            }`}>
+            <Icon name="document" />
+            Documentos
+          </Link>
+
+          {/* Botão Tarefas */}
+          <Link
+            href="/tarefas"
+            className={`flex items-center gap-3 rounded-xl px-4 py-3 text-sm ${
+              isTasksSection
+                ? "bg-indigo-50 font-semibold text-indigo-700"
+                : "text-slate-600 hover:bg-slate-50"
+            }`}>
+            <Icon name="tasks" />
+            Tarefas
+          </Link>
+
+          {/* Botão Configurações */}
+          <Link
+            href="/configuracoes"
+            className={`flex items-center gap-3 rounded-xl px-4 py-3 text-sm ${
+              isConfigSection
+                ? "bg-indigo-50 font-semibold text-indigo-700"
+                : "text-slate-600 hover:bg-slate-50"
+            }`}>
             <Icon name="settings" />
             Configurações
-          </a>
+          </Link>
         </nav>
       </aside>
 
@@ -69,24 +116,58 @@ export function AppShell({
               <Link
                 onClick={() => setMobileMenuOpen(false)}
                 href="/dashboard"
-                className={`flex items-center gap-3 rounded-xl px-4 py-3 text-sm ${isUnitsSection ? "text-slate-600" : "bg-indigo-50 font-semibold text-indigo-700"}`}>
+                className={`flex items-center gap-3 rounded-xl px-4 py-3 text-sm ${
+                  isDashboardSection
+                    ? "bg-indigo-50 font-semibold text-indigo-700"
+                    : "text-slate-600"
+                }`}>
                 <Icon name="dashboard" />
                 Dashboard
               </Link>
               <Link
                 onClick={() => setMobileMenuOpen(false)}
                 href="/unidades"
-                className={`flex items-center gap-3 rounded-xl px-4 py-3 text-sm ${isUnitsSection ? "bg-indigo-50 font-semibold text-indigo-700" : "text-slate-600"}`}>
+                className={`flex items-center gap-3 rounded-xl px-4 py-3 text-sm ${
+                  isUnitsSection
+                    ? "bg-indigo-50 font-semibold text-indigo-700"
+                    : "text-slate-600"
+                }`}>
                 <Icon name="units" />
                 Unidades
               </Link>
-              <a
-                href="#"
-                onClick={(event) => event.preventDefault()}
-                className="flex items-center gap-3 rounded-xl px-4 py-3 text-sm text-slate-600">
+              <Link
+                onClick={() => setMobileMenuOpen(false)}
+                href="/documentos"
+                className={`flex items-center gap-3 rounded-xl px-4 py-3 text-sm ${
+                  isDocumentsSection
+                    ? "bg-indigo-50 font-semibold text-indigo-700"
+                    : "text-slate-600"
+                }`}>
+                <Icon name="document" />
+                Documentos
+              </Link>
+              <Link
+                onClick={() => setMobileMenuOpen(false)}
+                href="/tarefas"
+                className={`flex items-center gap-3 rounded-xl px-4 py-3 text-sm ${
+                  isTasksSection
+                    ? "bg-indigo-50 font-semibold text-indigo-700"
+                    : "text-slate-600"
+                }`}>
+                <Icon name="tasks" />
+                Tarefas
+              </Link>
+              <Link
+                onClick={() => setMobileMenuOpen(false)}
+                href="/configuracoes"
+                className={`flex items-center gap-3 rounded-xl px-4 py-3 text-sm ${
+                  isConfigSection
+                    ? "bg-indigo-50 font-semibold text-indigo-700"
+                    : "text-slate-600"
+                }`}>
                 <Icon name="settings" />
                 Configurações
-              </a>
+              </Link>
             </nav>
           </aside>
         </div>
@@ -160,10 +241,13 @@ export function AppShell({
             <button
               type="button"
               aria-label="Notificações"
-              className="relative text-slate-500">
-              <Icon name="bell" className="h-[18px] w-[18px]" />
+              className="group relative text-slate-500">
+              <Icon name="bell" className="h-[18px] w-[18px] group-hover:animate-wiggle" />
               <span className="absolute -right-0.5 -top-0.5 h-1.5 w-1.5 rounded-full bg-red-500 ring-2 ring-white" />
             </button>
+
+            
+
             <button type="button" aria-label="Ajuda" className="text-slate-500">
               <Icon name="help" className="h-[18px] w-[18px]" />
             </button>

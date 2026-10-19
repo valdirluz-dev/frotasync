@@ -34,6 +34,15 @@ const config: Config = {
       fontFamily: {
         sans: ["Arial", "Helvetica Neue", "sans-serif"],
       },
+    keyframes: {
+      wiggle: {
+        "0%, 100%": { transform: "rotate(-8deg)" },
+        "50%": { transform: "rotate(8deg)" },
+      },
+    },
+        animation: {
+      wiggle: "wiggle 0.4s ease-in-out",
+    },
     },
   },
   plugins: [],
