@@ -27,12 +27,12 @@ export default function NovoDocumentoPage() {
           <DocumentoForm
             documento={{
               id: "",
-              titulo: "",
+              nome: "",
               categoria: "",
               unidadeId: "",
-              status: "Válido",
+              dataEmissao: "",
               dataValidade: "",
-            } as any}
+            }}
             unidadeNome=""
             categorias={[]}
             isSaving={false}
