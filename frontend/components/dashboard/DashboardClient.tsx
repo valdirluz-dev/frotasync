@@ -49,14 +49,17 @@ export function DashboardClient() {
             <StatusDonutCard
               title="Unidades"
               data={indicators?.unidades ?? []}
+              href="/unidades"
             />
             <StatusDonutCard
               title="Documentos"
               data={indicators?.documentos ?? []}
+              href="/documentos"
             />
             <StatusDonutCard
               title="Tarefas"
               data={indicators?.tarefas ?? []}
+              href="/tarefas"
             />
           </>
         )}

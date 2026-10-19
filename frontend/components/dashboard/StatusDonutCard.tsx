@@ -1,23 +1,27 @@
+import Link from "next/link";
+
 import type { DashboardDistribution } from "@/types/domain";
 
 type StatusDonutCardProps = {
   title: string;
   data: DashboardDistribution[];
   muted?: boolean;
+  href?: string;
 };
 
 export function StatusDonutCard({
   title,
   data,
   muted = false,
+  href,
 }: StatusDonutCardProps) {
   const total = data.reduce((sum, item) => sum + item.value, 0);
   const radius = 68;
   const circumference = 2 * Math.PI * radius;
 
-  return (
+  const card = (
     <section
-      className={`flex min-h-[320px] flex-col items-center rounded-[30px] px-5 py-6 text-white shadow-[0_5px_8px_rgba(15,23,42,0.20)] sm:min-h-[350px] lg:min-h-[390px] ${muted ? "bg-[#A5A0F0]" : "bg-[#4F46E5]"}`}
+      className={`flex h-full min-h-[320px] flex-col items-center rounded-[30px] px-5 py-6 text-white shadow-[0_5px_8px_rgba(15,23,42,0.20)] sm:min-h-[350px] lg:min-h-[390px] ${muted ? "bg-[#A5A0F0]" : "bg-[#4F46E5]"}`}
       aria-label={`Indicadores de ${title}`}>
       <h2 className="text-center text-2xl font-bold tracking-tight drop-shadow-sm sm:text-[30px]">
         {title}
@@ -85,5 +89,16 @@ export function StatusDonutCard({
         ))}
       </ul>
     </section>
+  );
+
+  if (!href) return card;
+
+  return (
+    <Link
+      href={href}
+      aria-label={`Ir para ${title}`}
+      className="block rounded-[30px] transition duration-150 hover:-translate-y-1 hover:shadow-lg focus-visible:outline-none focus-visible:ring-4 focus-visible:ring-indigo-300 focus-visible:ring-offset-2 motion-reduce:transition-none motion-reduce:transform-none">
+      {card}
+    </Link>
   );
 }
