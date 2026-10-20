@@ -2,25 +2,28 @@
 
 **Idiomas / Languages:** [English](README.md) · **[Português (Brasil)](README.pt-BR.md)**
 
-**Sistema de Gestão de Unidades, Documentos e Tarefas** — aplicação web frontend para acompanhar filiais, pátios, documentos de conformidade e tarefas relacionadas.
+**Sistema de Gestão de Unidades, Documentos e Tarefas** — aplicação web full-stack para acompanhar filiais, pátios, documentos de conformidade e tarefas relacionadas.
 
-O **FrotaSync** é uma aplicação **100% frontend** em **Next.js** e **TypeScript** que centraliza a gestão de **unidades** (filiais e pátios), **documentos** com status de validade calculado automaticamente e **tarefas** vinculadas a cada unidade. Regras de negócio (autenticação, unidades inativas, validade documental, fluxo de tarefas) são simuladas com **dados mockados** via **TanStack Query**, alinhados ao contrato de API futuro em [`plan/versao_1.2.0/`](plan/versao_1.2.0/).
+O **FrotaSync** é uma aplicação full-stack composta por frontend em **Next.js** e **TypeScript**, API REST em **NestJS** e banco de dados **PostgreSQL**, com infraestrutura implantada na **AWS**. O sistema centraliza a gestão de **unidades** (filiais e pátios), **documentos** com status de validade calculado automaticamente e **tarefas** vinculadas a cada unidade. As regras de negócio — autenticação, unidades inativas, vencimento de documentos e fluxo de tarefas — são executadas pela API, que é a fonte oficial dos dados. Até a integração entre frontend e API (Épico 13), essas regras são simuladas com **dados mockados** via **TanStack Query**, seguindo o contrato descrito em [`plan/versao_1.3.0/`](plan/versao_1.3.0/).
 
-Cenário: transportadora fictícia **FrotaSync**. Documentos exemplo: Licença Ambiental, Registro na ANTT, Seguro de Carga. Tarefa exemplo: *“Renovar licença do pátio de Recife”*.
+O cenário é uma transportadora fictícia (**FrotaSync**) com filiais e pátios. Exemplos de documentos: Licença Ambiental, Registro na ANTT e Seguro de Carga. Exemplo de tarefa: *“Renovar licença do pátio de Recife”*.
 
 > **Projeto acadêmico / portfólio** — squad da Residência Motiron Technologies.
 
 ## Badges
 
-![Licença: MIT](https://img.shields.io/badge/Licença-MIT-blue.svg)
+![Licença: MIT](https://img.shields.io/badge/Licen%C3%A7a-MIT-blue.svg)
 ![Next.js](https://img.shields.io/badge/Next.js-App%20Router-black?logo=next.js)
 ![TypeScript](https://img.shields.io/badge/TypeScript-5.x-blue?logo=typescript&logoColor=white)
 ![React](https://img.shields.io/badge/React-19-61DAFB?logo=react&logoColor=black)
 ![Tailwind CSS](https://img.shields.io/badge/Tailwind_CSS-3.x-38B2AC?logo=tailwind-css&logoColor=white)
+![NestJS](https://img.shields.io/badge/NestJS-API-E0234E?logo=nestjs&logoColor=white)
+![PostgreSQL](https://img.shields.io/badge/PostgreSQL-Flyway-4169E1?logo=postgresql&logoColor=white)
+![AWS](https://img.shields.io/badge/AWS-Terraform%20%2B%20Docker-FF9900?logo=amazonaws&logoColor=white)
 
 <!-- Substitua quando CI/deploy existirem:
 ![Build](https://img.shields.io/github/actions/workflow/status/OWNER/frotasync/ci.yml)
-![Deploy](https://img.shields.io/badge/deploy-Vercel-black?logo=vercel)
+![Deploy](https://img.shields.io/badge/deploy-AWS-FF9900?logo=amazonaws)
 -->
 
 ## Capa / demonstração
@@ -29,9 +32,9 @@ Cenário: transportadora fictícia **FrotaSync**. Documentos exemplo: Licença A
 | :---: | :---: | :---: |
 | *Espaço reservado para screenshot* | *Espaço reservado para screenshot* | *Espaço reservado para screenshot* |
 
-Inclua capturas em `docs/images/` e atualize os links quando a interface estiver pronta.
+Adicione capturas em `docs/images/` e atualize os links quando a interface estiver disponível.
 
-**Regra de validade do documento** (calculada na leitura — nunca persistida nem editada manualmente):
+**Regra de validade do documento** (calculada na leitura — nunca armazenada nem editada manualmente; a API é a fonte oficial dos dados, conforme RNF 007 e RNF 024):
 
 ```ts
 // lib/status.ts — UTC, Math.floor
@@ -53,6 +56,7 @@ export function calcularStatusDocumento(
 ## Índice
 
 - [Funcionalidades](#funcionalidades)
+- [Status das funcionalidades](#status-das-funcionalidades)
 - [Arquitetura](#arquitetura)
 - [Instalação e uso](#instalação-e-uso)
 - [Tecnologias](#tecnologias)
@@ -61,23 +65,27 @@ export function calcularStatusDocumento(
 
 ## Funcionalidades
 
-- **Autenticação** — Login com e-mail e senha validados por Zod; rotas protegidas redirecionam para `/login` sem sessão válida (RNF 004).
-- **Dashboard** — Totais de unidades, documentos, tarefas pendentes e **total de pendências** (documentos a vencer/vencidos + tarefas pendentes/em andamento), com atualização automática via cache (RF 002–003).
-- **Unidades** — Listagem com pesquisa, filtros e paginação (TanStack Table); cadastro e edição; detalhamento com documentos e tarefas; unidades inativas não recebem novos vínculos (RF 004–007).
-- **Documentos** — Listas global e por unidade; cadastro em unidades ativas; status automático: Válido / Próximo do vencimento (≤15 dias) / Expirado (RF 008–011).
-- **Tarefas** — Listas global e por unidade; cadastro em unidades ativas; fluxo de status (Pendente → Em andamento → Concluída) com confirmação ao concluir (RF 012–015).
-- **UX e qualidade** — Layout responsivo, estados de carregamento/erro/vazio, componentes reutilizáveis, schemas Zod como contrato de dados (RNF 009–014).
-- **Opcionais (backlog v1.1)** — Bloqueio de exclusão de unidade com pendências; histórico de alterações; tema claro/escuro; camada de API simulada (MSW/Route Handlers); testes automatizados; deploy.
+- **Autenticação** — login com e-mail e senha e opção “Lembrar-me”; validação com Zod; cadastro em três etapas (usuário e empresa); recuperação de senha por código enviado por e-mail; JWT com autorização baseada em função e isolamento de dados por empresa na API. Rotas protegidas redirecionam para `/login` quando não há autenticação (RF 001, 019, 020, 027; RNF 004, 024, 025).
+- **Dashboard** — cartões com totais de unidades, documentos, tarefas pendentes e **total de pendências abertas** (documentos vencendo/vencidos + tarefas pendentes/em andamento), calculados pela API, com invalidação de cache após alterações (RF 002–003). As listas globais exibem variação em relação ao período anterior (RF 024).
+- **Unidades** — grade de cartões com pesquisa, filtros e paginação (TanStack Table); cadastro e edição com consulta de CEP realizada pelo backend; ativação/inativação com confirmação; detalhes da unidade com documentos e tarefas vinculados. Unidades inativas bloqueiam novos documentos e tarefas (RF 004–007, 021).
+- **Documentos** — lista global na rota `/documentos` e listas por unidade; cadastro e edição em unidades ativas com anexos armazenados de forma privada no S3 e download autorizado; status automático de validade: válido, próximo do vencimento (≤15 dias) ou expirado (RF 008–011, 022, 026).
+- **Tarefas** — lista global na rota `/tarefas` e listas por unidade; cadastro e edição em unidades ativas; fluxo de status (Pendente → Em andamento → Concluída), com modal de confirmação ao concluir (RF 012–015, 023).
+- **Experiência e qualidade** — layout responsivo, estados de carregamento/erro/vazio, componentes de interface compartilhados e schemas Zod como contrato de dados (RNF 009–014).
+- **Backend e nuvem (v1.3)** — API REST NestJS (`/api/v1`) com Swagger/OpenAPI; PostgreSQL com migrações Flyway; Docker para desenvolvimento local; Terraform na AWS (RDS, S3, ECR e ambiente de execução de contêineres); CI/CD com GitHub Actions (RNF 022–033, Épicos 11–14).
+- **Opcionais (backlog)** — exclusão de unidade bloqueada quando existem pendências abertas; histórico de auditoria de alterações; tema claro/escuro; testes automatizados do frontend. A camada de API simulada foi descartada como solução definitiva, e o deploy na Vercel foi substituído pelo deploy na AWS na versão 1.3.
 
-
-## Funcionalidade | Status
+## Status das funcionalidades
 
 | Funcionalidade | Status |
 | --- | --- |
 | Login | Pronto |
-| Cadastro (unidades) | Pronto |
+| Cadastro de unidades | Pronto |
 | Documentos | Em andamento |
 | Tarefas | Pendente |
+| Banco de dados (PostgreSQL) | Pendente |
+| API (NestJS) | Pendente |
+| Integração frontend ↔ API | Pendente |
+| Infraestrutura e deploy na AWS | Pendente |
 
 ## Arquitetura
 
@@ -87,14 +95,20 @@ export function calcularStatusDocumento(
 ├─────────────────────────────────────────────────────────────┤
 │  Telas: Login · Dashboard · Unidades · Documentos · Tarefas │
 ├─────────────────────────────────────────────────────────────┤
-│  TanStack Query (estado servidor) │ TanStack Table (listas) │
+│  TanStack Query (estado do servidor) │ TanStack Table       │
 │  React Hook Form + Zod (formulários e validação)            │
 ├─────────────────────────────────────────────────────────────┤
-│  Camada mock (RNF 008) — substituível por API REST v1       │
+│  Cliente HTTP — API REST /api/v1 (JWT) [mocks até Épico 13] │
+├─────────────────────────────────────────────────────────────┤
+│  API NestJS — autenticação, regras de negócio, Swagger      │
+├─────────────────────────────────────────────────────────────┤
+│  PostgreSQL (Flyway) │ Amazon S3 (anexos de documentos)     │
+├─────────────────────────────────────────────────────────────┤
+│  Docker · Terraform · AWS · GitHub Actions (CI/CD)          │
 └─────────────────────────────────────────────────────────────┘
 ```
 
-Referência de backend futuro (fora do escopo atual): **NestJS**, **PostgreSQL**, **JWT** — ver [`Design_de_API_v1_1.md`](plan/versao_1.2.0/Design_de_API_v1_1.md) e [`Modelagem_de_Dados_v1_1.md`](plan/versao_1.2.0/Modelagem_de_Dados_v1_1.md).
+Camadas de backend e nuvem (Épicos 11–14): **NestJS**, **PostgreSQL**, **JWT**, **Docker**, **Terraform** e **AWS**. Consulte [`Design_de_API_v1_3.md`](plan/versao_1.3.0/Design_de_API_v1_3.md) e [`Modelagem_de_Dados_v1_3.md`](plan/versao_1.3.0/Modelagem_de_Dados_v1_3.md).
 
 ## Instalação e uso
 
@@ -102,6 +116,7 @@ Referência de backend futuro (fora do escopo atual): **NestJS**, **PostgreSQL**
 
 - **Node.js** 20 LTS ou superior
 - **npm**, **pnpm** ou **yarn**
+- **Docker** e **Docker Compose** (para o ambiente local full-stack, planejado na US 141)
 
 ### Configuração
 
@@ -112,44 +127,54 @@ npm run install:app
 npm run dev
 ```
 
-Acesse [http://localhost:3000](http://localhost:3000). Use as credenciais mock definidas na camada de usuários do projeto (exemplo do design de API: `colaborador@frotasync.com.br`).
+Acesse [http://localhost:3000](http://localhost:3000). Use as credenciais mock definidas na camada de usuários simulados do projeto (exemplo no design da API: `colaborador@frotasync.com.br`). Após a integração da API (Épico 13), utilize os usuários criados pelo seed de desenvolvimento (US 116).
 
-### Scripts (padrão Next.js esperado)
+### Ambiente full-stack com Docker (planejado — US 141)
+
+Quando o ambiente Docker estiver implementado, um único comando iniciará o frontend, a API e o PostgreSQL, executando as migrações Flyway na inicialização:
+
+```bash
+docker compose up --build
+```
+
+As variáveis de ambiente estão documentadas em `.env.example`; nenhum segredo deve ser versionado.
+
+### Scripts (Next.js — esperados)
 
 | Comando | Descrição |
 | --- | --- |
-| `npm run dev` | Servidor de desenvolvimento |
-| `npm run build` | Build de produção |
+| `npm run dev` | Inicia o servidor de desenvolvimento |
+| `npm run build` | Gera o build de produção |
 | `npm run start` | Executa o build de produção |
-| `npm run lint` | Lint (quando configurado) |
+| `npm run lint` | Executa o lint (quando configurado) |
 
 ## Tecnologias
 
 | Categoria | Stack |
 | --- | --- |
-| Linguagem | JavaScript, TypeScript |
-| Framework | Next.js, React |
+| Linguagens | JavaScript, TypeScript |
+| Frameworks | Next.js, React |
 | Estilização | Tailwind CSS |
 | Formulários e validação | React Hook Form, Zod |
 | Dados e tabelas | TanStack Query, TanStack Table |
-| Persistência (atual) | Dados mockados (sem banco real) |
-| Persistência (ref. futura) | PostgreSQL, migrações Flyway |
-| API (ref. futura) | NestJS, JWT, Swagger/OpenAPI |
+| Persistência | PostgreSQL, migrações Flyway (dados mockados até a integração do Épico 13) |
+| API | NestJS, JWT, Swagger/OpenAPI |
+| Infraestrutura e entrega | Docker, Terraform, AWS (RDS, S3, ECR), GitHub Actions |
 | IDE | Visual Studio Code |
 
 ## Documentação do projeto
 
 | Documento | Descrição |
 | --- | --- |
-| [`Analise_de_Requisitos_v1_1_FrotaSync.md`](plan/versao_1.2.0/Analise_de_Requisitos_v1_1_FrotaSync.md) | Requisitos funcionais e não funcionais (v1.1) |
-| [`Estorias_de_Usuario_e_Backlog_v1_1.md`](plan/versao_1.2.0/Estorias_de_Usuario_e_Backlog_v1_1.md) | Estórias de usuário e backlog MoSCoW |
-| [`Design_de_API_v1_1.md`](plan/versao_1.2.0/Design_de_API_v1_1.md) | Contrato REST (integração futura) |
-| [`Modelagem_de_Dados_v1_1.md`](plan/versao_1.2.0/Modelagem_de_Dados_v1_1.md) | Modelagem de dados (referência PostgreSQL) |
+| [`Analise_de_Requisitos_v1_3_FrotaSync.md`](plan/versao_1.3.0/Analise_de_Requisitos_v1_3_FrotaSync.md) | Requisitos funcionais e não funcionais (v1.3) |
+| [`Estorias_de_Usuario_e_Backlog_v1_3.md`](plan/versao_1.3.0/Estorias_de_Usuario_e_Backlog_v1_3.md) | Estórias de usuário e backlog MoSCoW |
+| [`Design_de_API_v1_3.md`](plan/versao_1.3.0/Design_de_API_v1_3.md) | Contrato da API REST (NestJS) |
+| [`Modelagem_de_Dados_v1_3.md`](plan/versao_1.3.0/Modelagem_de_Dados_v1_3.md) | Modelo de dados (PostgreSQL e migrações Flyway) |
 
 ## Contribuidores e licença
 
 **Squad de desenvolvimento (Residência Motiron):**
 
-Valdir · Filipe · Gabrieli · Lucas Vinícius · Murilo · Niedson · Silas
+Valdir · Filipe · Gabrielli · Lucas Vinícius · Murilo · Niedson · Silas
 
 **Licença:** [MIT](LICENSE) — Copyright (c) 2026 valdir_luz
