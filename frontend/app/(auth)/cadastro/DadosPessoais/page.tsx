@@ -39,10 +39,10 @@ const isValidCPF = (cpf: string) => {
 export default function DadosPessoais(){
     //Estado dos campos do formulário
     const [formData, setFormData] = useState({
-        Nome: "",
-        CPF: "",
-        Telefone: "",
-        Cargo: "",
+        nome: "",
+        cpf: "",
+        telefone: "",
+        cargo: "",
     });
 
     //Estado dos erros individuais por campo
@@ -67,6 +67,41 @@ export default function DadosPessoais(){
         }
     };
 
+    //Submição com Validação Completa
+    const handleSubmit = (e: React.FormEvent) => {
+        e.preventDefault();
+        const newErrors: {[key: string]: string} = {};
+
+        if (!formData.nome.trim()) {
+            newErrors.nome = "Digite seu nome completo"; 
+        }
+
+        if (!formData.cpf) {
+            newErrors.cpf = "Digite seu CPF"; 
+        } else if (!isValidCPF(formData.cpf)) {
+            newErrors.cpf = "CPF inválido. Verifique os números novamente.";
+        }
+
+         if (!formData.telefone) {
+            newErrors.telefone = "Digite seu número de telefone"; 
+        } else if (formData.telefone.replace(/\D/g, "").length < 12) {
+            newErrors.telefone = "Telefone incompleto";
+        }
+
+        if (!formData.cargo.trim()) {
+            newErrors.cargo = "Digite seu cargo ou papel na empresa"; 
+        }
+
+        setErrors(newErrors);
+
+        //Se não houver erros, prossegue com o fluxo
+        if (Object.keys(newErrors).length === 0) {
+            console.log("Dados salvos com sucesso:", formData);
+            alert("Formulário validado com sucesso! Pronto para avançar.");
+            //integração com o mock futuramente.
+        }
+    };
     
+  
 
 }
