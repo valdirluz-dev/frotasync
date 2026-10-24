@@ -102,6 +102,26 @@ export default function DadosPessoais(){
         }
     };
     
-  
+    return (
+        <div className="relative flex min-h-screen items-center justify-center bg-gray-200 p-4 overflow-hidden">
+            {/*Elementos de fundo*/}
+            <div className="absolute inset-0 pointer-events-none overfllow-hidden">
+                
+                {/*Círculo superior esquerdo*/}
+                <div className="absolute -left-20 -top-20 h-80 w-80 rounded-full bg-blue-700" />
+                
+                 {/*Círculo superior direito*/}
+                 <div className="absolute -top-10 right-2 h-64 w-64 rounded-full bg-blue-700" />
+
+                {/*Círculo inferior esquerdo*/}
+                 <div className="absolute left-10 -bottom-20 h-64 w-64 rounded-full bg-blue-700" />
+
+                {/*Círculo inferior direito*/}
+                 <div className="absolute -right-16 -bottom-16 h-80 w-80 rounded-full bg-blue-700" />
+
+            </div>
+            {/* */}
+        </div>
+    )
 
 }
