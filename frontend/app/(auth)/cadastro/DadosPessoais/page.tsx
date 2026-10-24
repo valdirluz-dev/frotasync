@@ -45,6 +45,28 @@ export default function DadosPessoais(){
         Cargo: "",
     });
 
-    //Esatado dos erros individuais por campo
+    //Estado dos erros individuais por campo
+    const [errors, setErrors] = useState<{[key: string]: string }>({});
+
+    //Manipulação e Aplicação de máscaras
+    const handleChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+        const {name, value} = e.target;
+        let formattedValue =value;
+
+        if(name == "cpf") {
+            formattedValue = formatCPF(value);
+        } else if (name == "telefone") {
+            formattedValue = formatPhone(value);
+        }
+
+        setFormData((prev) => ({...prev, [name]: formattedValue}));
+
+        //Limpa o erro do campo quando o utilizador começa a corrigir
+        if (errors[name]){
+            setErrors((prev) => ({...prev, [name]: ""}));
+        }
+    };
+
+    
 
 }
