@@ -20,8 +20,9 @@ export type IconName =
 //---Novos ícones para Login, Cadastro e Recuperação de senha---
   | "email" //Ícone email
   | "lock" //Ícone senha
-  | "id-card" //Ícone nome
-  | "document-text" //Ícone CPF
+  | "user" //Ícone nome
+  | "id-card" //Ícone CPF
+  | "document-text" //Ícone documento
   | "phone" //Ícone telefone
   | "briefcase" //Ícone cargo
   | "tag" //Ícone empresa
@@ -145,13 +146,23 @@ export function Icon({ name, ...props }: IconProps) {
         <path d="M7 11V7a5 5 0 0 1 10 0v4" />
       </>
     ),
-    "id-card": (
-      <>
-        <rect width="20" height="14" x="2" y="5" rx="2" />
-        <path d="M16 10h2M16 14h2M8 10h2M8 14h2" />
-        <circle cx="8" cy="12" r="2" />
-      </>
-    ),
+    user: (
+    <>
+       <circle cx="12" cy="12" r="11" stroke="currentColor" strokeWidth="2" fill="none" />
+      <path d="M19 21v-2a4 4 0 0 0-4-4H9a4 4 0 0 0-4 4v2" />
+      <circle cx="12" cy="7" r="4" />
+    </>
+  ),
+  "id-card": (
+    <>
+      <rect x="2" y="4" width="20" height="16" rx="2" stroke="currentColor" strokeWidth="2" fill="none" />
+      <circle cx="8" cy="10" r="2.5" stroke="currentColor" strokeWidth="1.5" fill="none" />
+      <path d="M4 16v-1a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v1" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" fill="none" />
+      <line x1="14" y1="9" x2="19" y2="9" stroke="currentColor" strokeWidth="2" strokeLinecap="round" />
+      <line x1="14" y1="13" x2="19" y2="13" stroke="currentColor" strokeWidth="2" strokeLinecap="round" />
+    </>
+  ),
+   
     "document-text": (
       <>
         <path d="M15 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V7Z" />

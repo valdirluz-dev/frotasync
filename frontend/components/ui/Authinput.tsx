@@ -1,42 +1,51 @@
 import { forwardRef, type InputHTMLAttributes } from "react";
 import { Icon, type IconName } from "./Icons";
 
-//Definição das propiedades aceitas pelo componente de autenticação.
-export interface AuthInputProps extends InputHTMLAttributes<HTMLInputElement>{
+// Definição das propriedades aceitas pelo componente de input
+export interface AuthInputProps extends InputHTMLAttributes<HTMLInputElement> {
     icon?: IconName;
     label?: string;
+    error?: string;
 }
-//Componente principal de input estilizado para o fluxo de Auth (login, cadastro e recuperação).
+
+//Componente principal de input estilizado com suporte a ícones, rótulos e estados de erro
 export const AuthInput = forwardRef<HTMLInputElement, AuthInputProps>(
-    function AuthInput({icon, label, className = "", ...props}, ref) {
-        return(
-            <div className="flex flex-col gap-1.5 w-full">
-                {/*Rederiza e etiqueta (label) se for passada no componente */}
-                {label &&(
-                    <label className="text-sm font-medium text-slate-700">
+    function AuthInput({ icon, label, error, className = "", ...props }, ref) { 
+        return (
+            <div className="flex flex-col w-full">
+                {label && (
+                    <label className="block text-sm font-bold text-gray-900 mb-1">
                         {label}
                     </label>
                 )}
-
-                {/*Contentor relativo para permitir posicionar o ícone sobreposto ao campo de texto */}
+                  
+                {/*Contentor relativo para posicionar o ícone sobreposto ao campo */}
                 <div className="relative flex items-center w-full">
-                    {/*Renderiza o ícone alinhado á esquerda se for especificado */}
+                    {/*Redenriza o ícone alinhado á esquerda e centrado na vertical */}
                     {icon && (
-                        <span className="absolute left-4 text-slate-400 flex items-center pointer-events-none z-10">
-                            <Icon name={icon}/>
+                        <span className="absolute left-3 top-1/2 -translate-y-1/2 flex items-center justify-center text-gray-500 pointer-events-none z-10">
+                            <Icon name={icon} className="w-5 h-5" />
                         </span>
                     )}
 
-                    {/*Campo de texto (input html) utilizando o estilo padrão do projeto*/}
-                    {/*adiciona espaçamento á esquerda (pl-12) apenas quando houver um ícone presente*/}
-                    <input {...props}
-                     ref={ref} 
-                     className={`h-13 w-full rounded-2xl border border-slate-200 bg-white text-sm text-slate-900 outline-none transition placeholder:text-slate-400 focus:border-indigo-500 focus:ring-2 focus:ring-indigo-100 aria-[invalid=true]:border-red-500 aria-[invalid=true]:focus:ring-red-100 ${
-                        icon ? "pl-12" : "px-4"
-                    } ${className}`}
+                    {/*Campo de texto com estilos dinâmicos baseados no estado de erro */}
+                    <input
+                        {...props}
+                        ref={ref} 
+                        className={`w-full rounded-md border p-3 text-sm text-gray-800 placeholder-gray-500 outline-none transition focus:bg-white ${
+                            error 
+                                ? "border-red-500 bg-red-50 focus:border-red-500" 
+                                : "border-gray-300 bg-gray-200 focus:border-blue-500 focus:ring-1 focus:ring-blue-500"
+                        } ${icon ? "pl-11" : "px-3"} ${className}`}
                     />
-                    
                 </div>
+
+                {/* Exibe a mensagem de erro abaixo do input se ela existir */}
+                {error && (
+                    <span className="text-xs text-red-500 mt-1 block font-medium">
+                        {error}
+                    </span>
+                )}
             </div>
         );
     }

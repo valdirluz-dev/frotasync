@@ -2,8 +2,9 @@
 
 import React, {useState} from "react";
 import { Icon } from "@/components/ui/Icons";
+import { AuthInput } from "@/components/ui/Authinput";
 
-//Funções utilitárias para formatação de máscara CPF e Telefone(limpar e reformatar texto em tempo real)
+//Funções utilitárias para formatação de máscara  CPF e Telefone(limpar e reformatar texto em tempo real)
 const formatCPF = (value: string) => {
     return value 
     .replace(/\D/g, "")
@@ -103,10 +104,10 @@ export default function DadosPessoais(){
     };
     
     return (
-        <div className="relative flex min-h-screen items-center justify-center bg-gray-200 p-4 overflow-hidden">
+        <div className="relative flex min-h-screen items-center justify-center bg-gray-100 p-4 overflow-hidden">
             {/*Elementos de fundo*/}
-            <div className="absolute inset-0 pointer-events-none overfllow-hidden">
-                
+            <div className="absolute inset-0 pointer-events-none overfllow-hidden z-0">
+
                 {/*Círculo superior esquerdo*/}
                 <div className="absolute -left-20 -top-20 h-80 w-80 rounded-full bg-blue-700" />
                 
@@ -118,9 +119,73 @@ export default function DadosPessoais(){
 
                 {/*Círculo inferior direito*/}
                  <div className="absolute -right-16 -bottom-16 h-80 w-80 rounded-full bg-blue-700" />
-
             </div>
-            {/* */}
+
+            {/*Caixa Principal do formulário | retângulo grande*/}
+            <form 
+            onSubmit={handleSubmit}
+            className="relative z-20 flex flex-col md:flex-row w-full max-w-[1100px] h-[590px] srink-0 overflow-hidden rounded-2xl bg-white shadow-2xl">
+
+                {/*Lado esquerdo: campos de preenchimento */}
+                <div className="w-full md:w-1/2 h-full p-8 bg-white flex flex-col justify-center space-y-4">
+
+                {/*1.Nome*/}
+                <AuthInput
+                label="Nome"
+                icon="user"
+                type="text"
+                name="nome"
+                value={formData.nome}
+                onChange={handleChange}
+                placeholder="*Digite seu nome completo"
+                error={errors.nome}
+                />
+
+                 {/*2.CPF*/}
+                <AuthInput
+                label="CPF"
+                icon="id-card"
+                type="text"
+                name="cpf"
+                value={formData.cpf}
+                onChange={handleChange}
+                placeholder="*000.000.000-00"
+                maxLength={14}
+                error={errors.cpf}
+                />
+
+                {/*3.Telefone*/}
+                <AuthInput
+                label="Número de Telefone"
+                icon="phone"
+                type="text"
+                name="telefone"
+                value={formData.telefone}
+                onChange={handleChange}
+                placeholder="*+55 (00) 00000-0000"
+                maxLength={19}
+                error={errors.telefone}
+                />
+
+                 {/*4.Cargo*/}
+                <AuthInput
+                label="Cargo / Função na Empresa"
+                icon="briefcase"
+                type="text"
+                name="cargo"
+                value={formData.cargo}
+                onChange={handleChange}
+                placeholder="*Digite seu cargo ou papel na empresa"
+                error={errors.cargo}
+                />
+
+                {/*Lado direito: ilustração, stepper e botão */}
+                
+
+                
+
+                </div>
+            </form>
         </div>
     )
 
