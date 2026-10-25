@@ -3,6 +3,7 @@
 import React, {useState} from "react";
 import { Icon } from "@/components/ui/Icons";
 import { AuthInput } from "@/components/ui/Authinput";
+import { Button } from "@/components/ui";
 
 //Funções utilitárias para formatação de máscara  CPF e Telefone(limpar e reformatar texto em tempo real)
 const formatCPF = (value: string) => {
@@ -124,10 +125,10 @@ export default function DadosPessoais(){
             {/*Caixa Principal do formulário | retângulo grande*/}
             <form 
             onSubmit={handleSubmit}
-            className="relative z-20 flex flex-col md:flex-row w-full max-w-[1100px] h-[590px] srink-0 overflow-hidden rounded-2xl bg-white shadow-2xl">
+            className="relative z-20 flex flex-col md:flex-row w-full max-w-[1100px] h-[590px] srink-0 overflow-hidden rounded-3xl bg-white shadow-2xl">
 
                 {/*Lado esquerdo: campos de preenchimento */}
-                <div className="w-full md:w-1/2 h-full p-8 bg-white flex flex-col justify-center space-y-4">
+                <div className="w-full md:w-1/2 p-6 md:p-10 bg-white flex flex-col justify-center space-y-5 order-2 md:order-1">
 
                 {/*1.Nome*/}
                 <AuthInput
@@ -178,13 +179,22 @@ export default function DadosPessoais(){
                 placeholder="*Digite seu cargo ou papel na empresa"
                 error={errors.cargo}
                 />
-
-                {/*Lado direito: ilustração, stepper e botão */}
-                
-
-                
-
                 </div>
+
+                
+                {/*Lado direito: ilustração, stepper e botão */}
+                <div className="contents md:flex md:w-1/2 md:bg-[#ECEFF4] md:p-8 md:flex-col md:items-center md:justify-between md:order-2 ">
+
+                {/*Cabeçalho do painel*/}
+                <div className="w-full bg-[#ECEFF4] md:bg-transparent p-6 md:p-0 flex flex-col items-start md:items-center order-1 border-b md:border-b-0 border-gray-200">
+
+                    {/*Imagem da tela dados pessoais */}
+                    <img src="/img/dados-pessoais.png" alt="Ilustração de Cadastro" className="h-[140px] md:h-[280px] w-auto object-contain mb-4 " />
+
+                  
+                </div>
+                </div>
+
             </form>
         </div>
     )
