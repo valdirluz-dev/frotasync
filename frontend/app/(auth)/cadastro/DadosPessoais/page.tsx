@@ -191,7 +191,14 @@ export default function DadosPessoais(){
                     {/*Imagem da tela dados pessoais */}
                     <img src="/img/dados-pessoais.png" alt="Ilustração de Cadastro" className="h-[140px] md:h-[280px] w-auto object-contain mb-4 " />
 
-                  
+                    {/*Indicadores de passos*/}
+                    <div className="flex items-center justify-end md:justify-center space-x-2 md:space-x-3 -mt-16 md:mt-0  ml-auto md:mx-auto">
+                        <div className="w-10 h-10 md:w-14  md:h-14 rounded-full bg-blue-600 text-white flex items-center justify-center font-bold text-3xl md:text-4xl shadow">1</div>
+                        <div className="w-12 h-0.5 bg-gray-400"/>
+                        <div className="w-9 h-9 md:w-11  md:h-11 rounded-full bg-gray-400 text-gray-500 flex items-center justify-center font-bold text-xl md:text-2xl shadow">2</div>
+                        <div className="w-12 h-0.5 bg-gray-400"/>
+                        <div className="w-9 h-9 md:w-11  md:h-11 rounded-full bg-gray-400 text-gray-500 flex items-center justify-center font-bold text-xl md:text-2xl shadow">3</div>
+                    </div>
                 </div>
                 </div>
 
