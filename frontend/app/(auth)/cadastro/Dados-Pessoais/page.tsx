@@ -1,6 +1,7 @@
 "use client";
 
 import React, {useState} from "react";
+import { useRouter } from "next/navigation";
 import { Icon } from "@/components/ui/Icons";
 import { AuthInput } from "@/components/ui/Authinput";
 import { Button } from "@/components/ui";
@@ -39,6 +40,9 @@ const isValidCPF = (cpf: string) => {
 };
 
 export default function DadosPessoais(){
+
+    const router = useRouter();//Inicializa o router para permitir a navegação entre as páginas 
+
     //Estado dos campos do formulário
     const [formData, setFormData] = useState({
         nome: "",
@@ -69,7 +73,7 @@ export default function DadosPessoais(){
         }
     };
 
-    //Submição com Validação Completa
+    //Submição com Validação Completa e redirecionamento
     const handleSubmit = (e: React.FormEvent) => {
         e.preventDefault();
         const newErrors: {[key: string]: string} = {};
@@ -96,10 +100,12 @@ export default function DadosPessoais(){
 
         setErrors(newErrors);
 
-        //Se não houver erros, prossegue com o fluxo
+        //Se não houver erros, valida com sucesso e direciona para a página Dados-da-Empresa
         if (Object.keys(newErrors).length === 0) {
             console.log("Dados salvos com sucesso:", formData);
-            alert("Formulário validado com sucesso! Pronto para avançar.");
+            
+            //Redireciona o usuário para a pasta/página Dados-da-Empresa
+            router.push("/cadastro/Dados-da-Empresa")
             //integração com o mock futuramente.
         }
     };
@@ -194,11 +200,14 @@ export default function DadosPessoais(){
                     {/*Indicadores de passos*/}
                     <div className="flex items-center justify-end md:justify-center space-x-2 md:space-x-3 -mt-16 md:mt-0  ml-auto md:mx-auto">
                         <div className="w-10 h-10 md:w-14  md:h-14 rounded-full bg-blue-600 text-white flex items-center justify-center font-bold text-3xl md:text-4xl shadow">1</div>
-                        <div className="w-12 h-0.5 bg-gray-400"/>
+                        <div className="w-12 h-0.5 bg-gray-400"/>{/*Linha divisória */}
                         <div className="w-9 h-9 md:w-11  md:h-11 rounded-full bg-gray-400 text-gray-500 flex items-center justify-center font-bold text-xl md:text-2xl shadow">2</div>
-                        <div className="w-12 h-0.5 bg-gray-400"/>
+                        <div className="w-12 h-0.5 bg-gray-400"/>{/*Linha divisória */}
                         <div className="w-9 h-9 md:w-11  md:h-11 rounded-full bg-gray-400 text-gray-500 flex items-center justify-center font-bold text-xl md:text-2xl shadow">3</div>
                     </div>
+
+                    {/*Linha divisória */}
+
                 </div>
                 </div>
 
