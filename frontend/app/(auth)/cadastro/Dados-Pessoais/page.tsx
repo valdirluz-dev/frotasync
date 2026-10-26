@@ -185,6 +185,17 @@ export default function DadosPessoais(){
                 placeholder="*Digite seu cargo ou papel na empresa"
                 error={errors.cargo}
                 />
+                
+                   {/*Botão de Submissão/Avançar (aparece só na tela responsivel*/}
+                     <div className="pt-6 block md:hidden  flex justify-center w-full">
+                        <Button
+                        type="submit"
+                        variant="primary"
+                        className="!w-55 !text-2xl"
+                        >
+                            Avançar
+                        </Button>
+                     </div>
                 </div>
 
                 
@@ -211,7 +222,16 @@ export default function DadosPessoais(){
                         <h2 className="text-4xl md:text-4xl font-bold text-gray-800">Dados Pessoais</h2>
                     </div>
 
-                     
+                     {/*Botão de Submissão/Avançar*/}
+                     <div className="pt-2 hidden md:block flex justify-center ">
+                        <Button
+                        type="submit"
+                        variant="primary"
+                        className="!w-55 !text-2xl"
+                        >
+                            Avançar
+                        </Button>
+                     </div>
 
                 </div>
                 </div>
