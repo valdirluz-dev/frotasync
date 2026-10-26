@@ -251,7 +251,11 @@ export const mockUnidades = units;
 export const mockCategorias = [
   ...new Set(docSeeds.map(([, categoria]) => categoria)),
 ];
-
+const pdfsMock = [
+  "/mock-docs/alvara-funcionamento.pdf",
+  "/mock-docs/licenca-ambiental.pdf",
+  "/mock-docs/certificado-bombeiros.pdf",
+];
 export const mockDocumentos: Documento[] = Array.from(
   { length: 128 },
   (_, index) => {
@@ -274,7 +278,7 @@ export const mockDocumentos: Documento[] = Array.from(
       dataEmissao: dateOffset(-365 - (index % 90)),
       dataValidade: dateOffset(validityOffset),
       descricao: `Documento ${nome.toLocaleLowerCase("pt-BR")} da unidade ${units[unidadeIndex].nome}.`,
-      anexo: { nome: `${nome}.pdf`, tamanhoBytes: 420_000 + (index % 9) * 73_000, tipo: "application/pdf" },
+      anexo: { nome: `${nome}.pdf`, tamanhoBytes: 420_000 + (index % 9) * 73_000, tipo: "application/pdf", url: pdfsMock[index % pdfsMock.length] },
     };
   },
 );
