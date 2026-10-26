@@ -48,6 +48,27 @@ const isValidCNPJ = (cnpj: string) => {
     return true;
 };
 
+//Formatação de máscara do CEP
+const formatCEP = (value: string) => {
+  return value
+  .replace(/\D/g, "")
+  .replace(/(\d{5})(\d)/, "$1-$2")
+  .slice(0, 9);
+};
+
+//Função para buscar endereço automaticamente pelo CEP
+const fetchAddressByCep = async (cep: string) => {
+  const cleanCep = cep.replace(/\D/g, "");
+  if(cleanCep.length !== 8) return;
+
+  try {
+    const response = await fetch(`https://viacep.com.br/ws/${cleanCep}/Json/`);
+    const data = await response.json();
+
+    
+  }
+};
+
 export default function DadosEmpresa(){
 
     const router = useRouter();//Inicializa o router para permitir a navegação entre as páginas 
@@ -59,7 +80,12 @@ export default function DadosEmpresa(){
         cnpj: "",
         segmento: "",
         tipoUnidade: "",
-        endereco: "",
+        cep: "",
+        logradouro: "",
+        numero: "",
+        bairro: "",
+        cidade: "",
+        estado: "",
     });
 
     //Estado dos erros individuais por campo
@@ -212,7 +238,17 @@ export default function DadosEmpresa(){
                 error={errors.tipoUnidade}
                 />
 
-                
+                {/*6.Endereço*/}
+                <AuthInput
+                label="Endereço"
+                icon="map-pin"
+                type="text"
+                name="endereco"
+                value={formData.endereco}
+                onChange={handleChange}
+                placeholder="*Endereço da empresa"
+                error={errors.endereco}
+                />
                 
                    {/*Botão de Submissão/Avançar (aparece só na tela responsivel*/}
                      <div className="pt-6 block md:hidden  flex justify-center w-full">
