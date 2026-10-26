@@ -22,12 +22,12 @@ export type IconName =
   | "lock" //Ícone senha
   | "user" //Ícone nome
   | "id-card" //Ícone CPF
-  | "document-text" //Ícone documento
+  | "unidade" //Ícone unidade
   | "phone" //Ícone telefone
   | "briefcase" //Ícone cargo
   | "tag" //Ícone empresa
   | "cnpj" //Ícone CNPJ
-  | "chart" //Ícone segmento
+  | "segmento" //Ícone segmento
   | "map-pin" //Ícone endereço
   | "key"; //Ícone código
 
@@ -163,10 +163,13 @@ export function Icon({ name, ...props }: IconProps) {
     </>
   ),
    
-    "document-text": (
+    "unidade": (
       <>
-        <path d="M15 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V7Z" />
-        <path d="M14 2v5h5M10 9H8M16 13H8M16 17H8" />
+        <circle cx="18" cy="5" r="3" />
+        <circle cx="6" cy="12" r="3" />
+        <circle cx="18" cy="19" r="3" />
+        <path d="m8.59 13.51 6.83 3.98" />
+        <path d="m15.42 6.51-6.83 3.98" />
       </>
     ),
     phone: (
@@ -198,10 +201,12 @@ export function Icon({ name, ...props }: IconProps) {
         <path d="M7 8h10M7 12h10M7 16h6" />
       </>
     ),
-    chart: (
+    segmento: (
       <>
-        <path d="M3 3v18h18" />
-        <path d="m19 9-5 5-4-4-3 3" />
+        <path d="M3 20h18"/>
+        <rect x="5" y="9" width="3" height="8" rx="0.5"/>
+        <rect x="10" y="5" width="3" height="12" rx="0.5"/>
+        <rect x="15" y="1" width="3" height="16" rx="0.5"/>
       </>
     ),
     "map-pin": (

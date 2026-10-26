@@ -125,6 +125,147 @@ export default function DadosEmpresa(){
         }
     };
     
-   
+    return (
+        <div className="relative flex min-h-screen items-center justify-center bg-gray-100 p-4 overflow-hidden">
+            {/*Elementos de fundo*/}
+            <div className="absolute inset-0 pointer-events-none overfllow-hidden z-0">
+
+                {/*Círculo superior esquerdo*/}
+                <div className="absolute -left-20 -top-20 h-80 w-80 rounded-full bg-blue-700" />
+                
+                 {/*Círculo superior direito*/}
+                 <div className="absolute -top-10 right-2 h-64 w-64 rounded-full bg-blue-700" />
+
+                {/*Círculo inferior esquerdo*/}
+                 <div className="absolute left-10 -bottom-20 h-64 w-64 rounded-full bg-blue-700" />
+
+                {/*Círculo inferior direito*/}
+                 <div className="absolute -right-16 -bottom-16 h-80 w-80 rounded-full bg-blue-700" />
+            </div>
+
+            {/*Caixa Principal do formulário | retângulo grande*/}
+            <form 
+            onSubmit={handleSubmit}
+            className="relative z-20 flex flex-col md:flex-row w-full max-w-[1100px] h-[590px] srink-0 overflow-y-auto md:overflow-hidden rounded-3xl bg-white shadow-2xl">
+
+                {/*Lado esquerdo: campos de preenchimento */}
+                <div className="w-full md:w-1/2 p-6 md:p-10 bg-white flex flex-col justify-center space-y-5 order-2 md:order-1">
+
+                {/*1.Nome da Empresa*/}
+                <AuthInput
+                label="Nome da Empresa"
+                icon="tag"
+                type="text"
+                name="nomeEmpresa"
+                value={formData.nomeEmpresa}
+                onChange={handleChange}
+                placeholder="*Nome comercial ou marca"
+                error={errors.nomeEmpresa}
+                />
+
+                 {/*2.Razão Social*/}
+                <AuthInput
+                label="Razão Social"
+                icon="building"
+                type="text"
+                name="razaoSocial"
+                value={formData.razaoSocial}
+                onChange={handleChange}
+                placeholder="*Nome de regidtro oficial da empresa"
+                error={errors.razaoSocial}
+                />
+
+                {/*3.CNPJ*/}
+                <AuthInput
+                label="CNPJ"
+                icon="document"
+                type="text"
+                name="cnpj"
+                value={formData.cnpj}
+                onChange={handleChange}
+                placeholder="*00.000.000/0001-00"
+                maxLength={18}
+                error={errors.cnpj}
+                />
+
+                 {/*4.Segmento*/}
+                <AuthInput
+                label="Segmento"
+                icon="segmento"
+                type="text"
+                name="segmento"
+                value={formData.segmento}
+                onChange={handleChange}
+                placeholder="*Setor de mercado da empresa"
+                error={errors.segmento}
+                />
+
+                {/*5.Tipo de Unidade*/}
+                <AuthInput
+                label="Tipo de Unidade"
+                icon="unidade"
+                type="text"
+                name="tipoUnidade"
+                value={formData.tipoUnidade}
+                onChange={handleChange}
+                placeholder="*Digite se é Matriz ou Filial"
+                error={errors.tipoUnidade}
+                />
+
+                
+                
+                   {/*Botão de Submissão/Avançar (aparece só na tela responsivel*/}
+                     <div className="pt-6 block md:hidden  flex justify-center w-full">
+                        <Button
+                        type="submit"
+                        variant="primary"
+                        className="!w-55 !text-2xl"
+                        >
+                            Avançar
+                        </Button>
+                     </div>
+                </div>
+
+                
+                {/*Lado direito: ilustração, stepper e botão */}
+                <div className="contents md:flex md:w-1/2 md:bg-[#ECEFF4] md:p-8 md:flex-col md:items-center md:justify-between md:order-2 ">
+
+                {/*Cabeçalho do painel*/}
+                <div className="w-full bg-[#ECEFF4] md:bg-transparent p-6 md:p-0 flex flex-col items-start md:items-center order-1 border-b md:border-b-0 border-gray-200">
+
+                    {/*Imagem da tela dados pessoais */}
+                    <img src="/img/dados-pessoais.png" alt="Ilustração de Cadastro" className="h-[140px] md:h-[280px] w-auto object-contain flex items-center justify-center space-x-3 mx-auto mb-4 " />
+
+                    {/*Indicadores de passos*/}
+                    <div className="flex items-center justify-center space-x-3 mx-auto mb-4">
+                        <div className="w-10 h-10 md:w-14  md:h-14 rounded-full bg-blue-600 text-white flex items-center justify-center font-bold text-3xl md:text-4xl shadow">1</div>
+                        <div className="w-12 h-0.5 bg-gray-400"/>{/*Linha divisória */}
+                        <div className="w-9 h-9 md:w-11  md:h-11 rounded-full bg-gray-400 text-gray-500 flex items-center justify-center font-bold text-xl md:text-2xl shadow">2</div>
+                        <div className="w-12 h-0.5 bg-gray-400"/>{/*Linha divisória */}
+                        <div className="w-9 h-9 md:w-11  md:h-11 rounded-full bg-gray-400 text-gray-500 flex items-center justify-center font-bold text-xl md:text-2xl shadow">3</div>
+                    </div>
+
+                      {/*Título da secção*/}
+                    <div className="flex items-center justify-center space-x-3 mx-auto mb-4 ">
+                        <h2 className="text-4xl md:text-4xl font-bold text-gray-800">Dados Pessoais</h2>
+                    </div>
+
+                     {/*Botão de Submissão/Avançar*/}
+                     <div className="pt-2 hidden md:block flex justify-center ">
+                        <Button
+                        type="submit"
+                        variant="primary"
+                        className="!w-55 !text-2xl"
+                        >
+                            Avançar
+                        </Button>
+                     </div>
+
+                </div>
+                </div>
+
+            </form>
+        </div>
+    )
 
 }
