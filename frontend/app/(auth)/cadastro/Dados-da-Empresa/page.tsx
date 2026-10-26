@@ -55,13 +55,76 @@ export default function DadosEmpresa(){
     //Estado dos campos do formulário
     const [formData, setFormData] = useState({
         nomeEmpresa: "",
+        razaoSocial: "",
         cnpj: "",
         segmento: "",
         tipoUnidade: "",
         endereco: "",
     });
 
-        
+    //Estado dos erros individuais por campo
+    const [errors, setErrors] = useState<{[key: string]: string }>({});
+
+    //Manipulação e Aplicação de máscaras
+    const handleChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+        const {name, value} = e.target;
+        let formattedValue =value;
+
+        if(name == "cnpj") {
+            formattedValue = formatCNPJ(value);
+        } 
+
+        setFormData((prev) => ({...prev, [name]: formattedValue}));
+
+        //Limpa o erro do campo quando o usuário começa a digitar
+        if (errors[name]){
+            setErrors((prev) => ({...prev, [name]: ""}));
+        }
+    };
+
+    //Submição com Validação Completa e redirecionamento
+    const handleSubmit = (e: React.FormEvent) => {
+        e.preventDefault();
+        const newErrors: {[key: string]: string} = {};
+
+        if (!formData.nomeEmpresa.trim()) {
+            newErrors.nomeEmpresa = "Digite o nome comercial ou marca"; 
+        }
+
+        if (!formData.razaoSocial) {
+            newErrors.razaoSocial = "Digite a razão social"; 
+        }
+
+        if (!formData.cnpj) {
+            newErrors.cnpj = "Digite o CNPJ"; 
+        } else if (!isValidCNPJ(formData.cnpj)) {
+            newErrors.cnpj = "CNPJ inválido. Verifique os números novamente.";
+        }
+
+        if (!formData.segmento.trim()) {
+            newErrors.segmento = "Digite o segmento da empresa"; 
+        }
+
+        if (!formData.tipoUnidade.trim()) {
+            newErrors.tipoUnidade = "Digite se é Matriz ou Filial"; 
+        }
+
+         if (!formData.endereco.trim()) {
+            newErrors.endereco = "Digite o endereço da empresa"; 
+        }
+
+        setErrors(newErrors);
+
+        //Se não houver erros, valida com sucesso e direciona para a página Dados-de-Login
+        if (Object.keys(newErrors).length === 0) {
+            console.log("Dados da empresa salvos com sucesso:", formData);
+            
+            //Redireciona o usuário para a pasta/página Dados-de-login
+            router.push("/cadastro/Dados-de-Login")
+            //integração com o mock futuramente.
+        }
+    };
     
+   
 
 }
