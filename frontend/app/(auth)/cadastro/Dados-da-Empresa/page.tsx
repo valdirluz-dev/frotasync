@@ -48,27 +48,6 @@ const isValidCNPJ = (cnpj: string) => {
     return true;
 };
 
-//Formatação de máscara do CEP
-const formatCEP = (value: string) => {
-  return value
-  .replace(/\D/g, "")
-  .replace(/(\d{5})(\d)/, "$1-$2")
-  .slice(0, 9);
-};
-
-//Função para buscar endereço automaticamente pelo CEP
-const fetchAddressByCep = async (cep: string) => {
-  const cleanCep = cep.replace(/\D/g, "");
-  if(cleanCep.length !== 8) return;
-
-  try {
-    const response = await fetch(`https://viacep.com.br/ws/${cleanCep}/Json/`);
-    const data = await response.json();
-
-    
-  }
-};
-
 export default function DadosEmpresa(){
 
     const router = useRouter();//Inicializa o router para permitir a navegação entre as páginas 
@@ -91,14 +70,56 @@ export default function DadosEmpresa(){
     //Estado dos erros individuais por campo
     const [errors, setErrors] = useState<{[key: string]: string }>({});
 
+    //Formatação de máscara do CEP
+const formatCEP = (value: string) => {
+  return value
+  .replace(/\D/g, "")
+  .replace(/(\d{5})(\d)/, "$1-$2")
+  .slice(0, 9);
+};
+
+//Função para buscar endereço automaticamente pelo CEP
+const fetchAddressByCep = async (cep: string) => {
+  const cleanCep = cep.replace(/\D/g, "");
+  if(cleanCep.length !== 8) return;
+
+  try {
+    const response = await fetch(`https://viacep.com.br/ws/${cleanCep}/json/`);
+    const data = await response.json();
+
+    if (!data.erro) {
+        setFormData((prev) => ({
+            ...prev,
+            logradouro: data.logradouro || "",
+            bairro: data.bairro || "",
+            cidade: data.localidade || "",
+            estado: data.uf || "",   
+        }));
+        setErrors((prev) => ({...prev, cep: ""}));
+    } else {
+        setErrors((prev) => ({...prev, cep: "CEP não encontrado."}));   
+    } 
+ }catch (error) {
+    console.error("Erro ao buscar CEP:", error);
+  }
+};
+
+    //Blur do CEP
+    const handleCepBlur = (e: React.FocusEvent<HTMLInputElement>) => {
+       fetchAddressByCep(e.target.value);
+    };
+
     //Manipulação e Aplicação de máscaras
     const handleChange = (e: React.ChangeEvent<HTMLInputElement>) => {
         const {name, value} = e.target;
-        let formattedValue =value;
+        let formattedValue = value;
 
-        if(name == "cnpj") {
+        if(name === "cnpj") {
             formattedValue = formatCNPJ(value);
         } 
+        else if (name === "cep"){
+            formattedValue = formatCEP(value);
+        }
 
         setFormData((prev) => ({...prev, [name]: formattedValue}));
 
@@ -135,8 +156,20 @@ export default function DadosEmpresa(){
             newErrors.tipoUnidade = "Digite se é Matriz ou Filial"; 
         }
 
-         if (!formData.endereco.trim()) {
-            newErrors.endereco = "Digite o endereço da empresa"; 
+        if (!formData.cep.trim()) {
+            newErrors.cep = "Digite o CEP"; 
+        }
+
+        if (!formData.logradouro.trim()) {
+            newErrors.logradouro = "Digite o endereço"; 
+        }
+
+        if (!formData.numero.trim()) {
+            newErrors.numero = "Digite o número"; 
+        }
+
+        if (!formData.bairro.trim()) {
+            newErrors.bairro = "Digite o bairro"; 
         }
 
         setErrors(newErrors);
@@ -154,7 +187,7 @@ export default function DadosEmpresa(){
     return (
         <div className="relative flex min-h-screen items-center justify-center bg-gray-100 p-4 overflow-hidden">
             {/*Elementos de fundo*/}
-            <div className="absolute inset-0 pointer-events-none overfllow-hidden z-0">
+            <div className="absolute inset-0 pointer-events-none overflow-hidden z-0">
 
                 {/*Círculo superior esquerdo*/}
                 <div className="absolute -left-20 -top-20 h-80 w-80 rounded-full bg-blue-700" />
@@ -172,10 +205,10 @@ export default function DadosEmpresa(){
             {/*Caixa Principal do formulário | retângulo grande*/}
             <form 
             onSubmit={handleSubmit}
-            className="relative z-20 flex flex-col md:flex-row w-full max-w-[1100px] h-[590px] srink-0 overflow-y-auto md:overflow-hidden rounded-3xl bg-white shadow-2xl">
+            className="relative z-20 flex flex-col md:flex-row w-full max-w-[1100px] my-auto h-[92vh] shrink-0 overflow-y-auto md:overflow-hidden rounded-3xl bg-white shadow-2xl">
 
                 {/*Lado esquerdo: campos de preenchimento */}
-                <div className="w-full md:w-1/2 p-6 md:p-10 bg-white flex flex-col justify-center space-y-5 order-2 md:order-1">
+                <div className="w-full md:w-1/2 p-8 md:p-10 bg-white flex flex-col justify-start space-y-4 order-2 md:order-1 overflow-y-auto max-h-[92vh]">
 
                 {/*1.Nome da Empresa*/}
                 <AuthInput
@@ -197,7 +230,7 @@ export default function DadosEmpresa(){
                 name="razaoSocial"
                 value={formData.razaoSocial}
                 onChange={handleChange}
-                placeholder="*Nome de regidtro oficial da empresa"
+                placeholder="*Nome de registro oficial da empresa"
                 error={errors.razaoSocial}
                 />
 
@@ -238,17 +271,59 @@ export default function DadosEmpresa(){
                 error={errors.tipoUnidade}
                 />
 
-                {/*6.Endereço*/}
+                {/*6.CEP*/}
+                <AuthInput
+                label="CEP"
+                icon="map-pin"
+                type="text"
+                name="cep"
+                value={formData.cep}
+                onChange={handleChange}
+                onBlur={handleCepBlur}
+                placeholder="*00000-000"
+                maxLength={9}
+                error={errors.cep}
+                />
+
+                 {/*7.Endereço / Logradrouro*/}
                 <AuthInput
                 label="Endereço"
                 icon="map-pin"
                 type="text"
-                name="endereco"
-                value={formData.endereco}
+                name="logradouro"
+                value={formData.logradouro}
                 onChange={handleChange}
-                placeholder="*Endereço da empresa"
-                error={errors.endereco}
+                placeholder="*Rua ou Avenida"
+                error={errors.logradouro}
                 />
+
+                {/*8.Número e Bairro*/}
+                <div className="flex space-x-4">
+                    <div className="w-1/2">
+                     <AuthInput
+                        label="Número"
+                        icon="map-pin"
+                        type="text"
+                        name="numero"
+                        value={formData.numero}
+                        onChange={handleChange}
+                        placeholder="*Número"
+                        error={errors.numero}
+                      />
+                    </div>
+                    <div className="w-1/2">
+                    <AuthInput
+                        label="Bairro"
+                        icon="map-pin"
+                        type="text"
+                        name="bairro"
+                        value={formData.bairro}
+                        onChange={handleChange}
+                        placeholder="*Bairro"
+                        error={errors.bairro}
+                      />
+                    </div>
+                </div>
                 
                    {/*Botão de Submissão/Avançar (aparece só na tela responsivel*/}
                      <div className="pt-6 block md:hidden  flex justify-center w-full">
@@ -270,20 +345,20 @@ export default function DadosEmpresa(){
                 <div className="w-full bg-[#ECEFF4] md:bg-transparent p-6 md:p-0 flex flex-col items-start md:items-center order-1 border-b md:border-b-0 border-gray-200">
 
                     {/*Imagem da tela dados pessoais */}
-                    <img src="/img/dados-pessoais.png" alt="Ilustração de Cadastro" className="h-[140px] md:h-[280px] w-auto object-contain flex items-center justify-center space-x-3 mx-auto mb-4 " />
+                    <img src="/img/dados-empresa.png" alt="Ilustração de Cadastro" className="h-[140px] md:h-[280px] w-auto object-contain flex items-center justify-center space-x-3 mx-auto mb-4 " />
 
                     {/*Indicadores de passos*/}
                     <div className="flex items-center justify-center space-x-3 mx-auto mb-4">
-                        <div className="w-10 h-10 md:w-14  md:h-14 rounded-full bg-blue-600 text-white flex items-center justify-center font-bold text-3xl md:text-4xl shadow">1</div>
+                        <div className="w-9 h-9 md:w-11  md:h-11 rounded-full bg-gray-400 text-gray-500  flex items-center justify-center font-bold text-xl md:text-2xl shadow">1</div>
                         <div className="w-12 h-0.5 bg-gray-400"/>{/*Linha divisória */}
-                        <div className="w-9 h-9 md:w-11  md:h-11 rounded-full bg-gray-400 text-gray-500 flex items-center justify-center font-bold text-xl md:text-2xl shadow">2</div>
+                        <div className="w-10 h-10 md:w-14  md:h-14 rounded-full bg-blue-600 text-white flex items-center justify-center font-bold text-3xl md:text-4xl shadow">2</div>
                         <div className="w-12 h-0.5 bg-gray-400"/>{/*Linha divisória */}
                         <div className="w-9 h-9 md:w-11  md:h-11 rounded-full bg-gray-400 text-gray-500 flex items-center justify-center font-bold text-xl md:text-2xl shadow">3</div>
                     </div>
 
                       {/*Título da secção*/}
                     <div className="flex items-center justify-center space-x-3 mx-auto mb-4 ">
-                        <h2 className="text-4xl md:text-4xl font-bold text-gray-800">Dados Pessoais</h2>
+                        <h2 className="text-4xl md:text-4xl font-bold text-gray-800">Dados da Empresa</h2>
                     </div>
 
                      {/*Botão de Submissão/Avançar*/}
@@ -302,6 +377,6 @@ export default function DadosEmpresa(){
 
             </form>
         </div>
-    )
+    );
 
 }
