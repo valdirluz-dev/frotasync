@@ -131,7 +131,7 @@ export default function DadosPessoais(){
             {/*Caixa Principal do formulário | retângulo grande*/}
             <form 
             onSubmit={handleSubmit}
-            className="relative z-20 flex flex-col md:flex-row w-full max-w-[1100px] h-[590px] srink-0 overflow-hidden rounded-3xl bg-white shadow-2xl">
+            className="relative z-20 flex flex-col md:flex-row w-full max-w-[1100px] h-[590px] srink-0 overflow-y-auto md:overflow-hidden rounded-3xl bg-white shadow-2xl">
 
                 {/*Lado esquerdo: campos de preenchimento */}
                 <div className="w-full md:w-1/2 p-6 md:p-10 bg-white flex flex-col justify-center space-y-5 order-2 md:order-1">
@@ -195,10 +195,10 @@ export default function DadosPessoais(){
                 <div className="w-full bg-[#ECEFF4] md:bg-transparent p-6 md:p-0 flex flex-col items-start md:items-center order-1 border-b md:border-b-0 border-gray-200">
 
                     {/*Imagem da tela dados pessoais */}
-                    <img src="/img/dados-pessoais.png" alt="Ilustração de Cadastro" className="h-[140px] md:h-[280px] w-auto object-contain mb-4 " />
+                    <img src="/img/dados-pessoais.png" alt="Ilustração de Cadastro" className="h-[140px] md:h-[280px] w-auto object-contain flex items-center justify-center space-x-3 mx-auto mb-4 " />
 
                     {/*Indicadores de passos*/}
-                    <div className="flex items-center justify-end md:justify-center space-x-2 md:space-x-3 -mt-16 md:mt-0  ml-auto md:mx-auto">
+                    <div className="flex items-center justify-center space-x-3 mx-auto mb-4">
                         <div className="w-10 h-10 md:w-14  md:h-14 rounded-full bg-blue-600 text-white flex items-center justify-center font-bold text-3xl md:text-4xl shadow">1</div>
                         <div className="w-12 h-0.5 bg-gray-400"/>{/*Linha divisória */}
                         <div className="w-9 h-9 md:w-11  md:h-11 rounded-full bg-gray-400 text-gray-500 flex items-center justify-center font-bold text-xl md:text-2xl shadow">2</div>
@@ -206,7 +206,12 @@ export default function DadosPessoais(){
                         <div className="w-9 h-9 md:w-11  md:h-11 rounded-full bg-gray-400 text-gray-500 flex items-center justify-center font-bold text-xl md:text-2xl shadow">3</div>
                     </div>
 
-                    {/*Linha divisória */}
+                      {/*Título da secção*/}
+                    <div className="flex items-center justify-center space-x-3 mx-auto mb-4 ">
+                        <h2 className="text-4xl md:text-4xl font-bold text-gray-800">Dados Pessoais</h2>
+                    </div>
+
+                     
 
                 </div>
                 </div>
