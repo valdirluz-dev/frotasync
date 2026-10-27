@@ -58,7 +58,7 @@ export default function NovaTarefaPage() {
         <div className="rounded-2xl border border-slate-200 bg-white p-6 shadow-sm">
           <TarefaForm
             mode="criar"
-            tarefa={null as any}
+            tarefa={null}
             unidadeNome=""
             isSaving={mutation.isPending}
             onCancel={back}

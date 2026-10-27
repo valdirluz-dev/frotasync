@@ -13,7 +13,7 @@ import {
 } from "@/schemas/tarefa";
 import type { Tarefa } from "@/types/domain";
 
-function formatDate(value: string | null) {
+function formatDate(value: string | null | undefined) {
   if (!value) return "—";
   return new Intl.DateTimeFormat("pt-BR", {
     day: "2-digit",
@@ -24,7 +24,7 @@ function formatDate(value: string | null) {
 }
 
 type TarefaFormProps = {
-  tarefa: Tarefa;
+  tarefa: Tarefa | null;
   unidadeNome: string;
   mode?: "criar" | "editar";
   defaultValues?: Partial<TarefaFormInput>;
@@ -76,8 +76,10 @@ export function TarefaForm({
       onNoChanges?.();
       return;
     }
-    if (!prazoAlteradoValido(values.prazoFinal, tarefa.prazoFinal)) {
-      setError("prazoFinal", {
+if (
+  tarefa &&
+  !prazoAlteradoValido(values.prazoFinal, tarefa.prazoFinal)
+) {      setError("prazoFinal", {
         type: "validate",
         message: "O prazo não pode ser anterior a hoje quando alterado.",
       });
