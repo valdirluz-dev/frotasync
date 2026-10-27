@@ -5,6 +5,7 @@ import { useRouter } from "next/navigation";
 import { Icon } from "@/components/ui/Icons";
 import { AuthInput } from "@/components/ui/Authinput";
 import { Button } from "@/components/ui";
+import { mockValidarDadosEmpresa } from "@/mocks/dadosEmpresa";
 
 //Funções utilitárias para formatação de máscara  CNPJ (limpar e reformatar texto em tempo real)
 const formatCNPJ = (value: string) => {
@@ -130,7 +131,7 @@ const fetchAddressByCep = async (cep: string) => {
     };
 
     //Submição com Validação Completa e redirecionamento
-    const handleSubmit = (e: React.FormEvent) => {
+    const handleSubmit = async (e: React.FormEvent) => {
         e.preventDefault();
         const newErrors: {[key: string]: string} = {};
 
@@ -177,10 +178,20 @@ const fetchAddressByCep = async (cep: string) => {
         //Se não houver erros, valida com sucesso e direciona para a página Dados-de-Login
         if (Object.keys(newErrors).length === 0) {
             console.log("Dados da empresa salvos com sucesso:", formData);
+        
+            //integração com o mock .
             
-            //Redireciona o usuário para a pasta/página Dados-de-login
-            router.push("/cadastro/Dados-de-Login")
-            //integração com o mock futuramente.
+            // 1. Chama o mock (fazendo o papel da API/banco)
+             const resposta = await mockValidarDadosEmpresa(formData as any);
+            
+                // 2. Se o mock der sucesso, avança para a próxima tela
+                 if (resposta.success) {
+                     router.push("/cadastro/Dados-de-Login");
+                } else {
+                 // 3. Se der erro, avisa o usuário
+                      alert(resposta.message);
+                  }
+                         
         }
     };
     

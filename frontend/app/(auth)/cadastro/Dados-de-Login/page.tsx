@@ -6,6 +6,7 @@ import { Icon } from "@/components/ui/Icons";
 import { AuthInput } from "@/components/ui/Authinput";
 import { Button } from "@/components/ui";
 import { object } from "zod";
+import { mockValidarDadosLogin } from "@/mocks/dadosLogin";
 
 //Função utilitária de validação do email
 const isValidEmail = (email: string) => {
@@ -53,7 +54,7 @@ const handleChange = (e: React.ChangeEvent<HTMLInputElement>) => {
 };
 
     //Submissão com validação Completa 
-    const handleSubmit = (e: React.FormEvent) => {
+    const handleSubmit = async (e: React.FormEvent) => {
         e.preventDefault();
         const newErrors: {[key: string]: string } = {};
 
@@ -90,9 +91,20 @@ const handleChange = (e: React.ChangeEvent<HTMLInputElement>) => {
             //Redireciona o usuário para a pasta/página Dados-de-login
              if(Object.keys(newErrors).length === 0) {
             console.log("Dados de login salvos com sucesso:", formData);
-            router.push("/cadastro/Sucesso")
+          
+            //integração com o mock .
+            
+            // 1. Chama o mock (fazendo o papel da API/banco)
+            const resposta = await mockValidarDadosLogin(formData);
+            
+             // 2. Se o mock der sucesso, avança para a próxima tela
+            if (resposta.success) {
+                router.push("/cadastro/Sucesso");
+            } else {
+                 // 3. Se der erro, avisa o usuário
+                 alert(resposta.message);
             }
-            //integração com o mock futuramente.
+         };
         
     };
     

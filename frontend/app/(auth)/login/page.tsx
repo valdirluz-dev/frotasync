@@ -5,6 +5,7 @@ import { useRouter } from "next/navigation";
 import { AuthInput } from "@/components/ui/Authinput";
 import { Button } from "@/components/ui";
 import { Icon } from "@/components/ui/Icons";
+import { mockFazerLogin } from "@/mocks/login"; 
 
 export default function Login() {
     const router = useRouter();
@@ -38,7 +39,7 @@ export default function Login() {
     };
 
     // Submissão do login (valida se os campos estão preenchidos)
-    const handleSubmit = (e: React.FormEvent) => {
+    const handleSubmit = async (e: React.FormEvent) => {
         e.preventDefault();
         
         const newErrors: { [key: string]: string } = {};
@@ -56,7 +57,19 @@ export default function Login() {
         // Se preenchido corretamente, simula o login
         if (Object.keys(newErrors).length === 0) {
             console.log("Login realizado com sucesso:", formData);
-            // router.push("/dashboard");
+            
+            //integração com o mock .
+            
+            // 1. Chama o mock (fazendo o papel da API/banco)
+           const resposta = await mockFazerLogin(formData);
+            
+           // 2. Se o mock der sucesso, avança para a próxima tela
+           if (resposta.success) {
+               router.push("/dashboard");
+            } else {
+               // 3. Se der erro, avisa o usuário
+               alert(resposta.message);
+           }
         }
     };
 

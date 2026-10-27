@@ -5,6 +5,7 @@ import { useRouter } from "next/navigation";
 import { Icon } from "@/components/ui/Icons";
 import { AuthInput } from "@/components/ui/Authinput";
 import { Button } from "@/components/ui";
+import { mockValidarDadosPessoais } from "@/mocks/dadosPessoais";
 
 //Funções utilitárias para formatação de máscara  CPF e Telefone(limpar e reformatar texto em tempo real)
 const formatCPF = (value: string) => {
@@ -12,8 +13,7 @@ const formatCPF = (value: string) => {
     .replace(/\D/g, "")
     .replace(/(\d{3})(\d)/, "$1.$2")
     .replace(/(\d{3})(\d)/, "$1.$2")
-    .replace(/(\d{3})(\d{1,2})/, "$1.$2")
-    .replace(/(-\d{2})\d+?$/, "$1");
+    .replace(/(\d{3})(\d{1,2})/, "$1-$2")
 };
 
 const formatPhone = (value: string) => {
@@ -74,7 +74,7 @@ export default function DadosPessoais(){
     };
 
     //Submição com Validação Completa e redirecionamento
-    const handleSubmit = (e: React.FormEvent) => {
+    const handleSubmit = async (e: React.FormEvent) => {
         e.preventDefault();
         const newErrors: {[key: string]: string} = {};
 
@@ -103,10 +103,21 @@ export default function DadosPessoais(){
         //Se não houver erros, valida com sucesso e direciona para a página Dados-da-Empresa
         if (Object.keys(newErrors).length === 0) {
             console.log("Dados salvos com sucesso:", formData);
-            
-            //Redireciona o usuário para a pasta/página Dados-da-Empresa
-            router.push("/cadastro/Dados-da-Empresa")
-            //integração com o mock futuramente.
+
+            //integração com o mock .
+
+            // 1. Chama o mock (fazendo o papel da API/banco)
+            const resposta = await mockValidarDadosPessoais(formData);
+
+            // 2. Se o mock der sucesso, avança para a próxima tela
+            if (resposta.success) {
+              localStorage.setItem("dadosPessoaisSalvos", JSON.stringify(formData))
+              router.push("/cadastro/Dados-da-Empresa");
+            } else {
+              // 3. Se der erro, avisa o usuário
+              alert(resposta.message);
+            }
+          
         }
     };
     
