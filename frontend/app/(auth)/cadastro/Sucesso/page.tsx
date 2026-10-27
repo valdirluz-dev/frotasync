@@ -7,7 +7,7 @@ export default function Sucesso() {
     const router = useRouter();
 
     // Redirecionamento configurado para 8 segundos
-    /*
+    
     useEffect(() => {
         const timer = setTimeout(() => {
             router.push("/login");
@@ -15,7 +15,6 @@ export default function Sucesso() {
 
         return () => clearTimeout(timer);
     }, [router]);
-    */
 
     return (
         <div className="min-h-screen w-full bg-slate-100 flex items-center justify-center relative overflow-hidden p-4">
