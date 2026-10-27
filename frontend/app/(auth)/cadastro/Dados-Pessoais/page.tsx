@@ -1,0 +1,254 @@
+"use client";
+
+import React, {useState} from "react";
+import { useRouter } from "next/navigation";
+import { Icon } from "@/components/ui/Icons";
+import { AuthInput } from "@/components/ui/Authinput";
+import { Button } from "@/components/ui";
+import { mockValidarDadosPessoais } from "@/mocks/dadosPessoais";
+
+//Funções utilitárias para formatação de máscara  CPF e Telefone(limpar e reformatar texto em tempo real)
+const formatCPF = (value: string) => {
+    return value 
+    .replace(/\D/g, "")
+    .replace(/(\d{3})(\d)/, "$1.$2")
+    .replace(/(\d{3})(\d)/, "$1.$2")
+    .replace(/(\d{3})(\d{1,2})/, "$1-$2")
+};
+
+const formatPhone = (value: string) => {
+    const digits = value.replace(/\D/g, "");
+    if (digits.length <= 2) return digits ? `+${digits}` : "";
+    if (digits.length <= 4) return `+${digits.slice(0, 2)} (${digits.slice(2)})`;
+    if (digits.length <= 9) return `+${digits.slice(0, 2)} (${digits.slice(2, 4)}) ${digits.slice(4)}`;
+    return `+${digits.slice(0, 2)} (${digits.slice(2, 4)}) ${digits.slice(4, 9)}-${digits.slice(9, 13)}`;
+};
+
+//Validação Real do CPF
+const isValidCPF = (cpf: string) => {
+    const cleanCPF = cpf.replace(/\D/g, "");
+    if (cleanCPF.length !== 11 || /^(\d)1{10}$/.test(cleanCPF)) return false;
+
+    let sum = 0;
+    let remainder;
+    for (let i = 1; i <= 9; i++) sum += parseInt(cleanCPF.substring(i -1, i)) * (11 - i);
+    remainder = (sum * 10) % 11;
+    if (remainder === 10 || remainder == 11) remainder = 0;
+    if (remainder !== parseInt(cleanCPF.substring(10, 11))) return false;
+
+    return true;
+};
+
+export default function DadosPessoais(){
+
+    const router = useRouter();//Inicializa o router para permitir a navegação entre as páginas 
+
+    //Estado dos campos do formulário
+    const [formData, setFormData] = useState({
+        nome: "",
+        cpf: "",
+        telefone: "",
+        cargo: "",
+    });
+
+    //Estado dos erros individuais por campo
+    const [errors, setErrors] = useState<{[key: string]: string }>({});
+
+    //Manipulação e Aplicação de máscaras
+    const handleChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+        const {name, value} = e.target;
+        let formattedValue =value;
+
+        if(name == "cpf") {
+            formattedValue = formatCPF(value);
+        } else if (name == "telefone") {
+            formattedValue = formatPhone(value);
+        }
+
+        setFormData((prev) => ({...prev, [name]: formattedValue}));
+
+        //Limpa o erro do campo quando o utilizador começa a corrigir
+        if (errors[name]){
+            setErrors((prev) => ({...prev, [name]: ""}));
+        }
+    };
+
+    //Submição com Validação Completa e redirecionamento
+    const handleSubmit = async (e: React.FormEvent) => {
+        e.preventDefault();
+        const newErrors: {[key: string]: string} = {};
+
+        if (!formData.nome.trim()) {
+            newErrors.nome = "Digite seu nome completo"; 
+        }
+
+        if (!formData.cpf) {
+            newErrors.cpf = "Digite seu CPF"; 
+        } else if (!isValidCPF(formData.cpf)) {
+            newErrors.cpf = "CPF inválido. Verifique os números novamente.";
+        }
+
+         if (!formData.telefone) {
+            newErrors.telefone = "Digite seu número de telefone"; 
+        } else if (formData.telefone.replace(/\D/g, "").length < 12) {
+            newErrors.telefone = "Telefone incompleto";
+        }
+
+        if (!formData.cargo.trim()) {
+            newErrors.cargo = "Digite seu cargo ou papel na empresa"; 
+        }
+
+        setErrors(newErrors);
+
+        //Se não houver erros, valida com sucesso e direciona para a página Dados-da-Empresa
+        if (Object.keys(newErrors).length === 0) {
+            console.log("Dados salvos com sucesso:", formData);
+
+            //integração com o mock .
+
+            // 1. Chama o mock (fazendo o papel da API/banco)
+            const resposta = await mockValidarDadosPessoais(formData);
+
+            // 2. Se o mock der sucesso, avança para a próxima tela
+            if (resposta.success) {
+              localStorage.setItem("dadosPessoaisSalvos", JSON.stringify(formData))
+              router.push("/cadastro/Dados-da-Empresa");
+            } else {
+              // 3. Se der erro, avisa o usuário
+              alert(resposta.message);
+            }
+          
+        }
+    };
+    
+    return (
+        <div className="relative flex min-h-screen items-center justify-center bg-gray-100 p-4 overflow-hidden">
+            {/*Elementos de fundo*/}
+            <div className="absolute inset-0 pointer-events-none overflow-hidden z-0">
+
+                {/*Círculo superior esquerdo*/}
+                <div className="absolute -left-20 -top-20 h-80 w-80 rounded-full bg-blue-700" />
+                
+                 {/*Círculo superior direito*/}
+                 <div className="absolute -top-10 right-2 h-64 w-64 rounded-full bg-blue-700" />
+
+                {/*Círculo inferior esquerdo*/}
+                 <div className="absolute left-10 -bottom-20 h-64 w-64 rounded-full bg-blue-700" />
+
+                {/*Círculo inferior direito*/}
+                 <div className="absolute -right-16 -bottom-16 h-80 w-80 rounded-full bg-blue-700" />
+            </div>
+
+            {/*Caixa Principal do formulário | retângulo grande*/}
+            <form 
+            onSubmit={handleSubmit}
+            className="relative z-20 flex flex-col md:flex-row w-full max-w-[1100px] my-auto h-[92vh] shrink-0 overflow-y-auto md:overflow-hidden rounded-3xl bg-white shadow-2xl">
+
+                {/*Lado esquerdo: campos de preenchimento */}
+                <div className="w-full md:w-1/2 p-8 md:p-10 bg-white flex flex-col justify-start space-y-4 order-2 md:order-1 overflow-y-auto max-h-[92vh]">
+
+                {/*1.Nome*/}
+                <AuthInput
+                label="Nome"
+                icon="user"
+                type="text"
+                name="nome"
+                value={formData.nome}
+                onChange={handleChange}
+                placeholder="*Digite seu nome completo"
+                error={errors.nome}
+                />
+
+                 {/*2.CPF*/}
+                <AuthInput
+                label="CPF"
+                icon="id-card"
+                type="text"
+                name="cpf"
+                value={formData.cpf}
+                onChange={handleChange}
+                placeholder="*000.000.000-00"
+                maxLength={14}
+                error={errors.cpf}
+                />
+
+                {/*3.Telefone*/}
+                <AuthInput
+                label="Número de Telefone"
+                icon="phone"
+                type="text"
+                name="telefone"
+                value={formData.telefone}
+                onChange={handleChange}
+                placeholder="*+55 (00) 00000-0000"
+                maxLength={19}
+                error={errors.telefone}
+                />
+
+                 {/*4.Cargo*/}
+                <AuthInput
+                label="Cargo / Função na Empresa"
+                icon="briefcase"
+                type="text"
+                name="cargo"
+                value={formData.cargo}
+                onChange={handleChange}
+                placeholder="*Digite seu cargo ou papel na empresa"
+                error={errors.cargo}
+                />
+                
+                   {/*Botão de Submissão/Avançar (aparece só na tela responsivel*/}
+                     <div className="pt-6 block md:hidden  flex justify-center w-full">
+                        <Button
+                        type="submit"
+                        variant="primary"
+                        className="!w-55 !text-2xl"
+                        >
+                            Avançar
+                        </Button>
+                     </div>
+                </div>
+
+                
+                {/*Lado direito: ilustração, stepper e botão */}
+                <div className="contents md:flex md:w-1/2 md:bg-[#ECEFF4] md:p-8 md:flex-col md:items-center md:justify-between md:order-2 ">
+
+                {/*Cabeçalho do painel*/}
+                <div className="w-full bg-[#ECEFF4] md:bg-transparent p-6 md:p-0 flex flex-col items-start md:items-center order-1 border-b md:border-b-0 border-gray-200">
+
+                    {/*Imagem da tela dados pessoais */}
+                    <img src="/img/dados-pessoais.png" alt="Ilustração de Cadastro" className="h-[140px] md:h-[280px] w-auto object-contain flex items-center justify-center space-x-3 mx-auto mb-4 " />
+
+                    {/*Indicadores de passos*/}
+                    <div className="flex items-center justify-center space-x-3 mx-auto mb-4">
+                        <div className="w-10 h-10 md:w-14  md:h-14 rounded-full bg-blue-600 text-white flex items-center justify-center font-bold text-3xl md:text-4xl shadow">1</div>
+                        <div className="w-12 h-0.5 bg-gray-400"/>{/*Linha divisória */}
+                        <div className="w-9 h-9 md:w-11  md:h-11 rounded-full bg-gray-400 text-gray-500 flex items-center justify-center font-bold text-xl md:text-2xl shadow">2</div>
+                        <div className="w-12 h-0.5 bg-gray-400"/>{/*Linha divisória */}
+                        <div className="w-9 h-9 md:w-11  md:h-11 rounded-full bg-gray-400 text-gray-500 flex items-center justify-center font-bold text-xl md:text-2xl shadow">3</div>
+                    </div>
+
+                      {/*Título da secção*/}
+                    <div className="flex items-center justify-center space-x-3 mx-auto mb-4 ">
+                        <h2 className="text-4xl md:text-4xl font-bold text-gray-800">Dados Pessoais</h2>
+                    </div>
+
+                     {/*Botão de Submissão/Avançar*/}
+                     <div className="pt-2 hidden md:block flex justify-center ">
+                        <Button
+                        type="submit"
+                        variant="primary"
+                        className="!w-55 !text-2xl"
+                        >
+                            Avançar
+                        </Button>
+                     </div>
+
+                </div>
+                </div>
+
+            </form>
+        </div>
+    )
+
+}

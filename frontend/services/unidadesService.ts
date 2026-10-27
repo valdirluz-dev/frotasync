@@ -13,7 +13,7 @@ import type {
 } from "@/types/domain";
 
 const DEFAULT_PAGE_SIZE = 12;
-const SIMULATED_LATENCY_MS = 120;
+//const SIMULATED_LATENCY_MS = 120;
 
 function normalizeSearch(value: string): string {
   return value
