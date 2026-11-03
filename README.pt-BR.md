@@ -150,6 +150,6 @@ Acesse [http://localhost:3000](http://localhost:3000). Use as credenciais mock d
 
 **Squad de desenvolvimento (Residência Motiron):**
 
-Valdir · Filipe · Gabrieli · Lucas Vinícius · Murilo · Niedson · Silas
+Valdir · Filipe · Gabrielly · Lucas Vinícius · Murilo · Niedson · Silas
 
 **Licença:** [MIT](LICENSE) — Copyright (c) 2026 valdir_luz

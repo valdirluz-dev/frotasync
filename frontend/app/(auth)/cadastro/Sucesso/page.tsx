@@ -11,7 +11,7 @@ export default function Sucesso() {
     useEffect(() => {
         const timer = setTimeout(() => {
             router.push("/login");
-        }, 8000);
+        }, 4000);
 
         return () => clearTimeout(timer);
     }, [router]);

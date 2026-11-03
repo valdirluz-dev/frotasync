@@ -5,7 +5,7 @@ import { useRouter } from "next/navigation";
 import { Icon } from "@/components/ui/Icons";
 import { AuthInput } from "@/components/ui/Authinput";
 import { Button } from "@/components/ui";
-import { mockValidarDadosPessoais } from "@/mocks/dadosPessoais";
+import {obterDadosPessoaisSalvos, simularEnvioDadosPessoais} from "@/mocks/dadosPessoais";
 
 //Funções utilitárias para formatação de máscara  CPF e Telefone(limpar e reformatar texto em tempo real)
 const formatCPF = (value: string) => {
@@ -43,14 +43,18 @@ export default function DadosPessoais(){
 
     const router = useRouter();//Inicializa o router para permitir a navegação entre as páginas 
 
-    //Estado dos campos do formulário
-    const [formData, setFormData] = useState({
-        nome: "",
-        cpf: "",
-        telefone: "",
-        cargo: "",
-    });
+    // Pega a lista salva e guarda o primeiro perfil ativo e a lista completa em memória
+    const listaPerfis = obterDadosPessoaisSalvos();
+    const perfilAtual = listaPerfis[0];
 
+    //Estado inicial buscando os dados do perfil atual
+    const [formData, setFormData] = useState(() => ({
+        nome: perfilAtual?.nome || "",
+        cpf: perfilAtual?.cpf || "",
+        telefone: perfilAtual?.telefone || "",
+        cargo: perfilAtual?.cargo || "",
+    }));
+    
     //Estado dos erros individuais por campo
     const [errors, setErrors] = useState<{[key: string]: string }>({});
 
@@ -106,18 +110,19 @@ export default function DadosPessoais(){
 
             //integração com o mock .
 
-            // 1. Chama o mock (fazendo o papel da API/banco)
-            const resposta = await mockValidarDadosPessoais(formData);
+            //integração com o mock: envia o objeto completo preservando o ID e a data original
+            const resposta = await simularEnvioDadosPessoais({
+                id: perfilAtual.id,
+                ...formData,
+                criadoEm: perfilAtual.criadoEm,
+            });
 
-            // 2. Se o mock der sucesso, avança para a próxima tela
+            // Se o mock der sucesso, avança para a próxima tela
             if (resposta.success) {
-              localStorage.setItem("dadosPessoaisSalvos", JSON.stringify(formData))
               router.push("/cadastro/Dados-da-Empresa");
             } else {
-              // 3. Se der erro, avisa o usuário
               alert(resposta.message);
             }
-          
         }
     };
     

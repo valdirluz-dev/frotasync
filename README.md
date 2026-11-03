@@ -150,6 +150,6 @@ Open [http://localhost:3000](http://localhost:3000). Use mock credentials define
 
 **Development squad (Motiron Residency):**
 
-Valdir · Filipe · Gabrielli · Lucas Vinícius · Murilo · Niedson · Silas
+Valdir · Filipe · Gabrielly · Lucas Vinícius · Murilo · Niedson · Silas
 
 **License:** [MIT](LICENSE) — Copyright (c) 2026 valdir_luz

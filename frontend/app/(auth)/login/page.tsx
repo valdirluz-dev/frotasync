@@ -1,6 +1,6 @@
 "use client";
 
-import React, { useState } from "react";
+import React, { useState, useEffect } from "react";
 import { useRouter } from "next/navigation";
 import { AuthInput } from "@/components/ui/Authinput";
 import { Button } from "@/components/ui";
@@ -12,10 +12,26 @@ export default function Login() {
 
     // Estado dos campos do formulário de login
     const [formData, setFormData] = useState({
-        email: "",
+        email:  "",
         senha: "",
         lembreMe: false,
     });
+
+    //Busca o localStorage logo após a página carregar no navegador.
+       useEffect(() => {
+
+        const ultimoEmail = localStorage.getItem("@MinhaApp:ultimoEmail");
+        const ultimaSenha = localStorage.getItem("@MinhaApp:ultimaSenha");
+
+        if (ultimoEmail && ultimaSenha) {
+            setFormData(prev => ({
+                ...prev,
+                email: ultimoEmail,
+                senha: ultimaSenha,
+                lembreMe: true
+            }));
+        }
+    }, []);
 
     // Estado para controlar a visibilidade da senha (olhinho)
     const [showPassword, setShowPassword] = useState(false);
@@ -56,20 +72,27 @@ export default function Login() {
 
         // Se preenchido corretamente, simula o login
         if (Object.keys(newErrors).length === 0) {
-            console.log("Login realizado com sucesso:", formData);
-            
-            //integração com o mock .
-            
             // 1. Chama o mock (fazendo o papel da API/banco)
-           const resposta = await mockFazerLogin(formData);
+            const resposta = await mockFazerLogin(formData);
             
-           // 2. Se o mock der sucesso, avança para a próxima tela
-           if (resposta.success) {
-               router.push("/dashboard");
+            // 2. Se o mock der sucesso, guarda no localStorage ANTES de mudar de tela
+            if (resposta.success) {
+                if (typeof window !== "undefined") {
+                    if (formData.lembreMe) {
+                        localStorage.setItem("@MinhaApp:ultimoEmail", formData.email);
+                        localStorage.setItem("@MinhaApp:ultimaSenha", formData.senha);
+                    } else {
+                        localStorage.removeItem("@MinhaApp:ultimoEmail");
+                        localStorage.removeItem("@MinhaApp:ultimaSenha");
+                    }
+                }
+
+                // 3. Avança para a próxima tela
+                router.push("/dashboard");
             } else {
-               // 3. Se der erro, avisa o usuário
-               alert(resposta.message);
-           }
+                // 4. Se der erro, avisa o usuário
+                alert(resposta.message);
+            }
         }
     };
 
@@ -168,7 +191,7 @@ export default function Login() {
                     </div>
 
                     {/* Rodapé: Link para cadastro alinhado à esquerda */}
-                    <p className="text-left text-xs text-gray-600 pt-1">
+                    <p className="text-left text-base text-gray-600 pt-1">
                         Ainda não tem uma conta?{" "}
                         <a href="/cadastro/Dados-Pessoais" className="text-blue-600 font-semibold hover:underline">
                             Cadastre-se
