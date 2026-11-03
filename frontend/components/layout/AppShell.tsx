@@ -1,7 +1,8 @@
 "use client";
 
 import Link from "next/link";
-import { useState, type ReactNode } from "react";
+import { useState, useEffect, type ReactNode } from "react";
+import { obterPerfilConsolidado } from "@/mocks/profile";
 
 import { Icon } from "@/components/ui/Icons";
 
@@ -19,6 +20,29 @@ export function AppShell({
   children: ReactNode;
 }) {
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
+
+  // ESTADO DO PERFIL: Atualizado para consumir o perfil consolidado do profile.ts
+  const [userProfile, setUserProfile] = useState({
+    nome: "Maria Luiza da Silva",
+    cargo: "Administradora de Frotas",
+    inicial: "ML"
+  });
+
+  useEffect(() => {
+    // Puxa os dados consolidados do mock/localStorage
+    const perfilConsolidado = obterPerfilConsolidado();
+    
+    if (perfilConsolidado && perfilConsolidado.nome) {
+      const nomeExibicao = perfilConsolidado.nome;
+      const iniciais = nomeExibicao.substring(0, 2).toUpperCase();
+
+      setUserProfile({
+        nome: nomeExibicao,
+        cargo: perfilConsolidado.cargo || "Administrador",
+        inicial: iniciais
+      });
+    }
+  }, []);
   
   // Variáveis isoladas e estritas para controlar exatamente qual aba está ativa
   const isDashboardSection = activeTab === "dashboard";
@@ -249,23 +273,34 @@ export function AppShell({
               <Icon name="help" className="h-[18px] w-[18px]" />
             </button>
             <span className="hidden h-8 border-l border-slate-200 sm:block" />
-            <div className="flex items-center gap-2">
-              <div className="flex h-8 w-8 items-center justify-center rounded-full bg-slate-200 text-[10px] font-semibold text-slate-600">
-                JS
+            
+            {/* Bloco do perfil dinâmico que puxa os dados do localStorage */}
+            <Link 
+              href="/perfil" 
+              className="flex items-center gap-2 rounded-lg p-1 transition hover:bg-slate-50 cursor-pointer"
+            >
+              {/* Círculo com as iniciais dinâmicas (ex: MA) */}
+              <div className="flex h-8 w-8 items-center justify-center rounded-full bg-indigo-600 text-[10px] font-semibold text-white">
+                {userProfile.inicial}
               </div>
-              <div className="hidden leading-tight sm:block">
+
+              {/* Nome e cargo dinâmicos */}
+              <div className="hidden leading-tight sm:block text-left">
                 <div className="text-xs font-semibold text-slate-800">
-                  Murilo Pussa
+                  {userProfile.nome}
                 </div>
                 <div className="mt-0.5 text-[10px] text-slate-400">
-                  Administrador
+                  {userProfile.cargo}
                 </div>
               </div>
+
+              {/* Ícone de chevron / setinha para indicar que é clicável */}
               <Icon
                 name="chevron"
                 className="hidden h-4 w-4 text-slate-400 sm:block"
               />
-            </div>
+            </Link>
+            
           </div>
         </header>
 
