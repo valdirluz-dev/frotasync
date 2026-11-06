@@ -5,16 +5,16 @@ import { useRouter } from "next/navigation";
 import { Icon } from "@/components/ui/Icons";
 import { AuthInput } from "@/components/ui/Authinput";
 import { Button } from "@/components/ui";
-import { mockValidarDadosEmpresa } from "@/mocks/dadosEmpresa";
+import { mockValidarDadosEmpresa, obterDadosEmpresaSalvos } from "@/mocks/dadosEmpresa";
 
 //Funções utilitárias para formatação de máscara  CNPJ (limpar e reformatar texto em tempo real)
 const formatCNPJ = (value: string) => {
     return value 
     .replace(/\D/g, "")
-    .replace(/(\d{2})(\d)/, "$1.$2")
-    .replace(/(\d{2}).(\d{3})(\d)/, "$1.$2.$3")
-    .replace(/(\d{3})(\d)/, ".$1/$2")
-    .replace(/(-\d{4})(\d)/, "$1-$2")
+    .replace(/^(\d{2})(\d)/, "$1.$2")
+    .replace(/^(\d{2}).(\d{3})(\d)/, "$1.$2.$3")
+    .replace(/\.(\d{3})(\d)/, ".$1/$2")
+    .replace(/(\d{4})(\d)/, "$1-$2")
     .slice(0, 18);
 };
 
@@ -53,19 +53,23 @@ export default function DadosEmpresa(){
 
     const router = useRouter();//Inicializa o router para permitir a navegação entre as páginas 
 
-    //Estado dos campos do formulário
+    //Pega o primeiro registro salvo no mock para preencher automaticamente ao abrir.
+    const empresasSalvas = obterDadosEmpresaSalvos();
+    const empresaExemplo = empresasSalvas[0] || {};
+
+    //Estado dos campos do formulário já preenchidos com os dados de exemplo do mock.
     const [formData, setFormData] = useState({
-        nomeEmpresa: "",
-        razaoSocial: "",
-        cnpj: "",
-        segmento: "",
-        tipoUnidade: "",
-        cep: "",
-        logradouro: "",
-        numero: "",
-        bairro: "",
-        cidade: "",
-        estado: "",
+        nomeEmpresa: empresaExemplo.nomeEmpresa || "",
+        razaoSocial: empresaExemplo.razaoSocial || "",
+        cnpj: empresaExemplo.cnpj || "",
+        segmento: empresaExemplo.segmento || "",
+        tipoUnidade: empresaExemplo.tipoUnidade || "",
+        cep: empresaExemplo.cep || "",
+        estado: empresaExemplo.estado || "",
+        cidade: empresaExemplo.cidade || "",
+        bairro: empresaExemplo.bairro || "",
+        logradouro: empresaExemplo.logradouro || "",
+        numero: empresaExemplo.numero || "",
     });
 
     //Estado dos erros individuais por campo
@@ -139,11 +143,11 @@ const fetchAddressByCep = async (cep: string) => {
             newErrors.nomeEmpresa = "Digite o nome comercial ou marca"; 
         }
 
-        if (!formData.razaoSocial) {
+        if (!formData.razaoSocial.trim()) {
             newErrors.razaoSocial = "Digite a razão social"; 
         }
 
-        if (!formData.cnpj) {
+        if (!formData.cnpj.trim()) {
             newErrors.cnpj = "Digite o CNPJ"; 
         } else if (!isValidCNPJ(formData.cnpj)) {
             newErrors.cnpj = "CNPJ inválido. Verifique os números novamente.";
@@ -173,16 +177,22 @@ const fetchAddressByCep = async (cep: string) => {
             newErrors.bairro = "Digite o bairro"; 
         }
 
+        if (!formData.estado.trim()) {
+            newErrors.estado = "Digite o estado"; 
+        }
+
+        if (!formData.cidade.trim()) {
+            newErrors.cidade= "Digite a cidade"; 
+        }
+
         setErrors(newErrors);
 
-        //Se não houver erros, valida com sucesso e direciona para a página Dados-de-Login
+        //Se não houver erros, valida com o mock e direciona para a página Dados-de-Login
         if (Object.keys(newErrors).length === 0) {
             console.log("Dados da empresa salvos com sucesso:", formData);
-        
-            //integração com o mock .
             
             // 1. Chama o mock (fazendo o papel da API/banco)
-             const resposta = await mockValidarDadosEmpresa(formData as any);
+             const resposta = await mockValidarDadosEmpresa(formData);
             
                 // 2. Se o mock der sucesso, avança para a próxima tela
                  if (resposta.success) {
@@ -295,34 +305,32 @@ const fetchAddressByCep = async (cep: string) => {
                 maxLength={9}
                 error={errors.cep}
                 />
-
-                 {/*7.Endereço / Logradrouro*/}
+    
+               {/*7.Estado */}
                 <AuthInput
-                label="Endereço"
-                icon="map-pin"
-                type="text"
-                name="logradouro"
-                value={formData.logradouro}
-                onChange={handleChange}
-                placeholder="*Rua ou Avenida"
-                error={errors.logradouro}
-                />
+                    label="Estado"
+                    icon="map-pin"
+                    type="text"
+                    name="estado"
+                    value={formData.estado}
+                    onChange={handleChange}
+                    placeholder="*Estado"
+                    error={errors.estado}
+                    />
+                
+                 {/*8.Cidade */}
+                 <AuthInput
+                     label="Cidade"
+                      icon="map-pin"
+                     type="text"
+                     name="cidade"
+                     value={formData.cidade}
+                     onChange={handleChange}
+                     placeholder="*Cidade"
+                     error={errors.cidade}
+                    />
 
-                {/*8.Número e Bairro*/}
-                <div className="flex space-x-4">
-                    <div className="w-1/2">
-                     <AuthInput
-                        label="Número"
-                        icon="map-pin"
-                        type="text"
-                        name="numero"
-                        value={formData.numero}
-                        onChange={handleChange}
-                        placeholder="*Número"
-                        error={errors.numero}
-                      />
-                    </div>
-                    <div className="w-1/2">
+               {/*9.Bairro */}
                     <AuthInput
                         label="Bairro"
                         icon="map-pin"
@@ -333,7 +341,37 @@ const fetchAddressByCep = async (cep: string) => {
                         placeholder="*Bairro"
                         error={errors.bairro}
                       />
-                    </div>
+
+               <div className="flex space-x-4 w-full">
+               {/*11.Endereço / Logradrouro*/}
+               <div className="w-3/4">
+                    <AuthInput
+                        label="Endereço"
+                        icon="map-pin"
+                        type="text"
+                        name="logradouro"
+                        value={formData.logradouro}
+                        onChange={handleChange}
+                        placeholder="*Rua ou Avenida"
+                        error={errors.logradouro}
+                        />
+                   </div>
+
+
+                {/*10.Número */}
+                    <div className="w-1/4">
+                     <AuthInput
+                        label="Número"
+                        icon="map-pin"
+                        type="text"
+                        name="numero"
+                        value={formData.numero}
+                        onChange={handleChange}
+                        placeholder="*Número"
+                        error={errors.numero}
+                      />
+                      </div>
+
                 </div>
                 
                    {/*Botão de Submissão/Avançar (aparece só na tela responsivel*/}
