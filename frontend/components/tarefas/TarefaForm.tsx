@@ -13,7 +13,7 @@ import {
 } from "@/schemas/tarefa";
 import type { Tarefa } from "@/types/domain";
 
-function formatDate(value: string | null) {
+function formatDate(value: string | null | undefined) {
   if (!value) return "—";
   return new Intl.DateTimeFormat("pt-BR", {
     day: "2-digit",
@@ -24,7 +24,7 @@ function formatDate(value: string | null) {
 }
 
 type TarefaFormProps = {
-  tarefa: Tarefa;
+  tarefa: Tarefa | null;
   unidadeNome: string;
   mode?: "criar" | "editar";
   defaultValues?: Partial<TarefaFormInput>;
@@ -45,9 +45,9 @@ export function TarefaForm({
   onNoChanges,
 }: TarefaFormProps) {
   const initial: TarefaFormInput = {
-    titulo: tarefa.titulo,
-    prazoFinal: tarefa.prazoFinal,
-    descricao: tarefa.descricao ?? "",
+    titulo: tarefa?.titulo ?? "",
+    prazoFinal: tarefa?.prazoFinal ?? "",
+    descricao: tarefa?.descricao ?? "",
     ...defaultValues,
   };
   const {
@@ -76,8 +76,10 @@ export function TarefaForm({
       onNoChanges?.();
       return;
     }
-    if (!prazoAlteradoValido(values.prazoFinal, tarefa.prazoFinal)) {
-      setError("prazoFinal", {
+if (
+  tarefa &&
+  !prazoAlteradoValido(values.prazoFinal, tarefa.prazoFinal)
+) {      setError("prazoFinal", {
         type: "validate",
         message: "O prazo não pode ser anterior a hoje quando alterado.",
       });
@@ -109,7 +111,7 @@ export function TarefaForm({
           <div className="relative">
             <Input
               id="tarefa-unidade"
-              value={`${unidadeNome} (ID ${tarefa.unidadeId})`}
+              value={`${unidadeNome} (ID ${tarefa?.unidadeId ?? ""})`}
               readOnly
               aria-readonly="true"
               className="pr-12 bg-slate-50 text-slate-500"
@@ -156,7 +158,7 @@ export function TarefaForm({
           <div
             className="flex h-12 items-center justify-between rounded-2xl border border-slate-200 bg-slate-50 px-4"
             aria-readonly="true">
-            <StatusBadge status={tarefa.status} />
+            <StatusBadge status={tarefa?.status ?? "Pendente"} />
             <span className="text-xs text-slate-500">
               O status é alterado na lista de tarefas
             </span>
@@ -166,7 +168,7 @@ export function TarefaForm({
           <FormField id="tarefa-inicio" label="Data de início">
             <Input
               id="tarefa-inicio"
-              value={formatDate(tarefa.dataInicio)}
+              value={formatDate(tarefa?.dataInicio)}
               readOnly
               aria-readonly="true"
               className="bg-slate-50 text-slate-500"
@@ -175,7 +177,7 @@ export function TarefaForm({
           <FormField id="tarefa-conclusao" label="Data de conclusão">
             <Input
               id="tarefa-conclusao"
-              value={formatDate(tarefa.dataConclusao)}
+              value={formatDate(tarefa?.dataConclusao)}
               readOnly
               aria-readonly="true"
               className="bg-slate-50 text-slate-500"

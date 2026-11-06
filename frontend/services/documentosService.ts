@@ -1,4 +1,4 @@
-import { calcularStatusDocumento } from "@/lib/status";
+//import { calcularStatusDocumento } from "@/lib/status";
 import { mockDocumentos, mockUnidades } from "@/mocks/dashboard";
 import type { Documento, DocumentoAnexo } from "@/types/domain";
 import {
@@ -20,7 +20,7 @@ export async function atualizarDocumento(
 ): Promise<Documento> {
   await wait();
   const index = mockDocumentos.findIndex((item) => item.id === id);
-  if (index < 0) throw new RecursoNaoEncontradoError("Documento");
+ // if (index < 0) throw new RecursoNaoEncontradoError("Documento");
   const current = mockDocumentos[index];
   const unidade = mockUnidades.find((item) => item.id === current.unidadeId);
   if (!unidade) throw new RecursoNaoEncontradoError("Unidade");

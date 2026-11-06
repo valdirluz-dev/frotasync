@@ -1,5 +1,7 @@
 "use client";
+import { useState } from "react";
 
+import { DocumentoViewerDialog } from "@/components/documentos/DocumentoViewerDialog";
 import { getCoreRowModel, useLegacyTable } from "@tanstack/react-table/legacy";
 import Link from "next/link";
 
@@ -64,6 +66,7 @@ export function DocumentosTable({
     manualPagination: true,
     pageCount: totalPages,
   });
+  const [viewing, setViewing] = useState<Documento | null>(null);
   const showUnit = mode === "global";
 
   return (
@@ -83,13 +86,13 @@ export function DocumentosTable({
             <thead>
               <tr>
                 {[
+                  "Ações",
                   "Documento",
                   ...(showUnit ? ["Unidade"] : []),
                   "Categoria",
                   "Emissão",
                   "Validade",
                   "Status",
-                  "Ações",
                 ].map((heading) => (
                   <th
                     key={heading}
@@ -108,8 +111,41 @@ export function DocumentosTable({
                   : `/documentos/${document.id}/editar`;
                 return (
                   <tr key={document.id} className="hover:bg-slate-50/80">
+                                        <td className="px-3 py-3">
+                      <div className="flex items-center gap-2">
+                        <button
+                          type="button"
+                          onClick={() => setViewing(document)}
+                          className="inline-flex items-center gap-1 rounded-md border border-slate-200 px-2 py-1 text-[10px] font-medium text-slate-500 hover:border-indigo-200 hover:text-indigo-700">
+                          <Icon name="eye" className="h-3 w-3" />
+                          Visualizar
+                        </button>
+
+                        {rowIsReadOnly ? (
+                          <button type="button" disabled title="Unidade inativa" className="inline-flex cursor-not-allowed items-center gap-1 rounded-md border border-slate-200 bg-slate-100 px-2 py-1 text-[10px] font-medium text-slate-400">
+                            <Icon name="edit" className="h-3 w-3" />
+                            {mode === "unidade" ? "Editar informações" : "Editar"}
+                          </button>
+                        ) : (
+                          <Link href={href} className="inline-flex items-center gap-1 rounded-md border border-slate-200 px-2 py-1 text-[10px] font-medium text-slate-500 hover:border-indigo-200 hover:text-indigo-700">
+                            <Icon name="edit" className="h-3 w-3" />
+                            {mode === "unidade" ? "Editar informações" : "Editar"}
+                          </Link>
+                        )}
+                      </div>
+                    </td>
                     <td className="whitespace-nowrap px-3 py-3 text-xs font-semibold text-slate-900 first:pl-4">
-                      {document.nome}
+                      {document.anexo?.url ? (
+  <a
+    href={document.anexo.url}
+    target="_blank"
+    rel="noopener noreferrer"
+    className="text-indigo-700 hover:underline">
+    {document.nome}
+  </a>
+) : (
+  document.nome
+)}
                     </td>
                     {showUnit ? (
                       <td className="whitespace-nowrap px-3 py-3 text-xs text-slate-700">
@@ -120,19 +156,7 @@ export function DocumentosTable({
                     <td className="whitespace-nowrap px-3 py-3 text-xs tabular-nums text-slate-700">{formatDate(document.dataEmissao)}</td>
                     <td className="whitespace-nowrap px-3 py-3 text-xs tabular-nums text-slate-700">{formatDate(document.dataValidade)}</td>
                     <td className="px-3 py-3"><StatusBadge status={calcularStatusDocumento(document.dataValidade)} /></td>
-                    <td className="px-3 py-3">
-                      {rowIsReadOnly ? (
-                        <button type="button" disabled title="Unidade inativa" className="inline-flex cursor-not-allowed items-center gap-1 rounded-md border border-slate-200 bg-slate-100 px-2 py-1 text-[10px] font-medium text-slate-400">
-                          <Icon name="edit" className="h-3 w-3" />
-                          {mode === "unidade" ? "Editar informações" : "Editar"}
-                        </button>
-                      ) : (
-                        <Link href={href} className="inline-flex items-center gap-1 rounded-md border border-slate-200 px-2 py-1 text-[10px] font-medium text-slate-500 hover:border-indigo-200 hover:text-indigo-700">
-                          <Icon name="edit" className="h-3 w-3" />
-                          {mode === "unidade" ? "Editar informações" : "Editar"}
-                        </Link>
-                      )}
-                    </td>
+
                   </tr>
                 );
               })}
@@ -150,6 +174,10 @@ export function DocumentosTable({
           onChange={onPageChange}
         />
       ) : null}
+      <DocumentoViewerDialog
+  documento={viewing}
+  onClose={() => setViewing(null)}
+/>
     </div>
   );
 }

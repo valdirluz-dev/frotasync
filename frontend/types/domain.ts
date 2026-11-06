@@ -7,7 +7,7 @@ export type NotificacaoCategoria =
   | "documento_vencido"
   | "tarefa_pendente"
   | "prazo_tarefa_proximo";
-
+  
 export const UF_SIGLAS = [
   "AC", "AL", "AP", "AM", "BA", "CE", "DF", "ES", "GO", "MA", "MT", "MS", "MG", "PA", "PB", "PR", "PE", "PI", "RJ", "RN", "RS", "RO", "RR", "SC", "SP", "SE", "TO",
 ] as const;
@@ -51,7 +51,7 @@ export type EnderecoCep = Pick<EnderecoUnidade, "logradouro" | "bairro" | "cidad
 export type UnidadeListItem = Unidade & { totalDocumentos: number; totalTarefas: number };
 export type UnidadesFilters = { page?: number; size?: number; q?: string; status?: UnidadeStatus | "Todos" };
 
-export type DocumentoAnexo = { nome: string; tamanhoBytes: number; tipo?: string };
+export type DocumentoAnexo = { nome: string; tamanhoBytes: number; tipo?: string; url?: string; };
 export type Documento = {
   id: string;
   nome: string;
