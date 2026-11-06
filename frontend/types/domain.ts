@@ -2,6 +2,12 @@ export type UnidadeStatus = "Ativa" | "Inativa";
 export type PerfilUsuario = "Administrador" | "Gestor" | "Colaborador";
 export type DocumentoStatus = "Válido" | "Próximo do vencimento" | "Expirado";
 export type TarefaStatus = "Pendente" | "Em andamento" | "Concluída";
+export type NotificacaoCategoria =
+  | "documento_proximo_vencimento"
+  | "documento_vencido"
+  | "tarefa_pendente"
+  | "prazo_tarefa_proximo";
+  
 export const UF_SIGLAS = [
   "AC", "AL", "AP", "AM", "BA", "CE", "DF", "ES", "GO", "MA", "MT", "MS", "MG", "PA", "PB", "PR", "PE", "PI", "RJ", "RN", "RS", "RO", "RR", "SC", "SP", "SE", "TO",
 ] as const;
@@ -20,6 +26,16 @@ export type Unidade = {
 };
 
 export type UsuarioSessao = { nome: string; perfil: PerfilUsuario };
+
+export type Notificacao = {
+  id: string;
+  titulo: string;
+  descricao: string;
+  categoria: NotificacaoCategoria;
+  criadaEm: string;
+  lida: boolean;
+  destino?: string;
+};
 
 export type EnderecoUnidade = {
   logradouro: string;
