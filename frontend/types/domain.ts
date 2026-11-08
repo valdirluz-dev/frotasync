@@ -2,6 +2,7 @@ export type UnidadeStatus = "Ativa" | "Inativa";
 export type PerfilUsuario = "Administrador" | "Gestor" | "Colaborador";
 export type DocumentoStatus = "Válido" | "Próximo do vencimento" | "Expirado";
 export type TarefaStatus = "Pendente" | "Em andamento" | "Concluída";
+export type TipoUnidade = "Matriz" | "Filial";
 export type NotificacaoCategoria =
   | "documento_proximo_vencimento"
   | "documento_vencido"
@@ -25,7 +26,12 @@ export type Unidade = {
   atualizadoEm?: string;
 };
 
-export type UsuarioSessao = { nome: string; perfil: PerfilUsuario };
+export type UsuarioSessao = { 
+  nome: string;
+  perfil: PerfilUsuario;
+  email?: string;
+  cargo?: string;
+ };
 
 export type Notificacao = {
   id: string;
@@ -48,6 +54,31 @@ export type EnderecoUnidade = {
 };
 
 export type EnderecoCep = Pick<EnderecoUnidade, "logradouro" | "bairro" | "cidade" | "uf">;
+
+//Entidades de emprea e autenticação
+export type Empresa = {
+  id: string;
+  nomeEmpresa: string;
+  razaoSocial: string;
+  cnpj: string;
+  segmento: string;
+  tipoUnidade: TipoUnidade;
+  endereco: EnderecoUnidade;
+  criadoEm?: string;
+}
+
+export type Usuario = {
+  id: string;
+  nome: string;
+  cpf: string;
+  telefone: string;
+  cargo: string;
+  email: string;
+  perfil: PerfilUsuario;
+  empresaId: string;
+  criadoEm: string;
+}
+
 export type UnidadeListItem = Unidade & { totalDocumentos: number; totalTarefas: number };
 export type UnidadesFilters = { page?: number; size?: number; q?: string; status?: UnidadeStatus | "Todos" };
 
