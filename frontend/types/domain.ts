@@ -1,0 +1,129 @@
+export type UnidadeStatus = "Ativa" | "Inativa";
+export type PerfilUsuario = "Administrador" | "Gestor" | "Colaborador";
+export type DocumentoStatus = "Válido" | "Próximo do vencimento" | "Expirado";
+export type TarefaStatus = "Pendente" | "Em andamento" | "Concluída";
+export type TipoUnidade = "Matriz" | "Filial";
+export type NotificacaoCategoria =
+  | "documento_proximo_vencimento"
+  | "documento_vencido"
+  | "tarefa_pendente"
+  | "prazo_tarefa_proximo";
+  
+export const UF_SIGLAS = [
+  "AC", "AL", "AP", "AM", "BA", "CE", "DF", "ES", "GO", "MA", "MT", "MS", "MG", "PA", "PB", "PR", "PE", "PI", "RJ", "RN", "RS", "RO", "RR", "SC", "SP", "SE", "TO",
+] as const;
+
+export type Uf = (typeof UF_SIGLAS)[number];
+
+export type Unidade = {
+  id: string;
+  nome: string;
+  codigo: string;
+  status: UnidadeStatus;
+  endereco: EnderecoUnidade;
+  descricao?: string;
+  criadoEm?: string;
+  atualizadoEm?: string;
+};
+
+export type UsuarioSessao = { 
+  nome: string;
+  perfil: PerfilUsuario;
+  email?: string;
+  cargo?: string;
+ };
+
+export type Notificacao = {
+  id: string;
+  titulo: string;
+  descricao: string;
+  categoria: NotificacaoCategoria;
+  criadaEm: string;
+  lida: boolean;
+  destino?: string;
+};
+
+export type EnderecoUnidade = {
+  logradouro: string;
+  numero: string;
+  bairro: string;
+  cidade: string;
+  uf: Uf;
+  cep?: string;
+  complemento?: string;
+};
+
+export type EnderecoCep = Pick<EnderecoUnidade, "logradouro" | "bairro" | "cidade" | "uf">;
+
+//Entidades de emprea e autenticação
+export type Empresa = {
+  id: string;
+  nomeEmpresa: string;
+  razaoSocial: string;
+  cnpj: string;
+  segmento: string;
+  tipoUnidade: TipoUnidade;
+  endereco: EnderecoUnidade;
+  criadoEm?: string;
+}
+
+export type Usuario = {
+  id: string;
+  nome: string;
+  cpf: string;
+  telefone: string;
+  cargo: string;
+  email: string;
+  perfil: PerfilUsuario;
+  empresaId: string;
+  criadoEm: string;
+}
+
+export type UnidadeListItem = Unidade & { totalDocumentos: number; totalTarefas: number };
+export type UnidadesFilters = { page?: number; size?: number; q?: string; status?: UnidadeStatus | "Todos" };
+
+export type DocumentoAnexo = { nome: string; tamanhoBytes: number; tipo?: string; url?: string; };
+export type Documento = {
+  id: string;
+  nome: string;
+  unidadeId: string;
+  categoria: string;
+  dataEmissao: string | null;
+  dataValidade: string;
+  descricao?: string;
+  anexo?: DocumentoAnexo;
+};
+
+export type Tarefa = {
+  id: string;
+  titulo: string;
+  unidadeId: string;
+  dataInicio: string;
+  prazoFinal: string;
+  status: TarefaStatus;
+  dataConclusao: string | null;
+  descricao?: string;
+};
+
+export type DashboardDistribution = { label: string; value: number; color: string };
+export type DashboardIndicators = {
+  unidades: DashboardDistribution[];
+  documentos: DashboardDistribution[];
+  tarefas: DashboardDistribution[];
+  totalPendencias: number;
+  documentosAVencer: number;
+  tarefasConcluidas: number;
+  variacaoDocumentosAVencer: number | null;
+  variacaoTarefasConcluidas: number | null;
+};
+export type UnidadeIndicadores = {
+  documentos: DashboardDistribution[];
+  tarefas: DashboardDistribution[];
+  documentosExpirados: number;
+  tarefasConcluidas: number;
+  variacaoDocumentosExpirados: number | null;
+  variacaoTarefasConcluidas: number | null;
+};
+export type Paginated<T> = { items: T[]; page: number; pageSize: number; total: number; totalPages: number };
+export type DocumentFilters = { page: number; pageSize: number; search: string; unidadeId: string; categoria: string; status: DocumentoStatus | "Todos" };
+export type TaskFilters = { page: number; pageSize: number; search: string; unidadeId: string; status: TarefaStatus | "Todos" };
