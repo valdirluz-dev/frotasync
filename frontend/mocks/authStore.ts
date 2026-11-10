@@ -26,7 +26,7 @@ export interface UsuarioRegistro {
 const USUARIO_PADRAO: UsuarioRegistro = {
   id: "usr-001",
   nome: "Maria Luiza da Silva",
-  cpf: "123.456.789-00",
+  cpf: "111.444.777-35",
   telefone: "+55 (81) 98765-4321",
   cargo: "Administradora de Frotas",
   email: "marialuiza@logisticaexpress.com.br",
@@ -49,7 +49,7 @@ const USUARIO_PADRAO: UsuarioRegistro = {
 export const tabelaUsuarios: UsuarioRegistro[] = [USUARIO_PADRAO];
 
 // Rascunho temporário do wizard de cadastro enquanto o usuário digita
-export let rascunhoCadastro: Partial<UsuarioRegistro> = { ...USUARIO_PADRAO };
+export let rascunhoCadastro: Partial<UsuarioRegistro> = { };
 
 // Usuário que fez login no momento
 export let usuarioLogadoAtual: UsuarioRegistro = USUARIO_PADRAO;

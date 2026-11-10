@@ -1,4 +1,4 @@
-// frontend/mocks/dadosLogin.ts
+
 import { tabelaUsuarios, rascunhoCadastro, setUsuarioLogado, UsuarioRegistro } from "./authStore";
 
 export interface IDadosLogin {
