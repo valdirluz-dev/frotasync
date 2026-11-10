@@ -1,4 +1,6 @@
 
+import { loginSchema } from "@/schemas/acesso";
+
 import { tabelaUsuarios, rascunhoCadastro, setUsuarioLogado, UsuarioRegistro } from "./authStore";
 
 export interface IDadosLogin {
@@ -17,7 +19,7 @@ export function obterDadosLoginSalvos(): IDadosLogin[] {
 export async function mockValidarDadosLogin(novosDados: IDadosLogin) {
   await new Promise((r) => setTimeout(r, 400));
 
-  if (!novosDados.email || !novosDados.senha) {
+  if (!loginSchema.safeParse(novosDados).success) {
     return { success: false, message: "Preencha o e-mail corporativo e a senha." };
   }
 

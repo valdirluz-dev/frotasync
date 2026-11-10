@@ -8,6 +8,8 @@ import { Button } from "@/components/ui";
 import { Icon } from "@/components/ui/Icons";
 import { mockFazerLogin } from "@/mocks/login";
 import { CookieModal } from "@/components/cookie/CookieModal"; 
+import { loginSchema } from "@/schemas/acesso";
+import { zodErrorsByField } from "@/utils/zodErrors";
 
 export default function Login() {
   const router = useRouter();
@@ -49,47 +51,32 @@ export default function Login() {
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
 
-    const newErrors: { [key: string]: string } = {};
-
-    // 1. Validação básica de campos obrigatórios
-    if (!formData.email.trim()) {
-      newErrors.email = "Digite seu e-mail corporativo";
+    const result = loginSchema.safeParse(formData);
+    if (!result.success) {
+      setErrors(zodErrorsByField(result.error));
+      return;
     }
 
-    if (!formData.senha.trim()) {
-      newErrors.senha = "Digite sua senha";
-    }
+    setErrors({});
+    setIsLoading(true);
 
-    setErrors(newErrors);
+    try {
+      const resposta = await mockFazerLogin(formData);
 
-    // 2. Se não houver erros de preenchimento, processa o login
-    if (Object.keys(newErrors).length === 0) {
-      setIsLoading(true);
+      if (resposta.success) {
+        const dias = formData.lembreMe ? 30 : 7;
+        const maxAge = dias * 24 * 60 * 60;
 
-      try {
-        //Chama o mock em memória para verificar credenciais
-        const resposta = await mockFazerLogin(formData);
-
-        if (resposta.success) {
-          //CRUCIAL - Grava o cookie exigido pelo proxy.ts para desbloquear as rotas privadas
-          // Se 'Lembre-me' estiver ativo, o cookie dura 30 dias; senão dura 7 dias.
-          const dias = formData.lembreMe ? 30 : 7;
-          const maxAge = dias * 24 * 60 * 60;
-
-           document.cookie = `frotasync_session=true; path=/; max-age=${maxAge}; SameSite=Lax`;
-
-          //Redireciona com sucesso para o Dashboard
-          router.push("/dashboard");
-        } else {
-          //Se o mock retornar credenciais inválidas, alerta o usuário
-          alert(resposta.message);
-        }
-      } catch (error) {
-        console.error("Erro inesperado no login:", error);
-        alert("Ocorreu um erro ao tentar entrar. Tente novamente.");
-      } finally {
-        setIsLoading(false);
+        document.cookie = `frotasync_session=true; path=/; max-age=${maxAge}; SameSite=Lax`;
+        router.push("/dashboard");
+      } else {
+        alert(resposta.message);
       }
+    } catch (error) {
+      console.error("Erro inesperado no login:", error);
+      alert("Ocorreu um erro ao tentar entrar. Tente novamente.");
+    } finally {
+      setIsLoading(false);
     }
   };
 

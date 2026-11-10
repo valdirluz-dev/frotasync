@@ -7,7 +7,7 @@ import { StatusBadge } from "@/components/dashboard/StatusBadge";
 import { Button, FormField, Input, Textarea } from "@/components/ui";
 import {
   tarefaSchema,
-  prazoAlteradoValido,
+  tarefaEdicaoSchema,
   type TarefaFormInput,
   type TarefaFormValues,
 } from "@/schemas/tarefa";
@@ -50,14 +50,17 @@ export function TarefaForm({
     descricao: tarefa?.descricao ?? "",
     ...defaultValues,
   };
+  const schema =
+    mode === "editar" && tarefa
+      ? tarefaEdicaoSchema(tarefa.prazoFinal)
+      : tarefaSchema;
   const {
     register,
     handleSubmit,
     watch,
-    setError,
     formState: { errors, isDirty, isSubmitting },
   } = useForm<TarefaFormInput, unknown, TarefaFormValues>({
-    resolver: zodResolver(tarefaSchema),
+    resolver: zodResolver(schema),
     defaultValues: initial,
     mode: "onSubmit",
     reValidateMode: "onChange",
@@ -74,15 +77,6 @@ export function TarefaForm({
   function submit(values: TarefaFormValues) {
     if (mode === "editar" && !isDirty) {
       onNoChanges?.();
-      return;
-    }
-if (
-  tarefa &&
-  !prazoAlteradoValido(values.prazoFinal, tarefa.prazoFinal)
-) {      setError("prazoFinal", {
-        type: "validate",
-        message: "O prazo não pode ser anterior a hoje quando alterado.",
-      });
       return;
     }
     onSubmit(values);
