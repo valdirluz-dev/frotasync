@@ -9,9 +9,21 @@ export const tarefaSchema = z.object({
 export type TarefaFormInput = z.input<typeof tarefaSchema>;
 export type TarefaFormValues = z.output<typeof tarefaSchema>;
 
-export function prazoAlteradoValido(prazoFinal: string, prazoOriginal?: string, hoje = new Date()) {
-  if (prazoOriginal && prazoFinal === prazoOriginal) return true;
+export function tarefaEdicaoSchema(
+  prazoOriginal: string,
+  hoje = new Date(),
+) {
   const today = new Date(Date.UTC(hoje.getUTCFullYear(), hoje.getUTCMonth(), hoje.getUTCDate()));
-  const selected = new Date(`${prazoFinal}T00:00:00.000Z`);
-  return !Number.isNaN(selected.getTime()) && selected >= today;
+  return tarefaSchema.superRefine(({ prazoFinal }, ctx) => {
+    if (prazoFinal === prazoOriginal) return;
+
+    const selected = new Date(`${prazoFinal}T00:00:00.000Z`);
+    if (Number.isNaN(selected.getTime()) || selected < today) {
+      ctx.addIssue({
+        code: "custom",
+        path: ["prazoFinal"],
+        message: "O prazo não pode ser anterior a hoje quando alterado.",
+      });
+    }
+  });
 }

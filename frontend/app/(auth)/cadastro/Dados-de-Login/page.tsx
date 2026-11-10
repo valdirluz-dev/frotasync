@@ -7,17 +7,8 @@ import { AuthInput } from "@/components/ui/Authinput";
 import { Button } from "@/components/ui";
 import { mockValidarDadosLogin } from "@/mocks/dadosLogin";
 import { CookieModal } from "@/components/cookie/CookieModal"; 
-
-// Validação de formato de e-mail corporativo
-const isValidEmail = (email: string) => {
-  return /\S+@\S+\.\S+/.test(email);
-};
-
-// Validação estrita de senha forte (mínimo de 8 caracteres, com letra maiúscula, minúscula, número e símbolo)
-const isValidPassword = (senha: string) => {
-  const regex = /^(?=.*[a-z])(?=.*[A-Z])(?=.*\d)(?=.*[!@#$%^&*(),.?":{}|<>_]).{8,}$/;
-  return regex.test(senha);
-};
+import { cadastroAcessoSchema } from "@/schemas/acesso";
+import { zodErrorsByField } from "@/utils/zodErrors";
 
 export default function DadosLogin() {
   const router = useRouter();
@@ -56,48 +47,29 @@ export default function DadosLogin() {
   // Validação dos dados digitados e envio final para concluir o cadastro
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-    const newErrors: { [key: string]: string } = {};
-
-    if (!formData.email.trim()) newErrors.email = "Digite o e-mail corporativo";
-    else if (!isValidEmail(formData.email)) newErrors.email = "E-mail inválido";
-
-    if (!formData.senha.trim()) newErrors.senha = "Digite uma senha";
-    else if (!isValidPassword(formData.senha)) {
-      newErrors.senha =
-        "A senha deve ter no mínimo 8 caracteres, incluindo letra maiúscula, minúscula, número e símbolo.";
+    const result = cadastroAcessoSchema.safeParse(formData);
+    if (!result.success) {
+      setErrors(zodErrorsByField(result.error));
+      return;
     }
 
-    if (!formData.confirmarSenha.trim()) newErrors.confirmarSenha = "Confirme sua senha";
-    else if (formData.confirmarSenha !== formData.senha) {
-      newErrors.confirmarSenha = "As senhas não coincidem";
-    }
+    setErrors({});
+    setLoading(true);
+    try {
+      const resposta = await mockValidarDadosLogin({
+        email: result.data.email,
+        senha: result.data.senha,
+      });
 
-    if (!formData.aceiteTermos) {
-      newErrors.aceiteTermos = "É necessário aceitar os Termos de Uso e a Política de Privacidade.";
-    }
-
-    setErrors(newErrors);
-
-    if (Object.keys(newErrors).length === 0) {
-      setLoading(true);
-      try {
-        // Guarda o novo usuário na memória do mock e cria a sessão
-        const resposta = await mockValidarDadosLogin({
-          email: formData.email,
-          senha: formData.senha,
-        });
-
-        if (resposta.success) {
-          // Redireciona o usuário para a tela comemorativa de sucesso do cadastro
-          router.push("/cadastro/Sucesso");
-        } else {
-          alert(resposta.message);
-        }
-      } catch (error) {
-        console.error("Erro ao validar login:", error);
-      } finally {
-        setLoading(false);
+      if (resposta.success) {
+        router.push("/cadastro/Sucesso");
+      } else {
+        alert(resposta.message);
       }
+    } catch (error) {
+      console.error("Erro ao validar login:", error);
+    } finally {
+      setLoading(false);
     }
   };
 
