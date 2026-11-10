@@ -25,6 +25,7 @@ function formatDate(value: string | null | undefined) {
 
 type TarefaFormProps = {
   tarefa: Tarefa | null;
+  unidadeId?: string;
   unidadeNome: string;
   mode?: "criar" | "editar";
   defaultValues?: Partial<TarefaFormInput>;
@@ -36,6 +37,7 @@ type TarefaFormProps = {
 
 export function TarefaForm({
   tarefa,
+  unidadeId,
   unidadeNome,
   mode = "editar",
   defaultValues,
@@ -105,7 +107,7 @@ export function TarefaForm({
           <div className="relative">
             <Input
               id="tarefa-unidade"
-              value={`${unidadeNome} (ID ${tarefa?.unidadeId ?? ""})`}
+              value={`${unidadeNome} (ID ${unidadeId ?? tarefa?.unidadeId ?? ""})`}
               readOnly
               aria-readonly="true"
               className="pr-12 bg-slate-50 text-slate-500"

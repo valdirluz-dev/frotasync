@@ -1,59 +1,76 @@
-import { mockTarefas, mockUnidades } from "@/mocks/dashboard";
-import { RecursoNaoEncontradoError, UnidadeInativaError } from "@/lib/errors";
-import { wait } from "@/lib/mockApi";
-import type { Tarefa, TarefaStatus } from "@/types/domain";
+import { RecursoNaoEncontradoError } from "@/lib/errors";
+import { repositories } from "@/repositories";
 import type { TarefaFormValues } from "@/schemas/tarefa";
+import type { Tarefa, TarefaStatus } from "@/types/domain";
 
-export async function obterTarefa(id: string): Promise<Tarefa | null> {
-  await wait(120);
-  return mockTarefas.find((item) => item.id === id) ?? null;
+import { obterUnidadeAtiva } from "./serviceRules";
+
+export type CriarTarefaInput = TarefaFormValues & { unidadeId: string };
+
+export async function listarTarefas(): Promise<Tarefa[]> {
+  return repositories.tarefas.list();
 }
 
-export async function atualizarTarefa(id: string, data: TarefaFormValues): Promise<Tarefa> {
-  await wait();
-  const index = mockTarefas.findIndex((item) => item.id === id);
-  if (index < 0) throw new RecursoNaoEncontradoError("Tarefa");
-  const current = mockTarefas[index];
-  const unidade = mockUnidades.find((item) => item.id === current.unidadeId);
-  if (!unidade) throw new RecursoNaoEncontradoError("Unidade");
-  if (unidade.status === "Inativa") throw new UnidadeInativaError();
+export async function obterTarefa(id: string): Promise<Tarefa | null> {
+  return repositories.tarefas.findById(id);
+}
+
+export async function criarTarefa(data: CriarTarefaInput): Promise<Tarefa> {
+  await obterUnidadeAtiva(data.unidadeId);
+  const tarefa = {
+    unidadeId: data.unidadeId,
+    titulo: data.titulo.trim(),
+    dataInicio: new Date().toISOString(),
+    prazoFinal: data.prazoFinal,
+    status: "Pendente" as const,
+    dataConclusao: null,
+    descricao: data.descricao?.trim() || undefined,
+  };
+  return repositories.tarefas.insert(tarefa);
+}
+
+export async function atualizarTarefa(
+  id: string,
+  data: TarefaFormValues,
+): Promise<Tarefa> {
+  const current = await repositories.tarefas.findById(id);
+  if (!current) throw new RecursoNaoEncontradoError("Tarefa");
+  await obterUnidadeAtiva(current.unidadeId);
 
   const updated: Tarefa = {
     ...current,
     titulo: data.titulo.trim(),
     prazoFinal: data.prazoFinal,
     descricao: data.descricao?.trim() || undefined,
-    status: current.status,
-    dataInicio: current.dataInicio,
-    dataConclusao: current.dataConclusao,
   };
-  mockTarefas[index] = updated;
-  return updated;
+  return repositories.tarefas.update(updated);
 }
 
 export async function alterarStatusTarefa(
   tarefaId: string,
   status: TarefaStatus,
 ): Promise<Tarefa> {
-  await wait(120);
-  const tarefaIndex = mockTarefas.findIndex((tarefa) => tarefa.id === tarefaId);
-  if (tarefaIndex < 0) throw new RecursoNaoEncontradoError("Tarefa");
-
-  const tarefa = mockTarefas[tarefaIndex];
-  const unidade = mockUnidades.find((item) => item.id === tarefa.unidadeId);
-  if (!unidade) throw new RecursoNaoEncontradoError("Unidade");
-  if (unidade.status === "Inativa") throw new UnidadeInativaError();
+  const tarefa = await repositories.tarefas.findById(tarefaId);
+  if (!tarefa) throw new RecursoNaoEncontradoError("Tarefa");
+  const unidade = await obterUnidadeAtiva(tarefa.unidadeId);
 
   const updated: Tarefa = {
     ...tarefa,
     status,
     dataConclusao: status === "Concluída" ? new Date().toISOString() : null,
   };
-  mockTarefas[tarefaIndex] = updated;
-  const unidadeIndex = mockUnidades.findIndex((item) => item.id === unidade.id);
-  mockUnidades[unidadeIndex] = {
+  const savedTask = await repositories.tarefas.update(updated);
+  await repositories.unidades.update({
     ...unidade,
     atualizadoEm: new Date().toISOString(),
-  };
-  return updated;
+  });
+  return savedTask;
+}
+
+export async function excluirTarefa(id: string): Promise<void> {
+  const tarefa = await repositories.tarefas.findById(id);
+  if (!tarefa) throw new RecursoNaoEncontradoError("Tarefa");
+  await obterUnidadeAtiva(tarefa.unidadeId);
+  const removed = await repositories.tarefas.remove(id);
+  if (!removed) throw new RecursoNaoEncontradoError("Tarefa");
 }

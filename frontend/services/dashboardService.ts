@@ -1,5 +1,7 @@
 import { calcularStatusDocumento } from "@/lib/status";
-import { mockDocumentos, mockTarefas, mockUnidades } from "@/mocks/dashboard";
+import { monthKey, offsetMonthKey, percentVariation } from "@/lib/month";
+import { STATUS_COLORS } from "@/lib/statusColors";
+import { repositories } from "@/repositories";
 import type {
   DashboardIndicators,
   DocumentFilters,
@@ -8,21 +10,7 @@ import type {
   Paginated,
   Tarefa,
   TaskFilters,
-  Unidade,
-  UnidadeIndicadores,
-  UnidadeStatus,
-  TarefaStatus,
-  PerfilUsuario,
 } from "@/types/domain";
-import { mockUsuarioSessao } from "@/mocks/sessao";
-import {
-  UnidadeInativaError,
-  RecursoNaoEncontradoError,
-  PerfilSemPermissaoError,
-} from "@/lib/errors";
-import { wait } from "@/lib/mockApi";
-import { monthKey, offsetMonthKey, percentVariation } from "@/lib/month";
-import { STATUS_COLORS } from "@/lib/statusColors";
 
 const normalize = (value: string) => value.trim().toLocaleLowerCase("pt-BR");
 
@@ -45,8 +33,12 @@ const pageItems = <T>(
 };
 
 export async function getDashboardIndicators(): Promise<DashboardIndicators> {
-  await wait();
-  const documentStatuses = mockDocumentos.map((item) =>
+  const [unidades, documentos, tarefas] = await Promise.all([
+    repositories.unidades.list(),
+    repositories.documentos.list(),
+    repositories.tarefas.list(),
+  ]);
+  const documentStatuses = documentos.map((item) =>
     calcularStatusDocumento(item.dataValidade),
   );
   const count = (values: DocumentoStatus[], status: DocumentoStatus) =>
@@ -54,38 +46,36 @@ export async function getDashboardIndicators(): Promise<DashboardIndicators> {
   const valid = count(documentStatuses, "Válido");
   const due = count(documentStatuses, "Próximo do vencimento");
   const expired = count(documentStatuses, "Expirado");
-  const completed = mockTarefas.filter(
+  const completed = tarefas.filter(
     (task) => task.status === "Concluída",
   ).length;
-  const inProgress = mockTarefas.filter(
+  const inProgress = tarefas.filter(
     (task) => task.status === "Em andamento",
   ).length;
-  const pending = mockTarefas.filter(
-    (task) => task.status === "Pendente",
-  ).length;
-  const activeUnits = mockUnidades.filter(
-    (unit) => unit.status === "Ativa",
-  ).length;
+  const pending = tarefas.filter((task) => task.status === "Pendente").length;
+  const activeUnits = unidades.filter((unit) => unit.status === "Ativa").length;
 
   const now = new Date();
   const currentMonth = monthKey(now.toISOString()) ?? "";
   const previousMonth = offsetMonthKey(now, -1);
-  const dueThisMonth = mockDocumentos.filter(
+  const dueThisMonth = documentos.filter(
     (documento) =>
-      calcularStatusDocumento(documento.dataValidade) === "Próximo do vencimento" &&
+      calcularStatusDocumento(documento.dataValidade) ===
+        "Próximo do vencimento" &&
       monthKey(documento.dataValidade) === currentMonth,
   ).length;
-  const duePreviousMonth = mockDocumentos.filter(
+  const duePreviousMonth = documentos.filter(
     (documento) =>
-      calcularStatusDocumento(documento.dataValidade) === "Próximo do vencimento" &&
+      calcularStatusDocumento(documento.dataValidade) ===
+        "Próximo do vencimento" &&
       monthKey(documento.dataValidade) === previousMonth,
   ).length;
-  const completedThisMonth = mockTarefas.filter(
+  const completedThisMonth = tarefas.filter(
     (tarefa) =>
       tarefa.status === "Concluída" &&
       monthKey(tarefa.dataConclusao) === currentMonth,
   ).length;
-  const completedPreviousMonth = mockTarefas.filter(
+  const completedPreviousMonth = tarefas.filter(
     (tarefa) =>
       tarefa.status === "Concluída" &&
       monthKey(tarefa.dataConclusao) === previousMonth,
@@ -96,7 +86,7 @@ export async function getDashboardIndicators(): Promise<DashboardIndicators> {
       { label: "Ativas", value: activeUnits, color: STATUS_COLORS.active },
       {
         label: "Inativas",
-        value: mockUnidades.length - activeUnits,
+        value: unidades.length - activeUnits,
         color: STATUS_COLORS.inactive,
       },
     ],
@@ -107,23 +97,30 @@ export async function getDashboardIndicators(): Promise<DashboardIndicators> {
     ],
     tarefas: [
       { label: "Concluída", value: completed, color: STATUS_COLORS.completed },
-      { label: "Em andamento", value: inProgress, color: STATUS_COLORS.inProgress },
+      {
+        label: "Em andamento",
+        value: inProgress,
+        color: STATUS_COLORS.inProgress,
+      },
       { label: "Pendente", value: pending, color: STATUS_COLORS.pending },
     ],
     totalPendencias: due + expired + pending + inProgress,
     documentosAVencer: due,
     tarefasConcluidas: completed,
     variacaoDocumentosAVencer: percentVariation(dueThisMonth, duePreviousMonth),
-    variacaoTarefasConcluidas: percentVariation(completedThisMonth, completedPreviousMonth),
+    variacaoTarefasConcluidas: percentVariation(
+      completedThisMonth,
+      completedPreviousMonth,
+    ),
   };
 }
 
 export async function getDashboardDocuments(
   filters: DocumentFilters,
 ): Promise<Paginated<Documento>> {
-  await wait();
+  const documentos = await repositories.documentos.list();
   const search = normalize(filters.search);
-  const filtered = mockDocumentos.filter((document) => {
+  const filtered = documentos.filter((document) => {
     const matchesSearch =
       !search || document.nome.toLocaleLowerCase("pt-BR").includes(search);
     const matchesUnit =
@@ -141,9 +138,9 @@ export async function getDashboardDocuments(
 export async function getDashboardTasks(
   filters: TaskFilters,
 ): Promise<Paginated<Tarefa>> {
-  await wait();
+  const tarefas = await repositories.tarefas.list();
   const search = normalize(filters.search);
-  const filtered = mockTarefas.filter((task) => {
+  const filtered = tarefas.filter((task) => {
     const matchesSearch =
       !search || task.titulo.toLocaleLowerCase("pt-BR").includes(search);
     const matchesUnit =
@@ -154,4 +151,3 @@ export async function getDashboardTasks(
   });
   return pageItems(filtered, filters.page, filters.pageSize);
 }
-

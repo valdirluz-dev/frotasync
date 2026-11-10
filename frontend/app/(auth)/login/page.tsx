@@ -6,7 +6,7 @@ import Link from "next/link";
 import { AuthInput } from "@/components/ui/Authinput";
 import { Button } from "@/components/ui";
 import { Icon } from "@/components/ui/Icons";
-import { mockFazerLogin } from "@/mocks/login";
+import { fazerLogin } from "@/services/accountService";
 import { CookieModal } from "@/components/cookie/CookieModal"; 
 import { loginSchema } from "@/schemas/acesso";
 import { zodErrorsByField } from "@/utils/zodErrors";
@@ -61,7 +61,7 @@ export default function Login() {
     setIsLoading(true);
 
     try {
-      const resposta = await mockFazerLogin(formData);
+      const resposta = await fazerLogin(formData);
 
       if (resposta.success) {
         const dias = formData.lembreMe ? 30 : 7;

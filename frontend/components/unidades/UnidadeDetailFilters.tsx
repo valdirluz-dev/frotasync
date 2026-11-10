@@ -3,7 +3,6 @@
 import { useEffect, useState } from "react";
 
 import { Icon } from "@/components/ui/Icons";
-import { mockCategorias } from "@/mocks/dashboard";
 import type { DocumentoStatus, TarefaStatus } from "@/types/domain";
 
 const documentStatuses: Array<DocumentoStatus | "Todos"> = [
@@ -23,6 +22,7 @@ export function UnidadeDetailFilters({
   tab,
   query,
   category,
+  categories,
   documentStatus,
   taskStatus,
   onQueryCommit,
@@ -33,6 +33,7 @@ export function UnidadeDetailFilters({
   tab: "documentos" | "tarefas";
   query: string;
   category: string;
+  categories: string[];
   documentStatus: DocumentoStatus | "Todos";
   taskStatus: TarefaStatus | "Todos";
   onQueryCommit: (query: string) => void;
@@ -85,7 +86,7 @@ export function UnidadeDetailFilters({
               onChange={(event) => onCategoryChange(event.target.value)}
               className={selectClass}>
               <option value="todas">Todas as categorias</option>
-              {mockCategorias.map((value) => (
+              {categories.map((value) => (
                 <option key={value} value={value}>
                   {value}
                 </option>

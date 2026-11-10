@@ -49,7 +49,7 @@ const USUARIO_PADRAO: UsuarioRegistro = {
 export const tabelaUsuarios: UsuarioRegistro[] = [USUARIO_PADRAO];
 
 // Rascunho temporário do wizard de cadastro enquanto o usuário digita
-export let rascunhoCadastro: Partial<UsuarioRegistro> = { };
+export const rascunhoCadastro: Partial<UsuarioRegistro> = { };
 
 // Usuário que fez login no momento
 export let usuarioLogadoAtual: UsuarioRegistro = USUARIO_PADRAO;

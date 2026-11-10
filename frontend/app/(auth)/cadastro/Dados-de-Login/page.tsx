@@ -5,7 +5,7 @@ import { useRouter } from "next/navigation";
 import { Icon } from "@/components/ui/Icons";
 import { AuthInput } from "@/components/ui/Authinput";
 import { Button } from "@/components/ui";
-import { mockValidarDadosLogin } from "@/mocks/dadosLogin";
+import { validarDadosLogin } from "@/services/accountService";
 import { CookieModal } from "@/components/cookie/CookieModal"; 
 import { cadastroAcessoSchema } from "@/schemas/acesso";
 import { zodErrorsByField } from "@/utils/zodErrors";
@@ -56,7 +56,7 @@ export default function DadosLogin() {
     setErrors({});
     setLoading(true);
     try {
-      const resposta = await mockValidarDadosLogin({
+      const resposta = await validarDadosLogin({
         email: result.data.email,
         senha: result.data.senha,
       });

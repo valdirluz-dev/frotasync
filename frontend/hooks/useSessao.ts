@@ -1,5 +1,5 @@
-import { mockUsuarioSessao } from "@/mocks/sessao";
+import { obterSessao } from "@/services/accountService";
 
 export function useSessao() {
-  return { usuario: mockUsuarioSessao };
+  return { usuario: obterSessao() };
 }

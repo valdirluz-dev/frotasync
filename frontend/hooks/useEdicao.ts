@@ -2,44 +2,61 @@
 
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 
+import { queryKeys } from "@/lib/queryKeys";
+import { invalidateEntityData } from "@/hooks/invalidateEntityData";
 import {
   atualizarUnidade,
   obterUnidadeParaEdicao,
 } from "@/services/unidadesService";
 import {
   atualizarDocumento,
+  criarDocumento,
+  excluirDocumento,
   obterDocumento,
+  type CriarDocumentoInput,
 } from "@/services/documentosService";
-import { atualizarTarefa, obterTarefa } from "@/services/tarefasService";
+import {
+  atualizarTarefa,
+  criarTarefa,
+  excluirTarefa,
+  obterTarefa,
+  type CriarTarefaInput,
+} from "@/services/tarefasService";
 import type { DocumentoFormValues } from "@/schemas/documento";
 import type { TarefaFormValues } from "@/schemas/tarefa";
 import type { UnidadeFormValues } from "@/schemas/unidade";
 import type { DocumentoAnexo } from "@/types/domain";
 
-async function invalidateEntity(
-  queryClient: ReturnType<typeof useQueryClient>,
-  kind: "unidade" | "documento" | "tarefa",
-  id: string,
-  unidadeId?: string,
-) {
-  const keys = [
-    ["dashboard"],
-    ["dashboard", "indicators"],
-    ["dashboard", "documents"],
-    ["dashboard", "tasks"],
-    ["unidades"],
-  ];
-  if (kind === "unidade") {
-    keys.push(["unidades", "detalhe", id], ["unidades", "indicadores", id]);
-  } else if (unidadeId) {
-    keys.push(
-      ["unidades", "detalhe", unidadeId],
-      ["unidades", "indicadores", unidadeId],
-    );
-  }
-  await Promise.all(
-    keys.map((queryKey) => queryClient.invalidateQueries({ queryKey })),
-  );
+export function useCriarDocumento() {
+  const queryClient = useQueryClient();
+  return useMutation({
+    mutationFn: (input: CriarDocumentoInput) => criarDocumento(input),
+    onSuccess: () => invalidateEntityData(queryClient),
+  });
+}
+
+export function useExcluirDocumento() {
+  const queryClient = useQueryClient();
+  return useMutation({
+    mutationFn: (id: string) => excluirDocumento(id),
+    onSuccess: () => invalidateEntityData(queryClient),
+  });
+}
+
+export function useCriarTarefa() {
+  const queryClient = useQueryClient();
+  return useMutation({
+    mutationFn: (input: CriarTarefaInput) => criarTarefa(input),
+    onSuccess: () => invalidateEntityData(queryClient),
+  });
+}
+
+export function useExcluirTarefa() {
+  const queryClient = useQueryClient();
+  return useMutation({
+    mutationFn: (id: string) => excluirTarefa(id),
+    onSuccess: () => invalidateEntityData(queryClient),
+  });
 }
 
 export function useEditarUnidade() {
@@ -47,8 +64,7 @@ export function useEditarUnidade() {
   return useMutation({
     mutationFn: (input: { id: string; data: UnidadeFormValues }) =>
       atualizarUnidade(input.id, input.data),
-    onSuccess: (unidade) =>
-      invalidateEntity(queryClient, "unidade", unidade.id),
+    onSuccess: () => invalidateEntityData(queryClient),
   });
 }
 
@@ -60,13 +76,7 @@ export function useEditarDocumento() {
       data: DocumentoFormValues;
       anexo?: DocumentoAnexo;
     }) => atualizarDocumento(input.id, input.data, input.anexo),
-    onSuccess: (documento) =>
-      invalidateEntity(
-        queryClient,
-        "documento",
-        documento.id,
-        documento.unidadeId,
-      ),
+    onSuccess: () => invalidateEntityData(queryClient),
   });
 }
 
@@ -75,24 +85,14 @@ export function useEditarTarefa() {
   return useMutation({
     mutationFn: (input: { id: string; data: TarefaFormValues }) =>
       atualizarTarefa(input.id, input.data),
-    onSuccess: (tarefa) =>
-      invalidateEntity(queryClient, "tarefa", tarefa.id, tarefa.unidadeId),
+    onSuccess: () => invalidateEntityData(queryClient),
   });
 }
 
 export function useDocumento(id: string) {
   return useQuery({
-    queryKey: ["documentos", "detalhe", id],
-    queryFn: async () => {
-      try {
-        return await obterDocumento(id);
-      } catch (error) {
-        console.error("Erro ao buscar documento:", error);
-        throw error;
-      } finally {
-        // loading liberado pelo React Query automaticamente
-      }
-    },
+    queryKey: queryKeys.documentos.detail(id),
+    queryFn: () => obterDocumento(id),
     enabled: Boolean(id),
     staleTime: 30_000,
   });
@@ -100,17 +100,8 @@ export function useDocumento(id: string) {
 
 export function useTarefa(id: string) {
   return useQuery({
-    queryKey: ["tarefas", "detalhe", id],
-    queryFn: async () => {
-      try {
-        return await obterTarefa(id);
-      } catch (error) {
-        console.error("Erro ao buscar tarefa:", error);
-        throw error;
-      } finally {
-        // loading liberado pelo React Query automaticamente
-      }
-    },
+    queryKey: queryKeys.tarefas.detail(id),
+    queryFn: () => obterTarefa(id),
     enabled: Boolean(id),
     staleTime: 30_000,
   });
@@ -118,17 +109,8 @@ export function useTarefa(id: string) {
 
 export function useUnidadeParaEdicao(id: string) {
   return useQuery({
-    queryKey: ["unidades", "detalhe", id],
-    queryFn: async () => {
-      try {
-        return await obterUnidadeParaEdicao(id);
-      } catch (error) {
-        console.error("Erro ao buscar unidade:", error);
-        throw error;
-      } finally {
-        // loading liberado pelo React Query automaticamente
-      }
-    },
+    queryKey: queryKeys.unidades.detail(id),
+    queryFn: () => obterUnidadeParaEdicao(id),
     enabled: Boolean(id),
     staleTime: 30_000,
   });

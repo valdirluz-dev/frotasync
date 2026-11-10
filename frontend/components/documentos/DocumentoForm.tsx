@@ -24,6 +24,7 @@ function formatFileSize(bytes: number) {
 
 type DocumentoFormProps = {
   documento: Documento;
+  unidadeId?: string;
   unidadeNome: string;
   categorias: string[];
   mode?: "criar" | "editar";
@@ -36,6 +37,7 @@ type DocumentoFormProps = {
 
 export function DocumentoForm({
   documento,
+  unidadeId,
   unidadeNome,
   categorias,
   mode = "editar",
@@ -137,7 +139,7 @@ export function DocumentoForm({
           <div className="relative">
             <Input
               id="documento-unidade"
-              value={`${unidadeNome} (ID ${documento.unidadeId})`}
+              value={`${unidadeNome} (ID ${unidadeId ?? documento.unidadeId})`}
               readOnly
               aria-readonly="true"
               className="pr-12 bg-slate-50 text-slate-500"

@@ -10,14 +10,15 @@ import { DocumentoForm, toDocumentoAnexo } from "@/components/documentos/Documen
 import { UnidadeInativaDialog } from "@/components/unidades/UnidadeInativaDialog";
 import { ConfirmDialog, useToast } from "@/components/ui";
 import { useDocumento, useEditarDocumento } from "@/hooks/useEdicao";
+import { useCategoriasDocumento } from "@/hooks/useCatalogos";
 import { useUnidade } from "@/hooks/useUnidadeDetalhe";
-import { mockCategorias } from "@/mocks/dashboard";
 import type { DocumentoFormValues } from "@/schemas/documento";
 
 export function DocumentoEditarClient({ id, unidadeId, porUnidade = false }: { id: string; unidadeId: string; porUnidade?: boolean }) {
   const router = useRouter();
   const { showToast } = useToast();
   const documentQuery = useDocumento(id);
+  const categoriesQuery = useCategoriasDocumento();
   const unitQuery = useUnidade(unidadeId);
   const mutation = useEditarDocumento();
   const [pending, setPending] = useState<DocumentoFormValues | null>(null);
@@ -54,7 +55,7 @@ export function DocumentoEditarClient({ id, unidadeId, porUnidade = false }: { i
       backLabel="Voltar para documentos"
       onBack={back}
     >
-      <DocumentoForm documento={documento} unidadeNome={unidade?.nome ?? ""} categorias={mockCategorias} mode="editar" isSaving={mutation.isPending} onNoChanges={() => showToast("Nenhuma alteração para salvar", "info")} onCancel={back} onSubmit={submit} />
+      <DocumentoForm documento={documento} unidadeNome={unidade?.nome ?? ""} categorias={categoriesQuery.data ?? []} mode="editar" isSaving={mutation.isPending} onNoChanges={() => showToast("Nenhuma alteração para salvar", "info")} onCancel={back} onSubmit={submit} />
       <ConfirmDialog open={dialogOpen} title="Deseja salvar as alterações?" description={<p>Você está alterando o documento &quot;<strong>{documento?.nome || ''}</strong>&quot;, na unidade &quot;<strong>{unidade?.nome ?? ''}</strong>&quot;, deseja prosseguir com as alterações?</p>} cancelLabel="Cancelar" confirmLabel="Salvar alterações" isLoading={mutation.isPending} onCancel={() => { if (!mutation.isPending) setDialogOpen(false); }} onConfirm={confirm} />
     </EditPageShell>
   );

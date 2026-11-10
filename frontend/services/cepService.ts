@@ -1,59 +1,58 @@
+import { CepInvalidoError, ConsultaCepError } from "@/lib/errors";
 import { normalizarCep } from "@/lib/cep";
-import { wait } from "@/lib/mockApi";
-import type { EnderecoCep } from "@/types/domain";
+import { UF_SIGLAS, type EnderecoCep, type Uf } from "@/types/domain";
 
-const cepAddresses: Record<string, EnderecoCep> = {
-  "50030230": {
-    logradouro: "Avenida Conde da Boa Vista",
-    bairro: "Boa Vista",
-    cidade: "Recife",
-    uf: "PE",
-  },
-  "51020010": {
-    logradouro: "Rua Ribeiro de Brito",
-    bairro: "Boa Viagem",
-    cidade: "Recife",
-    uf: "PE",
-  },
-  "53020000": {
-    logradouro: "Rua do Sol",
-    bairro: "Carmo",
-    cidade: "Olinda",
-    uf: "PE",
-  },
-  "54310000": {
-    logradouro: "Avenida Barreto de Menezes",
-    bairro: "Prazeres",
-    cidade: "Jaboatão dos Guararapes",
-    uf: "PE",
-  },
-  "55012040": {
-    logradouro: "Rua Capitão João Velho",
-    bairro: "Nossa Senhora das Dores",
-    cidade: "Caruaru",
-    uf: "PE",
-  },
-  "53401440": {
-    logradouro: "Avenida Senador Salgado Filho",
-    bairro: "Centro",
-    cidade: "Paulista",
-    uf: "PE",
-  },
-  "56302000": {
-    logradouro: "Avenida Monsenhor Ângelo Sampaio",
-    bairro: "Centro",
-    cidade: "Petrolina",
-    uf: "PE",
-  },
-  "55293000": {
-    logradouro: "Avenida Rui Barbosa",
-    bairro: "Heliópolis",
-    cidade: "Garanhuns",
-    uf: "PE",
-  },
+type ViaCepResponse = {
+  erro?: boolean;
+  logradouro?: string;
+  bairro?: string;
+  localidade?: string;
+  uf?: string;
 };
 
+function isViaCepResponse(value: unknown): value is ViaCepResponse {
+  return typeof value === "object" && value !== null;
+}
+
+function isUf(value: string | undefined): value is Uf {
+  return UF_SIGLAS.some((uf) => uf === value);
+}
+
 export async function buscarCep(cep: string): Promise<EnderecoCep | null> {
-  await wait(100);
-  return cepAddresses[normalizarCep(cep)] ?? null;
+  const digits = cep.replace(/\D/g, "");
+  if (digits.length !== 8) throw new CepInvalidoError();
+
+  let response: Response;
+  try {
+    response = await fetch(
+      `https://viacep.com.br/ws/${normalizarCep(digits)}/json/`,
+    );
+  } catch (error) {
+    throw new ConsultaCepError({ cause: error });
+  }
+  if (!response.ok) throw new ConsultaCepError();
+
+  let data: unknown;
+  try {
+    data = await response.json();
+  } catch (error) {
+    throw new ConsultaCepError({ cause: error });
+  }
+  if (!isViaCepResponse(data)) throw new ConsultaCepError();
+  if (data.erro === true) return null;
+  if (
+    typeof data.logradouro !== "string" ||
+    typeof data.bairro !== "string" ||
+    typeof data.localidade !== "string" ||
+    !isUf(data.uf)
+  ) {
+    throw new ConsultaCepError();
+  }
+
+  return {
+    logradouro: data.logradouro,
+    bairro: data.bairro,
+    cidade: data.localidade,
+    uf: data.uf,
+  };
 }

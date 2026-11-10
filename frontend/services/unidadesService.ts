@@ -1,19 +1,24 @@
-import { mockDocumentos, mockTarefas, mockUnidades } from "@/mocks/dashboard";
-import { normalizarCep } from "@/lib/cep";
-import { IdentificadorUnidadeDuplicadoError } from "@/lib/errors";
-import { wait } from "@/lib/mockApi";
+import { calcularStatusDocumento } from "@/lib/status";
 import { STATUS_COLORS } from "@/lib/statusColors";
+import {
+  IdentificadorUnidadeDuplicadoError,
+  PerfilSemPermissaoError,
+  RecursoNaoEncontradoError,
+} from "@/lib/errors";
 import { monthKey, offsetMonthKey, percentVariation } from "@/lib/month";
+import { repositories } from "@/repositories";
 import type { UnidadeFormValues } from "@/schemas/unidade";
 import type {
   Paginated,
+  PerfilUsuario,
   Unidade,
+  UnidadeIndicadores,
   UnidadeListItem,
+  UnidadeStatus,
   UnidadesFilters,
 } from "@/types/domain";
 
 const DEFAULT_PAGE_SIZE = 12;
-//const SIMULATED_LATENCY_MS = 120;
 
 function normalizeSearch(value: string): string {
   return value
@@ -29,10 +34,13 @@ export async function listarUnidades({
   q = "",
   status = "Todos",
 }: UnidadesFilters = {}): Promise<Paginated<UnidadeListItem>> {
-  await wait();
-
+  const [unidades, documentos, tarefas] = await Promise.all([
+    repositories.unidades.list(),
+    repositories.documentos.list(),
+    repositories.tarefas.list(),
+  ]);
   const query = normalizeSearch(q);
-  const filtered = mockUnidades
+  const filtered = unidades
     .filter((unidade) => {
       const matchesQuery =
         !query ||
@@ -43,12 +51,11 @@ export async function listarUnidades({
     })
     .map((unidade) => ({
       ...unidade,
-      totalDocumentos: mockDocumentos.filter(
+      totalDocumentos: documentos.filter(
         (documento) => documento.unidadeId === unidade.id,
       ).length,
-      totalTarefas: mockTarefas.filter(
-        (tarefa) => tarefa.unidadeId === unidade.id,
-      ).length,
+      totalTarefas: tarefas.filter((tarefa) => tarefa.unidadeId === unidade.id)
+        .length,
     }));
 
   const safeSize = Math.max(1, Math.floor(size));
@@ -66,35 +73,31 @@ export async function listarUnidades({
   };
 }
 
-export async function criarUnidade(data: UnidadeFormValues): Promise<Unidade> {
-  await wait();
+export async function listarTodasUnidades(): Promise<Unidade[]> {
+  return repositories.unidades.list();
+}
 
+export async function criarUnidade(data: UnidadeFormValues): Promise<Unidade> {
+  const unidades = await repositories.unidades.list();
   const identificador = data.identificador.trim();
-  const duplicate = mockUnidades.some(
+  const duplicate = unidades.some(
     (unidade) =>
       normalizeSearch(unidade.codigo) === normalizeSearch(identificador),
   );
   if (duplicate) throw new IdentificadorUnidadeDuplicadoError();
 
-  const nextSequence =
-    mockUnidades.reduce((maximum, unidade) => {
-      const matched = /^u-(\d+)$/.exec(unidade.id);
-      return Math.max(maximum, matched ? Number(matched[1]) : 0);
-    }, 0) + 1;
   const timestamp = new Date().toISOString();
-
-  const unidade: Unidade = {
-    id: `u-${String(nextSequence).padStart(3, "0")}`,
+  const unidade = {
     nome: data.nome.trim(),
     codigo: identificador,
-    status: "Ativa",
+    status: "Ativa" as const,
     endereco: {
       logradouro: data.logradouro.trim(),
       numero: data.numero.trim(),
       bairro: data.bairro.trim(),
       cidade: data.cidade.trim(),
       uf: data.uf,
-      cep: normalizarCep(data.cep),
+      cep: data.cep,
       complemento: data.complemento?.trim() || undefined,
     },
     descricao: data.descricao?.trim() || undefined,
@@ -102,26 +105,31 @@ export async function criarUnidade(data: UnidadeFormValues): Promise<Unidade> {
     atualizadoEm: timestamp,
   };
 
-  mockUnidades.push(unidade);
-  return unidade;
+  return repositories.unidades.insert(unidade);
 }
 
-export async function obterUnidadeParaEdicao(id: string): Promise<Unidade | null> {
-  await wait();
-  return mockUnidades.find((unidade) => unidade.id === id) ?? null;
+export async function obterUnidadeParaEdicao(
+  id: string,
+): Promise<Unidade | null> {
+  return repositories.unidades.findById(id);
 }
 
-export async function atualizarUnidade(id: string, data: UnidadeFormValues): Promise<Unidade> {
-  await wait();
-  const index = mockUnidades.findIndex((unidade) => unidade.id === id);
-  if (index < 0) throw new Error("Unidade não encontrada.");
+export async function atualizarUnidade(
+  id: string,
+  data: UnidadeFormValues,
+): Promise<Unidade> {
+  const current = await repositories.unidades.findById(id);
+  if (!current) throw new RecursoNaoEncontradoError("Unidade");
+
   const identificador = data.identificador.trim();
-  const duplicate = mockUnidades.some(
-    (unidade) => unidade.id !== id && normalizeSearch(unidade.codigo) === normalizeSearch(identificador),
+  const unidades = await repositories.unidades.list();
+  const duplicate = unidades.some(
+    (unidade) =>
+      unidade.id !== id &&
+      normalizeSearch(unidade.codigo) === normalizeSearch(identificador),
   );
   if (duplicate) throw new IdentificadorUnidadeDuplicadoError();
 
-  const current = mockUnidades[index];
   const updated: Unidade = {
     ...current,
     nome: data.nome.trim(),
@@ -133,35 +141,32 @@ export async function atualizarUnidade(id: string, data: UnidadeFormValues): Pro
       bairro: data.bairro.trim(),
       cidade: data.cidade.trim(),
       uf: data.uf,
-      cep: normalizarCep(data.cep),
+      cep: data.cep,
     },
     descricao: data.descricao?.trim() || undefined,
     atualizadoEm: new Date().toISOString(),
   };
-  mockUnidades[index] = updated;
-  return updated;
+  return repositories.unidades.update(updated);
 }
 
-import { calcularStatusDocumento } from "@/lib/status";
-import { mockUsuarioSessao } from "@/mocks/sessao";
-import { PerfilSemPermissaoError, RecursoNaoEncontradoError } from "@/lib/errors";
-import type { UnidadeIndicadores, UnidadeStatus, PerfilUsuario } from "@/types/domain";
-
 export async function obterUnidade(id: string): Promise<Unidade | null> {
-  await wait(120);
-  return mockUnidades.find((unidade) => unidade.id === id) ?? null;
+  return repositories.unidades.findById(id);
 }
 
 export async function obterIndicadoresUnidade(
   unidadeId: string,
 ): Promise<UnidadeIndicadores | null> {
-  await wait(160);
-  if (!mockUnidades.some((unidade) => unidade.id === unidadeId)) return null;
+  const [unidade, documentos, tarefas] = await Promise.all([
+    repositories.unidades.findById(unidadeId),
+    repositories.documentos.list(),
+    repositories.tarefas.list(),
+  ]);
+  if (!unidade) return null;
 
-  const unidadeDocumentos = mockDocumentos.filter(
+  const unidadeDocumentos = documentos.filter(
     (documento) => documento.unidadeId === unidadeId,
   );
-  const unidadeTarefas = mockTarefas.filter(
+  const unidadeTarefas = tarefas.filter(
     (tarefa) => tarefa.unidadeId === unidadeId,
   );
   const statusDocumentos = unidadeDocumentos.map((documento) =>
@@ -200,38 +205,65 @@ export async function obterIndicadoresUnidade(
 
   return {
     documentos: [
-      { label: "Válido", value: countDocumentStatus("Válido"), color: STATUS_COLORS.completed },
-      { label: "Próximo do vencimento", value: countDocumentStatus("Próximo do vencimento"), color: STATUS_COLORS.due },
-      { label: "Expirado", value: documentsExpired, color: STATUS_COLORS.expired },
+      {
+        label: "Válido",
+        value: countDocumentStatus("Válido"),
+        color: STATUS_COLORS.completed,
+      },
+      {
+        label: "Próximo do vencimento",
+        value: countDocumentStatus("Próximo do vencimento"),
+        color: STATUS_COLORS.due,
+      },
+      {
+        label: "Expirado",
+        value: documentsExpired,
+        color: STATUS_COLORS.expired,
+      },
     ],
     tarefas: [
-      { label: "Concluída", value: tasksCompleted, color: STATUS_COLORS.completed },
-      { label: "Em andamento", value: countTasks("Em andamento"), color: STATUS_COLORS.due },
-      { label: "Pendente", value: countTasks("Pendente"), color: STATUS_COLORS.pending },
+      {
+        label: "Concluída",
+        value: tasksCompleted,
+        color: STATUS_COLORS.completed,
+      },
+      {
+        label: "Em andamento",
+        value: countTasks("Em andamento"),
+        color: STATUS_COLORS.due,
+      },
+      {
+        label: "Pendente",
+        value: countTasks("Pendente"),
+        color: STATUS_COLORS.pending,
+      },
     ],
     documentosExpirados: documentsExpired,
     tarefasConcluidas: tasksCompleted,
-    variacaoDocumentosExpirados: percentVariation(expiredThisMonth, expiredPreviousMonth),
-    variacaoTarefasConcluidas: percentVariation(tasksCompletedThisMonth, tasksCompletedPreviousMonth),
+    variacaoDocumentosExpirados: percentVariation(
+      expiredThisMonth,
+      expiredPreviousMonth,
+    ),
+    variacaoTarefasConcluidas: percentVariation(
+      tasksCompletedThisMonth,
+      tasksCompletedPreviousMonth,
+    ),
   };
 }
 
 export async function alterarStatusUnidade(
   id: string,
   status: UnidadeStatus,
-  perfil: PerfilUsuario = mockUsuarioSessao.perfil,
+  perfil: PerfilUsuario,
 ): Promise<Unidade> {
-  await wait(120);
   if (perfil !== "Administrador") throw new PerfilSemPermissaoError();
-  const unidadeIndex = mockUnidades.findIndex((unidade) => unidade.id === id);
-  if (unidadeIndex < 0) throw new RecursoNaoEncontradoError("Unidade");
+  const unidade = await repositories.unidades.findById(id);
+  if (!unidade) throw new RecursoNaoEncontradoError("Unidade");
 
-  const unidade = mockUnidades[unidadeIndex];
   const updated: Unidade = {
     ...unidade,
     status,
     atualizadoEm: new Date().toISOString(),
   };
-  mockUnidades[unidadeIndex] = updated;
-  return updated;
+  return repositories.unidades.update(updated);
 }

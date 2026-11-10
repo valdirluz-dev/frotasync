@@ -1,41 +1,17 @@
 "use client";
 
-import React, { useState, useEffect } from "react";
+import React, { useState } from "react";
 // Importa o layout padrão do sistema (barra lateral e cabeçalho)
 import { AppShell } from "@/components/layout/AppShell"; 
-// Importa a função consolidada e o tipo do nosso mock (profile.ts)
-import { obterPerfilConsolidado, ProfileData } from "@/mocks/profile"; 
+import { obterPerfilConsolidado, type ProfileData } from "@/services/accountService";
 
 export default function PerfilPage() {
   // Estado local tipado que armazena os dados do perfil obtidos do mock ou localStorage
-  const [dadosUsuario, setDadosUsuario] = useState<ProfileData>({
-    nome: "Carregando...",
-    cpf: "",
-    telefone: "",
-    cargo: "",
-    email: "",
-    nomeEmpresa: "",
-    razaoSocial: "",
-    cnpj: "",
-    segmento: "",
-    tipoUnidade: "",
-    cep: "",
-    estado: "",
-    cidade: "",
-    bairro: "",
-    logradouro: "",
-    numero: "",
-  });
-
-  // useEffect executado no carregamento da página (client-side) para puxar os dados consolidados
-  useEffect(() => {
-    const perfilCompleto = obterPerfilConsolidado();
-    setDadosUsuario(perfilCompleto);
-  }, []);
+  const [dadosUsuario] = useState<ProfileData>(() => obterPerfilConsolidado());
 
   return (
-    // activeTab={"perfil" as any} evita que abas indevidas do menu lateral fiquem acesas
-    <AppShell activeTab={"perfil" as any}>
+    // activeTab="perfil" evita que abas indevidas do menu lateral fiquem acesas
+    <AppShell activeTab="perfil">
       <div className="mx-auto max-w-4xl space-y-6">
         
         {/* Título e descrição da página de perfil */}

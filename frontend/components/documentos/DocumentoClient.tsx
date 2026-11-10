@@ -13,9 +13,8 @@ import {
   useDashboardDocuments,
   useDashboardIndicators,
 } from "@/hooks/useDashboard";
+import { useCatalogoUnidades, useCategoriasDocumento } from "@/hooks/useCatalogos";
 
-// Mocks (dados estáticos) de unidades e categorias
-import { mockCategorias, mockUnidades } from "@/mocks/dashboard";
 import type { DocumentoStatus } from "@/types/domain";
 
 // Opções de status disponíveis para filtragem na tabela
@@ -41,6 +40,8 @@ export function DocumentosClient() {
   // --- CONSULTAS DE DADOS (HOOKS SWR/REACT QUERY) ---
   // Busca indicadores gerais para o cartão de estatísticas
   const indicatorQuery = useDashboardIndicators();
+  const unidadesQuery = useCatalogoUnidades();
+  const categoriasQuery = useCategoriasDocumento();
 
   // Busca a lista paginada e filtrada de documentos reais do backend
   const documentQuery = useDashboardDocuments({
@@ -54,12 +55,12 @@ export function DocumentosClient() {
 
   // Mapeamentos otimizados de nomes e status de unidades para passagem direta à tabela
   const unitNames = useMemo(
-    () => new Map(mockUnidades.map((unit) => [unit.id, unit.nome])),
-    []
+    () => new Map((unidadesQuery.data ?? []).map((unit) => [unit.id, unit.nome])),
+    [unidadesQuery.data]
   );
   const unitStatuses = useMemo(
-    () => new Map(mockUnidades.map((unit) => [unit.id, unit.status])),
-    []
+    () => new Map((unidadesQuery.data ?? []).map((unit) => [unit.id, unit.status])),
+    [unidadesQuery.data]
   );
 
   const indicators = indicatorQuery.data;
@@ -128,7 +129,7 @@ export function DocumentosClient() {
               className="h-11 w-full appearance-none rounded-xl border border-slate-200 bg-white px-3 pr-8 text-xs text-slate-700 outline-none focus:border-indigo-400 focus:ring-2 focus:ring-indigo-100"
             >
               <option value="todas">Todas as unidades</option>
-              {mockUnidades.map((unit) => (
+              {(unidadesQuery.data ?? []).map((unit) => (
                 <option key={unit.id} value={unit.id}>{unit.nome}</option>
               ))}
             </select>
@@ -146,7 +147,7 @@ export function DocumentosClient() {
               className="h-11 w-full appearance-none rounded-xl border border-slate-200 bg-white px-3 pr-8 text-xs text-slate-700 outline-none focus:border-indigo-400 focus:ring-2 focus:ring-indigo-100"
             >
               <option value="todas">Todas as categorias</option>
-              {mockCategorias.map((option) => (
+              {(categoriasQuery.data ?? []).map((option) => (
                 <option key={option} value={option}>{option}</option>
               ))}
             </select>

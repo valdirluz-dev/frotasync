@@ -1,7 +1,9 @@
 import { describe, expect, it } from "vitest";
 
 import { calcularStatusDocumento } from "@/lib/status";
-import { mockDocumentos, mockTarefas, mockUnidades } from "@/mocks/dashboard";
+import { mockDocumentos } from "@/mocks/documentos";
+import { mockTarefas } from "@/mocks/tarefas";
+import { mockUnidades } from "@/mocks/unidades";
 import {
   PerfilSemPermissaoError,
   UnidadeInativaError,
@@ -12,7 +14,6 @@ import {
 import {
   alterarStatusUnidade,
   obterIndicadoresUnidade,
-  obterUnidade,
 } from "./unidadesService";
 import {
   getDashboardDocuments,
@@ -93,7 +94,11 @@ describe("serviços de detalhe da unidade", () => {
     const original = mockUnidades[unitIndex];
 
     try {
-      const updated = await alterarStatusUnidade(original.id, "Ativa");
+      const updated = await alterarStatusUnidade(
+        original.id,
+        "Ativa",
+        "Administrador",
+      );
       expect(updated.status).toBe("Ativa");
       expect(updated.atualizadoEm).not.toBe(original.atualizadoEm);
       expect(mockUnidades[unitIndex].status).toBe("Ativa");

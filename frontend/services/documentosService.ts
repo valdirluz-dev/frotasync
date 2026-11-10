@@ -1,16 +1,40 @@
-//import { calcularStatusDocumento } from "@/lib/status";
-import { mockDocumentos, mockUnidades } from "@/mocks/dashboard";
-import type { Documento, DocumentoAnexo } from "@/types/domain";
-import {
-  UnidadeInativaError,
-  RecursoNaoEncontradoError,
-} from "@/lib/errors";
-import { wait } from "@/lib/mockApi";
+import { RecursoNaoEncontradoError } from "@/lib/errors";
+import { repositories } from "@/repositories";
 import type { DocumentoFormValues } from "@/schemas/documento";
+import type { Documento, DocumentoAnexo } from "@/types/domain";
+
+import { obterUnidadeAtiva } from "./serviceRules";
+
+export type CriarDocumentoInput = DocumentoFormValues & { unidadeId: string };
+
+function mapearAnexo(file?: File): DocumentoAnexo | undefined {
+  return file
+    ? { nome: file.name, tamanhoBytes: file.size, tipo: file.type }
+    : undefined;
+}
+
+export async function listarDocumentos(): Promise<Documento[]> {
+  return repositories.documentos.list();
+}
 
 export async function obterDocumento(id: string): Promise<Documento | null> {
-  await wait(120);
-  return mockDocumentos.find((item) => item.id === id) ?? null;
+  return repositories.documentos.findById(id);
+}
+
+export async function criarDocumento(
+  data: CriarDocumentoInput,
+): Promise<Documento> {
+  await obterUnidadeAtiva(data.unidadeId);
+  const documento = {
+    unidadeId: data.unidadeId,
+    nome: data.nome.trim(),
+    categoria: data.categoria.trim(),
+    dataEmissao: data.dataEmissao,
+    dataValidade: data.dataValidade,
+    descricao: data.descricao?.trim() || undefined,
+    anexo: mapearAnexo(data.anexo),
+  };
+  return repositories.documentos.insert(documento);
 }
 
 export async function atualizarDocumento(
@@ -18,13 +42,9 @@ export async function atualizarDocumento(
   data: DocumentoFormValues,
   anexo?: DocumentoAnexo,
 ): Promise<Documento> {
-  await wait();
-  const index = mockDocumentos.findIndex((item) => item.id === id);
- // if (index < 0) throw new RecursoNaoEncontradoError("Documento");
-  const current = mockDocumentos[index];
-  const unidade = mockUnidades.find((item) => item.id === current.unidadeId);
-  if (!unidade) throw new RecursoNaoEncontradoError("Unidade");
-  if (unidade.status === "Inativa") throw new UnidadeInativaError();
+  const current = await repositories.documentos.findById(id);
+  if (!current) throw new RecursoNaoEncontradoError("Documento");
+  await obterUnidadeAtiva(current.unidadeId);
 
   const updated: Documento = {
     ...current,
@@ -33,8 +53,19 @@ export async function atualizarDocumento(
     dataEmissao: data.dataEmissao,
     dataValidade: data.dataValidade,
     descricao: data.descricao?.trim() || undefined,
-    anexo: anexo ?? current.anexo,
+    anexo: anexo ?? mapearAnexo(data.anexo) ?? current.anexo,
   };
-  mockDocumentos[index] = updated;
-  return updated;
+  return repositories.documentos.update(updated);
+}
+
+export async function excluirDocumento(id: string): Promise<void> {
+  const current = await repositories.documentos.findById(id);
+  if (!current) throw new RecursoNaoEncontradoError("Documento");
+  await obterUnidadeAtiva(current.unidadeId);
+  const removed = await repositories.documentos.remove(id);
+  if (!removed) throw new RecursoNaoEncontradoError("Documento");
+}
+
+export async function listarCategoriasDocumento(): Promise<string[]> {
+  return repositories.documentos.listCategories();
 }

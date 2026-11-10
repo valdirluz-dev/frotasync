@@ -4,13 +4,15 @@ import React, { useState } from "react";
 import { useRouter } from "next/navigation";
 import { AuthInput } from "@/components/ui/Authinput";
 import { Button } from "@/components/ui";
-import { mockValidarDadosEmpresa } from "@/mocks/dadosEmpresa";
+import { useBuscarCep } from "@/hooks/useBuscarCep";
+import { validarDadosEmpresa } from "@/services/accountService";
 import { cadastroEmpresaSchema } from "@/schemas/cadastroEmpresa";
 import { formatCep, formatCnpj } from "@/utils/formatters";
 import { zodErrorsByField } from "@/utils/zodErrors";
 
 export default function DadosEmpresa() {
   const router = useRouter();
+  const cepLookup = useBuscarCep();
 
   // Estado inicial do formulário limpo, sem carregar dados de teste (mocks)
   const [formData, setFormData] = useState({
@@ -30,31 +32,30 @@ export default function DadosEmpresa() {
   // Estado para armazenar os erros de validação de cada campo
   const [errors, setErrors] = useState<{ [key: string]: string }>({});
 
-  // Busca automática de endereço através da API ViaCEP com base no CEP preenchido
-  const fetchAddressByCep = async (cep: string) => {
-    const cleanCep = cep.replace(/\D/g, "");
-    if (cleanCep.length !== 8) return;
-
+  async function fetchAddressByCep(cep: string) {
     try {
-      const response = await fetch(`https://viacep.com.br/ws/${cleanCep}/json/`);
-      const data = await response.json();
-
-      if (!data.erro) {
-        setFormData((prev) => ({
-          ...prev,
-          logradouro: data.logradouro || "",
-          bairro: data.bairro || "",
-          cidade: data.localidade || "",
-          estado: data.uf || "",
-        }));
-        setErrors((prev) => ({ ...prev, cep: "" }));
-      } else {
+      const address = await cepLookup.mutateAsync(cep);
+      if (!address) {
         setErrors((prev) => ({ ...prev, cep: "CEP não encontrado." }));
+        return;
       }
+
+      setFormData((prev) => ({
+        ...prev,
+        logradouro: address.logradouro,
+        bairro: address.bairro,
+        cidade: address.cidade,
+        estado: address.uf,
+      }));
+      setErrors((prev) => ({ ...prev, cep: "" }));
     } catch (error) {
-      console.error("Erro ao buscar CEP:", error);
+      console.error("Erro ao consultar CEP:", error);
+      setErrors((prev) => ({
+        ...prev,
+        cep: "Não foi possível consultar o CEP. Preencha o endereço manualmente.",
+      }));
     }
-  };
+  }
 
   // Manipulador de alterações nos inputs aplicando máscaras e limpando erros
   const handleChange = (e: React.ChangeEvent<HTMLInputElement>) => {
@@ -81,7 +82,7 @@ export default function DadosEmpresa() {
     }
 
     setErrors({});
-    const resposta = await mockValidarDadosEmpresa(result.data);
+    const resposta = await validarDadosEmpresa(result.data);
 
     if (resposta.success) {
       router.push("/cadastro/Dados-de-Login");
@@ -178,7 +179,7 @@ export default function DadosEmpresa() {
             name="cep"
             value={formData.cep}
             onChange={handleChange}
-            onBlur={(e) => fetchAddressByCep(e.target.value)}
+            onBlur={(e) => void fetchAddressByCep(e.target.value)}
             placeholder="*00000-000"
             maxLength={9}
             error={errors.cep}

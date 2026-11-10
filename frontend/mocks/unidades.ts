@@ -1,10 +1,4 @@
-import type {
-  Documento,
-  Tarefa,
-  TarefaStatus,
-  Unidade,
-  UnidadeStatus,
-} from "../types/domain";
+import type { Unidade, UnidadeStatus } from "@/types/domain";
 
 type UnidadeSeed = [
   nome: string,
@@ -186,7 +180,7 @@ const unitSeeds: UnidadeSeed[] = [
   ],
 ];
 
-const units: Unidade[] = unitSeeds.map(
+export const mockUnidades: Unidade[] = unitSeeds.map(
   ([nome, status, cidade, logradouro, numero, bairro], index) => ({
     id: `u-${String(index + 1).padStart(3, "0")}`,
     codigo: String(index + 1).padStart(3, "0"),
@@ -201,107 +195,3 @@ const units: Unidade[] = unitSeeds.map(
     ).toISOString(),
   }),
 );
-
-const docSeeds = [
-  ["Alvará de funcionamento", "Legal", 140],
-  ["Licença Ambiental", "Ambiental", 8],
-  ["Certificado de Bombeiros", "Segurança", -12],
-  ["Certidão Negativa de Débitos", "Fiscal", 230],
-  ["Contrato de Locação", "Contratual", 85],
-  ["Laudo Técnico (Elétrica)", "Técnica", 320],
-  ["AVCB - Auto de Vistoria", "Segurança", 190],
-  ["Licença Sanitária", "Sanitária", 14],
-  ["Registro no Conselho", "Técnica", 410],
-  ["Seguro Patrimonial", "Contratual", 175],
-  ["Registro na ANTT", "Fiscal", 5],
-  ["Seguro de Carga", "Contratual", -35],
-  ["Certificado de Dedetização", "Sanitária", 11],
-  ["Licença de Operação", "Ambiental", 95],
-  ["Alvará do Pátio", "Legal", -2],
-  ["Certificado de Manutenção", "Técnica", 60],
-] as const;
-
-const taskSeeds = [
-  ["Renovar alvará de funcionamento", "Concluída"],
-  ["Enviar relatório mensal", "Em andamento"],
-  ["Repor extintores", "Pendente"],
-  ["Revisar licença ambiental", "Concluída"],
-  ["Atualizar cadastro da unidade", "Em andamento"],
-  ["Agendar vistoria técnica", "Pendente"],
-  ["Conferir seguro patrimonial", "Concluída"],
-  ["Regularizar documentação fiscal", "Pendente"],
-  ["Validar certificado de bombeiros", "Em andamento"],
-  ["Concluir checklist operacional", "Concluída"],
-  ["Solicitar renovação da licença", "Pendente"],
-  ["Enviar comprovantes de manutenção", "Em andamento"],
-  ["Revisar contratos vigentes", "Concluída"],
-  ["Organizar documentos da filial", "Pendente"],
-  ["Atualizar laudo elétrico", "Concluída"],
-  ["Preparar auditoria trimestral", "Em andamento"],
-] as const;
-
-function dateOffset(days: number): string {
-  const date = new Date();
-  date.setUTCHours(0, 0, 0, 0);
-  date.setUTCDate(date.getUTCDate() + days);
-  return date.toISOString().slice(0, 10);
-}
-
-export const mockUnidades = units;
-export const mockCategorias = [
-  ...new Set(docSeeds.map(([, categoria]) => categoria)),
-];
-const pdfsMock = [
-  "/mock-docs/alvara-funcionamento.pdf",
-  "/mock-docs/licenca-ambiental.pdf",
-  "/mock-docs/certificado-bombeiros.pdf",
-];
-export const mockDocumentos: Documento[] = Array.from(
-  { length: 128 },
-  (_, index) => {
-    const [nome, categoria] = docSeeds[index % docSeeds.length];
-    const unidadeIndex = index % units.length;
-    const unitDocumentIndex = Math.floor(index / units.length);
-    const statusIndex = (unidadeIndex + unitDocumentIndex) % 3;
-    const validityOffset =
-      statusIndex === 0
-        ? 45 + (unidadeIndex % 30)
-        : statusIndex === 1
-          ? 1 + (unidadeIndex % 14)
-          : -(1 + (unidadeIndex % 35));
-
-    return {
-      id: `doc-${String(index + 1).padStart(3, "0")}`,
-      nome,
-      categoria,
-      unidadeId: units[unidadeIndex].id,
-      dataEmissao: dateOffset(-365 - (index % 90)),
-      dataValidade: dateOffset(validityOffset),
-      descricao: `Documento ${nome.toLocaleLowerCase("pt-BR")} da unidade ${units[unidadeIndex].nome}.`,
-      anexo: { nome: `${nome}.pdf`, tamanhoBytes: 420_000 + (index % 9) * 73_000, tipo: "application/pdf", url: pdfsMock[index % pdfsMock.length] },
-    };
-  },
-);
-
-const taskStatuses: TarefaStatus[] = ["Concluída", "Em andamento", "Pendente"];
-
-export const mockTarefas: Tarefa[] = Array.from({ length: 128 }, (_, index) => {
-  const [titulo] = taskSeeds[index % taskSeeds.length];
-  const unidadeIndex = index % units.length;
-  const unitTaskIndex = Math.floor(index / units.length);
-  const status =
-    taskStatuses[(unidadeIndex + unitTaskIndex) % taskStatuses.length];
-  const startOffset = -((index % 70) + 1);
-  const completed = status === "Concluída";
-
-  return {
-    id: `task-${String(index + 1).padStart(3, "0")}`,
-    titulo,
-    unidadeId: units[unidadeIndex].id,
-    dataInicio: dateOffset(startOffset),
-    prazoFinal: dateOffset(startOffset + (index % 24) + 3),
-    status,
-    dataConclusao: completed ? dateOffset(Math.min(startOffset + 2, -1)) : null,
-    descricao: `Detalhes da tarefa: ${titulo.toLocaleLowerCase("pt-BR")}.`,
-  };
-});

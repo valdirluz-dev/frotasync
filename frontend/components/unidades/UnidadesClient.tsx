@@ -10,7 +10,6 @@ import { Pagination } from "@/components/ui/Pagination";
 import { UnidadesFilters } from "@/components/unidades/UnidadesFilters";
 import { UnidadesGrid } from "@/components/unidades/UnidadesGrid";
 import { useUnidades } from "@/hooks/useUnidades";
-import { mockUnidades } from "@/mocks/dashboard";
 import type { UnidadeStatus } from "@/types/domain";
 
 const PAGE_SIZE = 12;
@@ -40,8 +39,9 @@ export function UnidadesClient() {
     q: queryFromUrl,
     status,
   });
+  const allUnidadesQuery = useUnidades({ page: 1, size: 1 });
   const items = unidadesQuery.data?.items ?? [];
-  const isEmptyCollection = mockUnidades.length === 0;
+  const isEmptyCollection = allUnidadesQuery.data?.total === 0;
 
   const currentFilters = useMemo(
     () => new URLSearchParams(searchParams.toString()),

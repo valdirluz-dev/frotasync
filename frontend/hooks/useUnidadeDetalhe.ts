@@ -9,11 +9,13 @@ import {
 } from "@/services/unidadesService";
 import { alterarStatusTarefa } from "@/services/tarefasService";
 import { useSessao } from "@/hooks/useSessao";
+import { invalidateEntityData } from "@/hooks/invalidateEntityData";
+import { queryKeys } from "@/lib/queryKeys";
 import type { TarefaStatus, UnidadeStatus } from "@/types/domain";
 
 export function useUnidade(id: string) {
   return useQuery({
-    queryKey: ["unidades", "detalhe", id],
+    queryKey: queryKeys.unidades.detail(id),
     queryFn: () => obterUnidade(id),
     enabled: id.length > 0,
     staleTime: 30_000,
@@ -22,7 +24,7 @@ export function useUnidade(id: string) {
 
 export function useUnidadeIndicadores(id: string) {
   return useQuery({
-    queryKey: ["unidades", "indicadores", id],
+    queryKey: queryKeys.unidades.indicators(id),
     queryFn: () => obterIndicadoresUnidade(id),
     enabled: id.length > 0,
     staleTime: 30_000,
@@ -36,15 +38,7 @@ export function useAlterarStatusUnidade() {
   return useMutation({
     mutationFn: (input: { id: string; status: UnidadeStatus }) =>
       alterarStatusUnidade(input.id, input.status, usuario.perfil),
-    onSuccess: async (unidade) => {
-      await Promise.all([
-        queryClient.invalidateQueries({ queryKey: ["unidades"] }),
-        queryClient.invalidateQueries({ queryKey: ["dashboard"] }),
-        queryClient.invalidateQueries({
-          queryKey: ["unidades", "indicadores", unidade.id],
-        }),
-      ]);
-    },
+    onSuccess: () => invalidateEntityData(queryClient),
   });
 }
 
@@ -54,14 +48,6 @@ export function useAlterarStatusTarefa() {
   return useMutation({
     mutationFn: (input: { tarefaId: string; status: TarefaStatus }) =>
       alterarStatusTarefa(input.tarefaId, input.status),
-    onSuccess: async (tarefa) => {
-      await Promise.all([
-        queryClient.invalidateQueries({ queryKey: ["dashboard"] }),
-        queryClient.invalidateQueries({ queryKey: ["unidades"] }),
-        queryClient.invalidateQueries({
-          queryKey: ["unidades", "indicadores", tarefa.unidadeId],
-        }),
-      ]);
-    },
+    onSuccess: () => invalidateEntityData(queryClient),
   });
 }

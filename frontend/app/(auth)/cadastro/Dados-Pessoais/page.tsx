@@ -4,7 +4,7 @@ import React, { useState } from "react";
 import { useRouter } from "next/navigation";
 import { AuthInput } from "@/components/ui/Authinput";
 import { Button } from "@/components/ui";
-import { simularEnvioDadosPessoais } from "@/mocks/dadosPessoais";
+import { salvarDadosPessoais } from "@/services/accountService";
 import { cadastroPessoalSchema } from "@/schemas/cadastroPessoal";
 import { formatCpf, formatPhone } from "@/utils/formatters";
 import { zodErrorsByField } from "@/utils/zodErrors";
@@ -48,7 +48,7 @@ export default function DadosPessoais() {
     }
 
     setErrors({});
-    const resposta = await simularEnvioDadosPessoais({
+    const resposta = await salvarDadosPessoais({
       id: "perfil-001",
       ...result.data,
     });

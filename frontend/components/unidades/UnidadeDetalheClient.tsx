@@ -18,6 +18,7 @@ import { UnidadeHeader } from "@/components/unidades/UnidadeHeader";
 import { UnidadeInfoCard } from "@/components/unidades/UnidadeInfoCard";
 import { UnidadeInativaDialog } from "@/components/unidades/UnidadeInativaDialog";
 import { useDashboardDocuments, useDashboardTasks } from "@/hooks/useDashboard";
+import { useCategoriasDocumento } from "@/hooks/useCatalogos";
 import {
   useAlterarStatusUnidade,
   useUnidade,
@@ -76,6 +77,7 @@ export function UnidadeDetalheClient({ id }: { id: string }) {
 
   const unitQuery = useUnidade(id);
   const indicatorsQuery = useUnidadeIndicadores(id);
+  const categoriesQuery = useCategoriasDocumento();
   const documentQuery = useDashboardDocuments({
     page,
     pageSize: 10,
@@ -321,6 +323,7 @@ export function UnidadeDetalheClient({ id }: { id: string }) {
                 tab={activeTab}
                 query={query}
                 category={category}
+                categories={categoriesQuery.data ?? []}
                 documentStatus={documentStatus}
                 taskStatus={taskStatus}
                 onQueryCommit={commitSearch}

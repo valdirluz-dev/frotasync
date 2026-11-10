@@ -1,8 +1,8 @@
 "use client";
 
 import Link from "next/link";
-import { useState, useEffect, type ReactNode } from "react";
-import { obterPerfilConsolidado } from "@/mocks/profile";
+import { useState, type ReactNode } from "react";
+import { obterPerfilConsolidado } from "@/services/accountService";
 
 import { Icon } from "@/components/ui/Icons";
 
@@ -11,7 +11,7 @@ export function AppShell({
   breadcrumb = "section",
   children,
 }: {
-  activeTab: "dashboard" | "documentos" | "tarefas" | "unidades" | "configuracoes";
+  activeTab: "dashboard" | "documentos" | "tarefas" | "unidades" | "configuracoes" | "perfil";
   breadcrumb?:
     | "section"
     | "newUnit"
@@ -22,27 +22,23 @@ export function AppShell({
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
 
   // ESTADO DO PERFIL: Atualizado para consumir o perfil consolidado do profile.ts
-  const [userProfile, setUserProfile] = useState({
-    nome: "Maria Luiza da Silva",
-    cargo: "Administradora de Frotas",
-    inicial: "ML"
-  });
-
-  useEffect(() => {
-    // Puxa os dados consolidados do mock/localStorage
+  const [userProfile] = useState(() => {
     const perfilConsolidado = obterPerfilConsolidado();
-    
     if (perfilConsolidado && perfilConsolidado.nome) {
       const nomeExibicao = perfilConsolidado.nome;
       const iniciais = nomeExibicao.substring(0, 2).toUpperCase();
-
-      setUserProfile({
+      return {
         nome: nomeExibicao,
         cargo: perfilConsolidado.cargo || "Administrador",
         inicial: iniciais
-      });
+      };
     }
-  }, []);
+    return {
+      nome: "Maria Luiza da Silva",
+      cargo: "Administradora de Frotas",
+      inicial: "ML"
+    };
+  });
   
   // Variáveis isoladas e estritas para controlar exatamente qual aba está ativa
   const isDashboardSection = activeTab === "dashboard";

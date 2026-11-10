@@ -2,6 +2,7 @@
 
 import { useMutation, useQueryClient } from "@tanstack/react-query";
 
+import { invalidateEntityData } from "@/hooks/invalidateEntityData";
 import { criarUnidade } from "@/services/unidadesService";
 import type { UnidadeFormValues } from "@/schemas/unidade";
 
@@ -10,11 +11,6 @@ export function useCriarUnidade() {
 
   return useMutation({
     mutationFn: (values: UnidadeFormValues) => criarUnidade(values),
-    onSuccess: async () => {
-      await Promise.all([
-        queryClient.invalidateQueries({ queryKey: ["unidades"] }),
-        queryClient.invalidateQueries({ queryKey: ["dashboard"] }),
-      ]);
-    },
+    onSuccess: () => invalidateEntityData(queryClient),
   });
 }

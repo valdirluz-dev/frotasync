@@ -10,9 +10,8 @@ import { TarefasTable } from "@/components/tarefas/TarefasTable";
 
 // Hooks customizados do dashboard e tarefas
 import { useDashboardTasks, useDashboardIndicators } from "@/hooks/useDashboard";
+import { useCatalogoUnidades } from "@/hooks/useCatalogos";
 
-// Mocks (dados estáticos) de unidades
-import { mockUnidades } from "@/mocks/dashboard";
 import type { TarefaStatus } from "@/types/domain";
 
 // Opções de status disponíveis para filtragem na tabela de tarefas
@@ -36,6 +35,7 @@ export function TarefasClient() {
 
   // --- CONSULTAS DE DADOS (HOOKS SWR/REACT QUERY) ---
   const indicatorQuery = useDashboardIndicators();
+  const unidadesQuery = useCatalogoUnidades();
   const indicators = indicatorQuery.data;
 
   const tarefaQuery = useDashboardTasks({
@@ -48,12 +48,12 @@ export function TarefasClient() {
 
   // Mapeamentos otimizados de nomes e status de unidades para passagem direta à tabela
   const unitNames = useMemo(
-    () => new Map(mockUnidades.map((unit) => [unit.id, unit.nome])),
-    []
+    () => new Map((unidadesQuery.data ?? []).map((unit) => [unit.id, unit.nome])),
+    [unidadesQuery.data]
   );
   const unitStatuses = useMemo(
-    () => new Map(mockUnidades.map((unit) => [unit.id, unit.status])),
-    []
+    () => new Map((unidadesQuery.data ?? []).map((unit) => [unit.id, unit.status])),
+    [unidadesQuery.data]
   );
 
   return (
@@ -117,7 +117,7 @@ export function TarefasClient() {
               className="h-11 w-full appearance-none rounded-xl border border-slate-200 bg-white px-3 pr-8 text-xs text-slate-700 outline-none focus:border-indigo-400 focus:ring-2 focus:ring-indigo-100"
             >
               <option value="todas">Todas as unidades</option>
-              {mockUnidades.map((unit) => (
+              {(unidadesQuery.data ?? []).map((unit) => (
                 <option key={unit.id} value={unit.id}>{unit.nome}</option>
               ))}
             </select>
