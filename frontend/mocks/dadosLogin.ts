@@ -1,83 +1,64 @@
+
+import { tabelaUsuarios, rascunhoCadastro, setUsuarioLogado, UsuarioRegistro } from "./authStore";
+
 export interface IDadosLogin {
   email: string;
   senha: string;
   confirmarSenha?: string;
-  criadoEm?: string;
 }
 
-// Utilitário para calcular datas relativas com base no dia atual
-function dateOffset(days: number): string {
-  const date = new Date();
-  date.setUTCHours(0, 0, 0, 0);
-  date.setUTCDate(date.getUTCDate() + days);
-  return date.toISOString().slice(0, 10);
-}
-
-// Lista inicial padrão de login para teste.
-const loginsIniciais: IDadosLogin[] = [
-  {
-    email: "marialuiza@logisticaexpress.com.br",
-    senha: "#02Senha2000",
-    confirmarSenha: "#02Senha2000",
-    criadoEm: dateOffset(0),
-  },
- 
-];
-
-// Chave única para salvar no localStorage do navegador
-const CHAVE_LOCAL_STORAGE = "@MinhaApp:dadosDeLogin";
-
-// Retorna os dados salvos ou inicializa com os logins corporativos padrão
 export function obterDadosLoginSalvos(): IDadosLogin[] {
-  if (typeof window === "undefined") {
-    return loginsIniciais;
-  }
-
-  const dadosNaJanela = localStorage.getItem(CHAVE_LOCAL_STORAGE);
-  
-  if (dadosNaJanela) {
-    return JSON.parse(dadosNaJanela);
-  }
-  
-  localStorage.setItem(CHAVE_LOCAL_STORAGE, JSON.stringify(loginsIniciais));
-  return loginsIniciais;
+  return tabelaUsuarios.map((u) => ({
+    email: u.email,
+    senha: u.senhaHash,
+  }));
 }
 
-// Simula a validação e o salvamento atualizando o localStorage
 export async function mockValidarDadosLogin(novosDados: IDadosLogin) {
-  await new Promise((resolve) => setTimeout(resolve, 500));
-
-  const listaAtual = obterDadosLoginSalvos();
-
-  const index = listaAtual.findIndex((l) => l.email === novosDados.email);
-
-  if (index >= 0) {
-    listaAtual[index] = novosDados;
-  } else {
-    listaAtual.push(novosDados);
-  }
-
-  if (typeof window !== "undefined") {
-    localStorage.setItem(CHAVE_LOCAL_STORAGE, JSON.stringify(listaAtual));
-  }
+  await new Promise((r) => setTimeout(r, 400));
 
   if (!novosDados.email || !novosDados.senha) {
-    return {
-      success: false,
-      message: "Por favor, preencha o e-mail corporativo e a senha.",
-    };
+    return { success: false, message: "Preencha o e-mail corporativo e a senha." };
   }
 
-  if (novosDados.confirmarSenha && novosDados.senha !== novosDados.confirmarSenha) {
-    return {
-      success: false,
-      message: "As senhas não coincidem.",
-    };
+  // Verifica se o e-mail já existe
+  const jaExiste = tabelaUsuarios.some(
+    (u) => u.email.toLowerCase() === novosDados.email.trim().toLowerCase()
+  );
+
+  if (jaExiste) {
+    return { success: false, message: "Este e-mail corporativo já está em uso." };
   }
+
+  // Consolida o novo usuário com todas as etapas do cadastro
+  const novoUsuarioCompleto: UsuarioRegistro = {
+    id: `usr-${Date.now()}`,
+    nome: rascunhoCadastro.nome || "Novo Usuário",
+    cpf: rascunhoCadastro.cpf || "",
+    telefone: rascunhoCadastro.telefone || "",
+    cargo: rascunhoCadastro.cargo || "Administrador",
+    email: novosDados.email,
+    senhaHash: novosDados.senha, // Na persistência, apenas a senha
+    nomeEmpresa: rascunhoCadastro.nomeEmpresa || "",
+    razaoSocial: rascunhoCadastro.razaoSocial || "",
+    cnpj: rascunhoCadastro.cnpj || "",
+    segmento: rascunhoCadastro.segmento || "",
+    tipoUnidade: rascunhoCadastro.tipoUnidade || "Matriz",
+    cep: rascunhoCadastro.cep || "",
+    estado: rascunhoCadastro.estado || "",
+    cidade: rascunhoCadastro.cidade || "",
+    bairro: rascunhoCadastro.bairro || "",
+    logradouro: rascunhoCadastro.logradouro || "",
+    numero: rascunhoCadastro.numero || "",
+    criadoEm: new Date().toISOString().slice(0, 10),
+  };
+
+  // Insere na lista em memória e torna-o o usuário atual
+  tabelaUsuarios.push(novoUsuarioCompleto);
+  setUsuarioLogado(novoUsuarioCompleto);
 
   return {
     success: true,
-    message: "Dados de login corporativo validados e guardados com sucesso!",
-    data: listaAtual,
+    message: "Cadastro finalizado com sucesso!",
   };
 }
