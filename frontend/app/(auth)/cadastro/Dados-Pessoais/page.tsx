@@ -5,6 +5,7 @@ import { useRouter } from "next/navigation";
 import { AuthInput } from "@/components/ui/Authinput";
 import { Button } from "@/components/ui";
 import { simularEnvioDadosPessoais } from "@/mocks/dadosPessoais";
+<<<<<<< HEAD
 
 // Máscara de formatação em tempo real para o CPF (000.000.000-00)
 const formatCPF = (value: string) => {
@@ -42,6 +43,11 @@ const isValidCPF = (cpf: string) => {
   if (remainder === 10 || remainder === 11) remainder = 0;
   return remainder === parseInt(cleanCPF.substring(10, 11));
 };
+=======
+import { cadastroPessoalSchema } from "@/schemas/cadastroPessoal";
+import { formatCpf, formatPhone } from "@/utils/formatters";
+import { zodErrorsByField } from "@/utils/zodErrors";
+>>>>>>> f13a41d9f08de0ef78f282cfb715fd7112a3d412
 
 export default function DadosPessoais() {
   const router = useRouter();
@@ -62,7 +68,11 @@ export default function DadosPessoais() {
     const { name, value } = e.target;
     let formattedValue = value;
 
+<<<<<<< HEAD
     if (name === "cpf") formattedValue = formatCPF(value);
+=======
+    if (name === "cpf") formattedValue = formatCpf(value);
+>>>>>>> f13a41d9f08de0ef78f282cfb715fd7112a3d412
     else if (name === "telefone") formattedValue = formatPhone(value);
 
     setFormData((prev) => ({ ...prev, [name]: formattedValue }));
@@ -75,6 +85,7 @@ export default function DadosPessoais() {
   // Validação geral do formulário e submissão para a próxima etapa
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
+<<<<<<< HEAD
     const newErrors: { [key: string]: string } = {};
 
     if (!formData.nome.trim()) newErrors.nome = "Digite seu nome completo";
@@ -100,6 +111,24 @@ export default function DadosPessoais() {
       } else {
         alert(resposta.message);
       }
+=======
+    const result = cadastroPessoalSchema.safeParse(formData);
+    if (!result.success) {
+      setErrors(zodErrorsByField(result.error));
+      return;
+    }
+
+    setErrors({});
+    const resposta = await simularEnvioDadosPessoais({
+      id: "perfil-001",
+      ...result.data,
+    });
+
+    if (resposta.success) {
+      router.push("/cadastro/Dados-da-Empresa");
+    } else {
+      alert(resposta.message);
+>>>>>>> f13a41d9f08de0ef78f282cfb715fd7112a3d412
     }
   };
 
@@ -156,7 +185,11 @@ export default function DadosPessoais() {
             value={formData.telefone}
             onChange={handleChange}
             placeholder="*+55 (00) 00000-0000"
+<<<<<<< HEAD
             maxLength={19}
+=======
+            maxLength={20}
+>>>>>>> f13a41d9f08de0ef78f282cfb715fd7112a3d412
             error={errors.telefone}
           />
 

@@ -1,4 +1,9 @@
 // frontend/mocks/login.ts
+<<<<<<< HEAD
+=======
+import { loginSchema } from "@/schemas/acesso";
+
+>>>>>>> f13a41d9f08de0ef78f282cfb715fd7112a3d412
 import { tabelaUsuarios, setUsuarioLogado } from "./authStore";
 
 export interface IDadosLoginTela {
@@ -11,7 +16,11 @@ export async function mockFazerLogin(dados: IDadosLoginTela) {
   // Simula latência de rede realista
   await new Promise((resolve) => setTimeout(resolve, 500));
 
+<<<<<<< HEAD
   if (!dados.email || !dados.senha) {
+=======
+  if (!loginSchema.safeParse(dados).success) {
+>>>>>>> f13a41d9f08de0ef78f282cfb715fd7112a3d412
     return {
       success: false,
       message: "Por favor, preencha o e-mail corporativo e a senha.",

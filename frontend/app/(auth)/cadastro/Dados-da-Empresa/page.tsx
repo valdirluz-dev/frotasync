@@ -5,6 +5,7 @@ import { useRouter } from "next/navigation";
 import { AuthInput } from "@/components/ui/Authinput";
 import { Button } from "@/components/ui";
 import { mockValidarDadosEmpresa } from "@/mocks/dadosEmpresa";
+<<<<<<< HEAD
 
 // Formatação da máscara de CNPJ
 const formatCNPJ = (value: string) => {
@@ -54,6 +55,11 @@ const isValidCNPJ = (cnpj: string) => {
   result = sum % 11 < 2 ? 0 : 11 - (sum % 11);
   return result === parseInt(digits.charAt(1));
 };
+=======
+import { cadastroEmpresaSchema } from "@/schemas/cadastroEmpresa";
+import { formatCep, formatCnpj } from "@/utils/formatters";
+import { zodErrorsByField } from "@/utils/zodErrors";
+>>>>>>> f13a41d9f08de0ef78f282cfb715fd7112a3d412
 
 export default function DadosEmpresa() {
   const router = useRouter();
@@ -107,8 +113,13 @@ export default function DadosEmpresa() {
     const { name, value } = e.target;
     let formattedValue = value;
 
+<<<<<<< HEAD
     if (name === "cnpj") formattedValue = formatCNPJ(value);
     else if (name === "cep") formattedValue = formatCEP(value);
+=======
+    if (name === "cnpj") formattedValue = formatCnpj(value);
+    else if (name === "cep") formattedValue = formatCep(value);
+>>>>>>> f13a41d9f08de0ef78f282cfb715fd7112a3d412
 
     setFormData((prev) => ({ ...prev, [name]: formattedValue }));
 
@@ -120,6 +131,7 @@ export default function DadosEmpresa() {
   // Validação geral do formulário e submissão para a próxima etapa
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
+<<<<<<< HEAD
     const newErrors: { [key: string]: string } = {};
 
     if (!formData.nomeEmpresa.trim()) newErrors.nomeEmpresa = "Digite o nome comercial ou marca";
@@ -146,6 +158,21 @@ export default function DadosEmpresa() {
       } else {
         alert(resposta.message);
       }
+=======
+    const result = cadastroEmpresaSchema.safeParse(formData);
+    if (!result.success) {
+      setErrors(zodErrorsByField(result.error));
+      return;
+    }
+
+    setErrors({});
+    const resposta = await mockValidarDadosEmpresa(result.data);
+
+    if (resposta.success) {
+      router.push("/cadastro/Dados-de-Login");
+    } else {
+      alert(resposta.message);
+>>>>>>> f13a41d9f08de0ef78f282cfb715fd7112a3d412
     }
   };
 
