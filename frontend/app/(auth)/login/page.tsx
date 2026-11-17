@@ -2,20 +2,16 @@
 
 import React, { useState } from "react";
 import { useRouter } from "next/navigation";
-import Link from "next/link"; 
+import Link from "next/link";
+
+import HoneyPotField from "@/components/security/HoneypotField";
+import { CookieModal } from "@/components/cookie/CookieModal";
+import { Icon } from "@/components/ui/Icons";
 import { AuthInput } from "@/components/ui/Authinput";
 import { Button } from "@/components/ui";
-import { Icon } from "@/components/ui/Icons";
-<<<<<<< HEAD
-import HoneyPotField from "@/components/security/HoneypotField";
 import { mockFazerLogin } from "@/mocks/login";
-import { CookieModal } from "@/components/cookie/CookieModal"; 
-=======
-import { mockFazerLogin } from "@/mocks/login";
-import { CookieModal } from "@/components/cookie/CookieModal"; 
 import { loginSchema } from "@/schemas/acesso";
 import { zodErrorsByField } from "@/utils/zodErrors";
->>>>>>> f13a41d9f08de0ef78f282cfb715fd7112a3d412
 
 export default function Login() {
   const router = useRouter();
@@ -25,18 +21,11 @@ export default function Login() {
     email: "",
     senha: "",
     lembreMe: false,
-<<<<<<< HEAD
     website: "",
   });
 
-  
-  //Memória que marca se o robô tocou o campo
-  const [isBotDetected, setIsBotDetected] = useState(false)
-
-=======
-  });
-
->>>>>>> f13a41d9f08de0ef78f282cfb715fd7112a3d412
+  // Memória que marca se o robô tocou o campo
+  const [isBotDetected, setIsBotDetected] = useState(false);
   //Controle de visibilidade da senha (olhinho aberto/fechado)
   const [showPassword, setShowPassword] = useState(false);
 
@@ -53,14 +42,11 @@ export default function Login() {
   const handleChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     const { name, value, type, checked } = e.target;
 
-<<<<<<< HEAD
-    //Marca o robô assim que ele digita no campo 
+    // Marca o robô assim que ele digita no campo
     if (name === "website" && value !== "") {
-      setIsBotDetected(true); 
+      setIsBotDetected(true);
     }
 
-=======
->>>>>>> f13a41d9f08de0ef78f282cfb715fd7112a3d412
     setFormData((prev) => ({
       ...prev,
       [name]: type === "checkbox" ? checked : value,
@@ -75,54 +61,11 @@ export default function Login() {
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
 
-<<<<<<< HEAD
-    //Campo de verificação de bot
+    // Campo de verificação de bot
     if (formData.website !== "" || isBotDetected) {
-      return; //Interrompe o login na hora se o robô preencheu
+      return;
     }
 
-    const newErrors: { [key: string]: string } = {};
-
-    // 1. Validação básica de campos obrigatórios
-    if (!formData.email.trim()) {
-      newErrors.email = "Digite seu e-mail corporativo";
-    }
-
-    if (!formData.senha.trim()) {
-      newErrors.senha = "Digite sua senha";
-    }
-
-    setErrors(newErrors);
-
-    // 2. Se não houver erros de preenchimento, processa o login
-    if (Object.keys(newErrors).length === 0) {
-      setIsLoading(true);
-
-      try {
-        //Chama o mock em memória para verificar credenciais
-        const resposta = await mockFazerLogin(formData);
-
-        if (resposta.success) {
-          //CRUCIAL - Grava o cookie exigido pelo proxy.ts para desbloquear as rotas privadas
-          // Se 'Lembre-me' estiver ativo, o cookie dura 30 dias; senão dura 7 dias.
-          const dias = formData.lembreMe ? 30 : 7;
-          const maxAge = dias * 24 * 60 * 60;
-
-           document.cookie = `frotasync_session=true; path=/; max-age=${maxAge}; SameSite=Lax`;
-
-          //Redireciona com sucesso para o Dashboard
-          router.push("/dashboard");
-        } else {
-          //Se o mock retornar credenciais inválidas, alerta o usuário
-          alert(resposta.message);
-        }
-      } catch (error) {
-        console.error("Erro inesperado no login:", error);
-        alert("Ocorreu um erro ao tentar entrar. Tente novamente.");
-      } finally {
-        setIsLoading(false);
-      }
-=======
     const result = loginSchema.safeParse(formData);
     if (!result.success) {
       setErrors(zodErrorsByField(result.error));
@@ -149,7 +92,6 @@ export default function Login() {
       alert("Ocorreu um erro ao tentar entrar. Tente novamente.");
     } finally {
       setIsLoading(false);
->>>>>>> f13a41d9f08de0ef78f282cfb715fd7112a3d412
     }
   };
 
@@ -212,11 +154,7 @@ export default function Login() {
             </button>
           </div>
 
-<<<<<<< HEAD
-          <HoneyPotField value={formData.website} onChange={handleChange}/>
-
-=======
->>>>>>> f13a41d9f08de0ef78f282cfb715fd7112a3d412
+          <HoneyPotField value={formData.website} onChange={handleChange} />
           {/* Lembre-me & Esqueceu a Senha */}
           <div className="flex items-center justify-between text-xs py-0.5">
             <label className="relative inline-flex items-center cursor-pointer">
