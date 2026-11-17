@@ -2,64 +2,13 @@
 
 import React, { useState } from "react";
 import { useRouter } from "next/navigation";
+
 import { AuthInput } from "@/components/ui/Authinput";
 import { Button } from "@/components/ui";
 import { mockValidarDadosEmpresa } from "@/mocks/dadosEmpresa";
-<<<<<<< HEAD
-
-// Formatação da máscara de CNPJ
-const formatCNPJ = (value: string) => {
-  return value
-    .replace(/\D/g, "")
-    .replace(/^(\d{2})(\d)/, "$1.$2")
-    .replace(/^(\d{2})\.(\d{3})(\d)/, "$1.$2.$3")
-    .replace(/\.(\d{3})(\d)/, ".$1/$2")
-    .replace(/(\d{4})(\d)/, "$1-$2")
-    .slice(0, 18);
-};
-
-// Formatação da máscara de CEP
-const formatCEP = (value: string) => {
-  return value
-    .replace(/\D/g, "")
-    .replace(/(\d{5})(\d)/, "$1-$2")
-    .slice(0, 9);
-};
-
-// Validação matemática oficial dos dígitos verificadores do CNPJ
-const isValidCNPJ = (cnpj: string) => {
-  const cleanCNPJ = cnpj.replace(/\D/g, "");
-  if (cleanCNPJ.length !== 14 || /^(\d)\1{13}$/.test(cleanCNPJ)) return false;
-
-  let length = cleanCNPJ.length - 2;
-  let numbers = cleanCNPJ.substring(0, length);
-  const digits = cleanCNPJ.substring(length);
-  let sum = 0;
-  let pos = length - 7;
-
-  for (let i = length; i >= 1; i--) {
-    sum += parseInt(numbers.charAt(length - i)) * pos--;
-    if (pos < 2) pos = 9;
-  }
-  let result = sum % 11 < 2 ? 0 : 11 - (sum % 11);
-  if (result !== parseInt(digits.charAt(0))) return false;
-
-  length += 1;
-  numbers = cleanCNPJ.substring(0, length);
-  sum = 0;
-  pos = length - 7;
-  for (let i = length; i >= 1; i--) {
-    sum += parseInt(numbers.charAt(length - i)) * pos--;
-    if (pos < 2) pos = 9;
-  }
-  result = sum % 11 < 2 ? 0 : 11 - (sum % 11);
-  return result === parseInt(digits.charAt(1));
-};
-=======
 import { cadastroEmpresaSchema } from "@/schemas/cadastroEmpresa";
 import { formatCep, formatCnpj } from "@/utils/formatters";
 import { zodErrorsByField } from "@/utils/zodErrors";
->>>>>>> f13a41d9f08de0ef78f282cfb715fd7112a3d412
 
 export default function DadosEmpresa() {
   const router = useRouter();
@@ -113,13 +62,8 @@ export default function DadosEmpresa() {
     const { name, value } = e.target;
     let formattedValue = value;
 
-<<<<<<< HEAD
-    if (name === "cnpj") formattedValue = formatCNPJ(value);
-    else if (name === "cep") formattedValue = formatCEP(value);
-=======
     if (name === "cnpj") formattedValue = formatCnpj(value);
     else if (name === "cep") formattedValue = formatCep(value);
->>>>>>> f13a41d9f08de0ef78f282cfb715fd7112a3d412
 
     setFormData((prev) => ({ ...prev, [name]: formattedValue }));
 
@@ -131,34 +75,7 @@ export default function DadosEmpresa() {
   // Validação geral do formulário e submissão para a próxima etapa
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-<<<<<<< HEAD
-    const newErrors: { [key: string]: string } = {};
 
-    if (!formData.nomeEmpresa.trim()) newErrors.nomeEmpresa = "Digite o nome comercial ou marca";
-    if (!formData.razaoSocial.trim()) newErrors.razaoSocial = "Digite a razão social";
-    if (!formData.cnpj.trim()) newErrors.cnpj = "Digite o CNPJ";
-    else if (!isValidCNPJ(formData.cnpj)) newErrors.cnpj = "CNPJ inválido. Verifique os números novamente.";
-
-    if (!formData.segmento.trim()) newErrors.segmento = "Digite o segmento da empresa";
-    if (!formData.tipoUnidade.trim()) newErrors.tipoUnidade = "Digite se é Matriz ou Filial";
-    if (!formData.cep.trim()) newErrors.cep = "Digite o CEP";
-    if (!formData.logradouro.trim()) newErrors.logradouro = "Digite o endereço";
-    if (!formData.numero.trim()) newErrors.numero = "Digite o número";
-    if (!formData.bairro.trim()) newErrors.bairro = "Digite o bairro";
-    if (!formData.estado.trim()) newErrors.estado = "Digite o estado";
-    if (!formData.cidade.trim()) newErrors.cidade = "Digite a cidade";
-
-    setErrors(newErrors);
-
-    if (Object.keys(newErrors).length === 0) {
-      const resposta = await mockValidarDadosEmpresa(formData);
-
-      if (resposta.success) {
-        router.push("/cadastro/Dados-de-Login");
-      } else {
-        alert(resposta.message);
-      }
-=======
     const result = cadastroEmpresaSchema.safeParse(formData);
     if (!result.success) {
       setErrors(zodErrorsByField(result.error));
@@ -172,7 +89,6 @@ export default function DadosEmpresa() {
       router.push("/cadastro/Dados-de-Login");
     } else {
       alert(resposta.message);
->>>>>>> f13a41d9f08de0ef78f282cfb715fd7112a3d412
     }
   };
 
