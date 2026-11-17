@@ -9,6 +9,13 @@ export const tarefaSchema = z.object({
 export type TarefaFormInput = z.input<typeof tarefaSchema>;
 export type TarefaFormValues = z.output<typeof tarefaSchema>;
 
+<<<<<<< HEAD
+export function prazoAlteradoValido(prazoFinal: string, prazoOriginal?: string, hoje = new Date()) {
+  if (prazoOriginal && prazoFinal === prazoOriginal) return true;
+  const today = new Date(Date.UTC(hoje.getUTCFullYear(), hoje.getUTCMonth(), hoje.getUTCDate()));
+  const selected = new Date(`${prazoFinal}T00:00:00.000Z`);
+  return !Number.isNaN(selected.getTime()) && selected >= today;
+=======
 export function tarefaEdicaoSchema(
   prazoOriginal: string,
   hoje = new Date(),
@@ -26,4 +33,5 @@ export function tarefaEdicaoSchema(
       });
     }
   });
+>>>>>>> f13a41d9f08de0ef78f282cfb715fd7112a3d412
 }

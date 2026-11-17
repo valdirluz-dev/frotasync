@@ -1,4 +1,15 @@
 import { describe, expect, it } from "vitest";
+<<<<<<< HEAD
+import { prazoAlteradoValido } from "./tarefa";
+
+describe("prazo de tarefa", () => {
+  it("aceita tarefa atrasada quando o prazo não foi alterado", () => {
+    expect(prazoAlteradoValido("2020-01-01", "2020-01-01", new Date("2026-10-06T00:00:00Z"))).toBe(true);
+  });
+
+  it("recusa alteração para o passado", () => {
+    expect(prazoAlteradoValido("2020-01-01", "2020-01-02", new Date("2026-10-06T00:00:00Z"))).toBe(false);
+=======
 import { tarefaEdicaoSchema } from "./tarefa";
 
 const validTask = {
@@ -27,5 +38,6 @@ describe("prazo de tarefa", () => {
         "O prazo não pode ser anterior a hoje quando alterado.",
       );
     }
+>>>>>>> f13a41d9f08de0ef78f282cfb715fd7112a3d412
   });
 });
