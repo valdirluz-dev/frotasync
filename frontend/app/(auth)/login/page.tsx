@@ -6,6 +6,7 @@ import Link from "next/link";
 import { AuthInput } from "@/components/ui/Authinput";
 import { Button } from "@/components/ui";
 import { Icon } from "@/components/ui/Icons";
+import HoneyPotField from "@/components/security/HoneypotField";
 import { mockFazerLogin } from "@/mocks/login";
 import { CookieModal } from "@/components/cookie/CookieModal"; 
 
@@ -17,7 +18,12 @@ export default function Login() {
     email: "",
     senha: "",
     lembreMe: false,
+    website: "",
   });
+
+  
+  //Memória que marca se o robô tocou o campo
+  const [isBotDetected, setIsBotDetected] = useState(false)
 
   //Controle de visibilidade da senha (olhinho aberto/fechado)
   const [showPassword, setShowPassword] = useState(false);
@@ -35,6 +41,11 @@ export default function Login() {
   const handleChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     const { name, value, type, checked } = e.target;
 
+    //Marca o robô assim que ele digita no campo 
+    if (name === "website" && value !== "") {
+      setIsBotDetected(true); 
+    }
+
     setFormData((prev) => ({
       ...prev,
       [name]: type === "checkbox" ? checked : value,
@@ -48,6 +59,11 @@ export default function Login() {
   //Submissão do login com validação e criação do Cookie de Sessão
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
+
+    //Campo de verificação de bot
+    if (formData.website !== "" || isBotDetected) {
+      return; //Interrompe o login na hora se o robô preencheu
+    }
 
     const newErrors: { [key: string]: string } = {};
 
@@ -151,6 +167,8 @@ export default function Login() {
               <Icon name={showPassword ? "eye" : "eye-off"} className="w-5 h-5" />
             </button>
           </div>
+
+          <HoneyPotField value={formData.website} onChange={handleChange}/>
 
           {/* Lembre-me & Esqueceu a Senha */}
           <div className="flex items-center justify-between text-xs py-0.5">

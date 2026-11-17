@@ -5,6 +5,7 @@ import { useRouter } from "next/navigation";
 import { Icon } from "@/components/ui/Icons";
 import { AuthInput } from "@/components/ui/Authinput";
 import { Button } from "@/components/ui";
+import HoneyPotField from "@/components/security/HoneypotField";
 import { mockValidarDadosLogin } from "@/mocks/dadosLogin";
 import { CookieModal } from "@/components/cookie/CookieModal"; 
 
@@ -28,7 +29,11 @@ export default function DadosLogin() {
     senha: "",
     confirmarSenha: "",
     aceiteTermos: false,
+    website: "",
   });
+
+  //Memória que marca se o robô tocou o campo
+  const [isBotDetected, setIsBotDetected] = useState(false)
 
   // Estados para controlo de erros, carregamento e visibilidade dos campos de senha
   const [errors, setErrors] = useState<{ [key: string]: string }>({});
@@ -43,6 +48,11 @@ export default function DadosLogin() {
   const handleChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     const { name, value, type, checked } = e.target;
 
+    //Marca o robô assim que ele digita no campo 
+    if (name === "website" && value !== "") {
+      setIsBotDetected(true); 
+    }
+
     setFormData((prev) => ({
       ...prev,
       [name]: type === "checkbox" ? checked : value,
@@ -56,6 +66,12 @@ export default function DadosLogin() {
   // Validação dos dados digitados e envio final para concluir o cadastro
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
+
+    //Nova implementação (verificação de bot)
+    if (formData.website !== "" || isBotDetected){
+      return;
+    }
+
     const newErrors: { [key: string]: string } = {};
 
     if (!formData.email.trim()) newErrors.email = "Digite o e-mail corporativo";
@@ -204,6 +220,8 @@ export default function DadosLogin() {
               <span className="text-xs text-red-500 mt-1">{errors.aceiteTermos}</span>
             )}
           </div>
+
+          <HoneyPotField value={formData.website} onChange={handleChange}/>
 
           {/* Botão de finalizar cadastro visível apenas em dispositivos móveis */}
           <div className="pt-6 block md:hidden flex justify-center w-full">
