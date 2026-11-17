@@ -9,7 +9,6 @@ import { CookieModal } from "@/components/cookie/CookieModal";
 import { Icon } from "@/components/ui/Icons";
 import { AuthInput } from "@/components/ui/Authinput";
 import { Button } from "@/components/ui";
-import { mockFazerLogin } from "@/mocks/login";
 import { loginSchema } from "@/schemas/acesso";
 import { zodErrorsByField } from "@/utils/zodErrors";
 
@@ -76,17 +75,19 @@ export default function Login() {
     setIsLoading(true);
 
     try {
-      const resposta = await mockFazerLogin(formData);
+      const response = await fetch("/api/auth/login", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify(formData),
+      });
 
-      if (resposta.success) {
-        const dias = formData.lembreMe ? 30 : 7;
-        const maxAge = dias * 24 * 60 * 60;
-
-        document.cookie = `frotasync_session=true; path=/; max-age=${maxAge}; SameSite=Lax`;
-        router.push("/dashboard");
-      } else {
-        alert(resposta.message);
+      if (!response.ok) {
+        const resposta = (await response.json()) as { message?: string };
+        alert(resposta.message ?? "E-mail ou senha incorretos.");
+        return;
       }
+
+      router.push("/dashboard");
     } catch (error) {
       console.error("Erro inesperado no login:", error);
       alert("Ocorreu um erro ao tentar entrar. Tente novamente.");

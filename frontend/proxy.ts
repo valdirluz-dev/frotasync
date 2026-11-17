@@ -1,36 +1,34 @@
 import { NextResponse } from "next/server";
 import type { NextRequest } from "next/server";
 
-export function proxy(request: NextRequest) {
+import {
+  SESSION_COOKIE_NAME,
+  verifySessionToken,
+} from "@/lib/auth/session";
+
+export async function proxy(request: NextRequest) {
   const { pathname } = request.nextUrl;
 
-  // 1. A ÚNICA PÁGINA PÚBLICA DO SISTEMA INTEIRO É O LOGIN:
-  if (pathname === "/login") {
+  // Login and its API endpoint must be reachable without a session.
+  if (pathname === "/login" || pathname === "/api/auth/login") {
     return NextResponse.next();
   }
 
-  // 2. PROTEÇÃO DO CADASTRO:
-  // Se tentar acessar qualquer tela de cadastro (/cadastro/Dados-Pessoais, etc.):
   if (pathname.startsWith("/cadastro")) {
     const podeCadastrar = request.cookies.get("pode_cadastrar");
 
-    // Se NÃO veio pelo clique do botão no Login, expulsa para o Login:
     if (!podeCadastrar?.value) {
       return NextResponse.redirect(new URL("/login", request.url));
     }
-    // Se tem a permissão temporária, deixa passar:
     return NextResponse.next();
   }
 
-  // 3. TODAS AS OUTRAS TELAS SÃO PRIVADAS (Dashboard, Unidades, Tarefas, etc.):
-  const session = request.cookies.get("frotasync_session");
+  const session = request.cookies.get(SESSION_COOKIE_NAME);
 
-  // Se não tem login ativo, tranca a porta e manda para o Login:
-  if (!session?.value) {
+  if (!(await verifySessionToken(session?.value))) {
     return NextResponse.redirect(new URL("/login", request.url));
   }
 
-  // Se tem sessão válida, autoriza o acesso:
   return NextResponse.next();
 }
 

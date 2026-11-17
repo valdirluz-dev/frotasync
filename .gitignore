@@ -1,3 +1,4 @@
 node_modules
 .sh
 .zip
+frontend/.env.local
