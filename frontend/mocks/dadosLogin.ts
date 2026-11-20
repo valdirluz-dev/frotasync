@@ -1,9 +1,6 @@
 
-<<<<<<< HEAD
-=======
 import { loginSchema } from "@/schemas/acesso";
 
->>>>>>> f13a41d9f08de0ef78f282cfb715fd7112a3d412
 import { tabelaUsuarios, rascunhoCadastro, setUsuarioLogado, UsuarioRegistro } from "./authStore";
 
 export interface IDadosLogin {
@@ -22,11 +19,7 @@ export function obterDadosLoginSalvos(): IDadosLogin[] {
 export async function mockValidarDadosLogin(novosDados: IDadosLogin) {
   await new Promise((r) => setTimeout(r, 400));
 
-<<<<<<< HEAD
-  if (!novosDados.email || !novosDados.senha) {
-=======
   if (!loginSchema.safeParse(novosDados).success) {
->>>>>>> f13a41d9f08de0ef78f282cfb715fd7112a3d412
     return { success: false, message: "Preencha o e-mail corporativo e a senha." };
   }
 

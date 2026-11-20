@@ -39,6 +39,7 @@ describe("edição", () => {
     const originalAttachment = document.anexo;
     await expect(atualizarDocumento(document.id, {
       nome: document.nome,
+      unidadeId: document.unidadeId,
       categoria: document.categoria,
       dataEmissao: document.dataEmissao ?? "2025-01-01",
       dataValidade: document.dataValidade,
@@ -50,7 +51,7 @@ describe("edição", () => {
   it("mantém status, início e conclusão ao atualizar tarefa", async () => {
     const task = mockTarefas.find((item) => mockUnidades.find((unit) => unit.id === item.unidadeId)?.status === "Ativa")!;
     const original = { status: task.status, dataInicio: task.dataInicio, dataConclusao: task.dataConclusao };
-    const updated = await atualizarTarefa(task.id, { titulo: `${task.titulo} atualizada`, prazoFinal: task.prazoFinal, descricao: task.descricao ?? "" });
+    const updated = await atualizarTarefa(task.id, { titulo: `${task.titulo} atualizada`, unidadeId: task.unidadeId, prazoFinal: task.prazoFinal, descricao: task.descricao ?? "" });
     expect(updated.status).toBe(original.status);
     expect(updated.dataInicio).toBe(original.dataInicio);
     expect(updated.dataConclusao).toBe(original.dataConclusao);
