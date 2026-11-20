@@ -8,18 +8,7 @@ import type {
   Paginated,
   Tarefa,
   TaskFilters,
-  Unidade,
-  UnidadeIndicadores,
-  UnidadeStatus,
-  TarefaStatus,
-  PerfilUsuario,
 } from "@/types/domain";
-import { mockUsuarioSessao } from "@/mocks/sessao";
-import {
-  UnidadeInativaError,
-  RecursoNaoEncontradoError,
-  PerfilSemPermissaoError,
-} from "@/lib/errors";
 import { wait } from "@/lib/mockApi";
 import { monthKey, offsetMonthKey, percentVariation } from "@/lib/month";
 import { STATUS_COLORS } from "@/lib/statusColors";
@@ -154,4 +143,3 @@ export async function getDashboardTasks(
   });
   return pageItems(filtered, filters.page, filters.pageSize);
 }
-

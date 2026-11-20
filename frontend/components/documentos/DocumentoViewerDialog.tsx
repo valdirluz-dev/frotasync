@@ -3,6 +3,7 @@
 "use client";
 
 import { useEffect } from "react";
+import Image from "next/image";
 
 import type { Documento } from "@/types/domain";
 
@@ -59,7 +60,14 @@ export function DocumentoViewerDialog({
               Este documento não possui arquivo anexado.
             </p>
           ) : isImage ? (
-            <img src={url} alt={documento.nome} className="mx-auto h-full object-contain" />
+            <Image
+              src={url}
+              alt={documento.nome}
+              width={1200}
+              height={900}
+              unoptimized
+              className="mx-auto h-full object-contain"
+            />
           ) : (
             <iframe src={url} title={documento.nome} className="h-full w-full" />
           )}

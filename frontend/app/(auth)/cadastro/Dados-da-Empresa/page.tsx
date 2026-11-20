@@ -1,6 +1,7 @@
 "use client";
 
 import React, { useState } from "react";
+import Image from "next/image";
 import { useRouter } from "next/navigation";
 
 import { AuthInput } from "@/components/ui/Authinput";
@@ -263,9 +264,11 @@ export default function DadosEmpresa() {
         <div className="contents md:flex md:w-1/2 md:bg-[#ECEFF4] md:p-8 md:flex-col md:items-center md:justify-between md:order-2">
           <div className="w-full bg-[#ECEFF4] md:bg-transparent p-6 md:p-0 flex flex-col items-start md:items-center order-1 border-b md:border-b-0 border-gray-200">
             
-            <img
+            <Image
               src="/img/dados-empresa.png"
               alt="Ilustração de Cadastro"
+              width={417}
+              height={377}
               className="h-[140px] md:h-[280px] w-auto object-contain mx-auto mb-4"
             />
 

@@ -1,6 +1,7 @@
 "use client";
 
 import { useEffect } from "react";
+import Image from "next/image";
 import { useRouter } from "next/navigation";
 
 export default function Sucesso() {
@@ -49,9 +50,11 @@ export default function Sucesso() {
                 {/* Lado Direito: Ilustração no fundo cinza (Ocupa exatamente 50%) */}
                 <div className="w-1/2 bg-gray-300/60 p-8 flex flex-col items-center justify-center relative">
                     <div className="flex items-center justify-center w-full h-full">
-                        <img 
+                        <Image 
                             src="/img/sucesso.png" 
                             alt="Ilustração de Cadastro" 
+                            width={572}
+                            height={670}
                             className="h-[180px] md:h-[300px] w-auto object-contain mx-auto" 
                         />
                     </div>

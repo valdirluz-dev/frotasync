@@ -1,6 +1,7 @@
 "use client";
 
 import React, { useState } from "react";
+import Image from "next/image";
 import { useRouter } from "next/navigation";
 import { Icon } from "@/components/ui/Icons";
 import { AuthInput } from "@/components/ui/Authinput";
@@ -209,9 +210,11 @@ export default function DadosLogin() {
           <div className="w-full bg-[#ECEFF4] md:bg-transparent p-6 md:p-0 flex flex-col items-start md:items-center order-1 border-b md:border-b-0 border-gray-200">
             
             {/* Imagem de ilustração da tela de cadastro de login */}
-            <img
+            <Image
               src="/img/dados-login.png"
               alt="Ilustração de Cadastro"
+              width={570}
+              height={423}
               className="h-[140px] md:h-[280px] w-auto object-contain mx-auto mb-4"
             />
 
@@ -248,8 +251,7 @@ export default function DadosLogin() {
       <CookieModal
         isOpen={isCookieModalOpen}
         onClose={() => setIsCookieModalOpen(false)}
-        onSave={(optionalAccepted) => {
-        }}
+        onSave={() => undefined}
       />
     </div>
   );

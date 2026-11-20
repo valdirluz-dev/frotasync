@@ -25,7 +25,8 @@ export function AppShell({
     | "tarefas"
     | "unidades"
     | "historico"
-    | "configuracoes";
+    | "configuracoes"
+    | "perfil";
   breadcrumb?:
     | "section"
     | "newUnit"
