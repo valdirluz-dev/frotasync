@@ -1,6 +1,7 @@
 import { afterEach, describe, expect, it } from "vitest";
 
 import { mockTarefas, mockUnidades } from "@/mocks/dashboard";
+import { mockHistoricoUnidades } from "@/mocks/historicoUnidades";
 import { mockNovaTarefa } from "@/mocks/tarefas";
 import {
   RecursoNaoEncontradoError,
@@ -11,9 +12,15 @@ import { criarTarefa, obterTarefa } from "./tarefasService";
 const createdIds: string[] = [];
 
 afterEach(() => {
-  for (const id of createdIds.splice(0)) {
+  const ids = createdIds.splice(0);
+  for (const id of ids) {
     const index = mockTarefas.findIndex((tarefa) => tarefa.id === id);
     if (index >= 0) mockTarefas.splice(index, 1);
+  }
+  for (let index = mockHistoricoUnidades.length - 1; index >= 0; index -= 1) {
+    if (ids.includes(mockHistoricoUnidades[index]!.entidadeId)) {
+      mockHistoricoUnidades.splice(index, 1);
+    }
   }
 });
 
@@ -39,6 +46,14 @@ describe("criarTarefa", () => {
     });
     expect(tarefa.dataInicio).toMatch(/^\d{4}-\d{2}-\d{2}$/);
     expect(mockTarefas).toContain(tarefa);
+    expect(mockHistoricoUnidades).toContainEqual(
+      expect.objectContaining({
+        unidadeId: tarefa.unidadeId,
+        entidade: "Tarefa",
+        entidadeId: tarefa.id,
+        entidadeNome: tarefa.titulo,
+      }),
+    );
   });
 
   it("não cria tarefa em unidade inativa", async () => {

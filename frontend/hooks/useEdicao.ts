@@ -28,6 +28,8 @@ async function invalidateEntity(
     ["dashboard", "documents"],
     ["dashboard", "tasks"],
     ["unidades"],
+    ["historico-alteracoes"],
+    ["unidades", "historico"],
   ];
   if (kind === "unidade") {
     keys.push(["unidades", "detalhe", id], ["unidades", "indicadores", id]);

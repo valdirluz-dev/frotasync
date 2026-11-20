@@ -3,6 +3,7 @@ import { RecursoNaoEncontradoError, UnidadeInativaError } from "@/lib/errors";
 import { wait } from "@/lib/mockApi";
 import type { Tarefa, TarefaStatus } from "@/types/domain";
 import type { TarefaFormValues } from "@/schemas/tarefa";
+import { registrarEventoHistoricoUnidade } from "@/services/historicoUnidadesService";
 
 export async function obterTarefa(id: string): Promise<Tarefa | null> {
   await wait(120);
@@ -35,6 +36,13 @@ export async function criarTarefa(data: TarefaFormValues): Promise<Tarefa> {
     descricao: data.descricao?.trim() || undefined,
   };
   mockTarefas.push(tarefa);
+  registrarEventoHistoricoUnidade({
+    unidadeId: tarefa.unidadeId,
+    acao: "Cadastrou a tarefa",
+    entidade: "Tarefa",
+    entidadeId: tarefa.id,
+    entidadeNome: tarefa.titulo,
+  });
   return tarefa;
 }
 
@@ -57,6 +65,13 @@ export async function atualizarTarefa(id: string, data: TarefaFormValues): Promi
     dataConclusao: current.dataConclusao,
   };
   mockTarefas[index] = updated;
+  registrarEventoHistoricoUnidade({
+    unidadeId: updated.unidadeId,
+    acao: "Atualizou a tarefa",
+    entidade: "Tarefa",
+    entidadeId: updated.id,
+    entidadeNome: updated.titulo,
+  });
   return updated;
 }
 
@@ -84,5 +99,14 @@ export async function alterarStatusTarefa(
     ...unidade,
     atualizadoEm: new Date().toISOString(),
   };
+  if (tarefa.status !== status) {
+    registrarEventoHistoricoUnidade({
+      unidadeId: tarefa.unidadeId,
+      acao: `Alterou o status da tarefa de ${tarefa.status} para ${status}`,
+      entidade: "Tarefa",
+      entidadeId: tarefa.id,
+      entidadeNome: tarefa.titulo,
+    });
+  }
   return updated;
 }

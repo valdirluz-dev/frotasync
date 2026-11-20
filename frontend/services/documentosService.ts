@@ -6,6 +6,7 @@ import {
 } from "@/lib/errors";
 import { wait } from "@/lib/mockApi";
 import type { DocumentoFormValues } from "@/schemas/documento";
+import { registrarEventoHistoricoUnidade } from "@/services/historicoUnidadesService";
 
 export async function obterDocumento(id: string): Promise<Documento | null> {
   await wait(120);
@@ -35,6 +36,13 @@ export async function atualizarDocumento(
     anexo: anexo ?? current.anexo,
   };
   mockDocumentos[index] = updated;
+  registrarEventoHistoricoUnidade({
+    unidadeId: updated.unidadeId,
+    acao: "Atualizou o documento",
+    entidade: "Documento",
+    entidadeId: updated.id,
+    entidadeNome: updated.nome,
+  });
   return updated;
 }
 
@@ -66,5 +74,12 @@ export async function criarDocumento(
     anexo,
   };
   mockDocumentos.push(documento);
+  registrarEventoHistoricoUnidade({
+    unidadeId: documento.unidadeId,
+    acao: "Cadastrou o documento",
+    entidade: "Documento",
+    entidadeId: documento.id,
+    entidadeNome: documento.nome,
+  });
   return documento;
 }

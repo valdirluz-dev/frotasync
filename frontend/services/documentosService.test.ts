@@ -1,6 +1,7 @@
 import { afterEach, describe, expect, it } from "vitest";
 
 import { mockDocumentos, mockUnidades } from "@/mocks/dashboard";
+import { mockHistoricoUnidades } from "@/mocks/historicoUnidades";
 import { mockNovoDocumento } from "@/mocks/documentos";
 import {
   RecursoNaoEncontradoError,
@@ -16,9 +17,15 @@ const anexoMock = {
 const createdIds: string[] = [];
 
 afterEach(() => {
-  for (const id of createdIds.splice(0)) {
+  const ids = createdIds.splice(0);
+  for (const id of ids) {
     const index = mockDocumentos.findIndex((documento) => documento.id === id);
     if (index >= 0) mockDocumentos.splice(index, 1);
+  }
+  for (let index = mockHistoricoUnidades.length - 1; index >= 0; index -= 1) {
+    if (ids.includes(mockHistoricoUnidades[index]!.entidadeId)) {
+      mockHistoricoUnidades.splice(index, 1);
+    }
   }
 });
 
@@ -49,6 +56,14 @@ describe("criarDocumento", () => {
       anexo: anexoMock,
     });
     expect(mockDocumentos).toContain(created);
+    expect(mockHistoricoUnidades).toContainEqual(
+      expect.objectContaining({
+        unidadeId: created.unidadeId,
+        entidade: "Documento",
+        entidadeId: created.id,
+        entidadeNome: created.nome,
+      }),
+    );
   });
 
   it("não cria documentos em unidades inativas", async () => {

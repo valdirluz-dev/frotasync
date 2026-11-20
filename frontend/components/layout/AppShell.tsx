@@ -19,7 +19,13 @@ export function AppShell({
   breadcrumb = "section",
   children,
 }: {
-  activeTab: "dashboard" | "documentos" | "tarefas" | "unidades" | "configuracoes";
+  activeTab:
+    | "dashboard"
+    | "documentos"
+    | "tarefas"
+    | "unidades"
+    | "historico"
+    | "configuracoes";
   breadcrumb?:
     | "section"
     | "newUnit"
@@ -73,12 +79,13 @@ export function AppShell({
       setLoggingOut(false);
     }
   }
-  
+
   // Variáveis isoladas e estritas para controlar exatamente qual aba está ativa
   const isDashboardSection = activeTab === "dashboard";
   const isUnitsSection = activeTab === "unidades";
   const isDocumentsSection = activeTab === "documentos";
   const isTasksSection = activeTab === "tarefas";
+  const isHistorySection = activeTab === "historico";
   const isConfigSection = activeTab === "configuracoes";
 
   return (
@@ -86,12 +93,10 @@ export function AppShell({
       data-page-section={activeTab}
       className={`min-h-screen bg-surface font-[Inter,ui-sans-serif,system-ui,sans-serif] text-slate-900 ${
         preferences.theme === "dark" ? "app-theme-dark" : ""
-      }`}
-    >
+      }`}>
       <aside className="fixed inset-y-0 left-0 z-40 hidden w-[300px] border-r border-slate-200 bg-white px-6 pt-5 lg:block">
         <Brand />
         <nav aria-label="Menu principal" className="mt-10 space-y-2">
-          
           {/* Botão do Dashboard */}
           <Link
             href="/dashboard"
@@ -115,7 +120,7 @@ export function AppShell({
             <Icon name="units" />
             Unidades
           </Link>
-        
+
           {/* Botão Documentos */}
           <Link
             href="/documentos"
@@ -138,6 +143,17 @@ export function AppShell({
             }`}>
             <Icon name="tasks" />
             Tarefas
+          </Link>
+
+          <Link
+            href="/historico"
+            className={`flex items-center gap-3 rounded-xl px-4 py-3 text-sm ${
+              isHistorySection
+                ? "bg-indigo-50 font-semibold text-indigo-700"
+                : "text-slate-600 hover:bg-slate-50"
+            }`}>
+            <Icon name="history" />
+            Histórico global
           </Link>
 
           {/* Botão Configurações */}
@@ -218,6 +234,17 @@ export function AppShell({
               </Link>
               <Link
                 onClick={() => setMobileMenuOpen(false)}
+                href="/historico"
+                className={`flex items-center gap-3 rounded-xl px-4 py-3 text-sm ${
+                  isHistorySection
+                    ? "bg-indigo-50 font-semibold text-indigo-700"
+                    : "text-slate-600"
+                }`}>
+                <Icon name="history" />
+                Histórico global
+              </Link>
+              <Link
+                onClick={() => setMobileMenuOpen(false)}
                 href="/configuracoes"
                 className={`flex items-center gap-3 rounded-xl px-4 py-3 text-sm ${
                   isConfigSection
@@ -287,7 +314,9 @@ export function AppShell({
                       ? "Documentos"
                       : isTasksSection
                         ? "Tarefas"
-                        : "Configurações"}
+                        : isHistorySection
+                          ? "Histórico de alterações"
+                          : "Configurações"}
                 </span>
               </div>
             )}
@@ -306,9 +335,11 @@ export function AppShell({
               aria-label="Notificações"
               aria-expanded={notificationsOpen}
               onClick={() => setNotificationsOpen((open) => !open)}
-              className="group relative text-slate-500"
-            >
-              <Icon name="bell" className="h-[18px] w-[18px] group-hover:animate-wiggle" />
+              className="group relative text-slate-500">
+              <Icon
+                name="bell"
+                className="h-[18px] w-[18px] group-hover:animate-wiggle"
+              />
               {unreadNotifications > 0 ? (
                 <span className="absolute -right-1 -top-1 flex h-4 min-w-4 items-center justify-center rounded-full bg-red-500 px-1 text-[9px] font-semibold text-white ring-2 ring-white">
                   {unreadNotifications}
@@ -319,8 +350,7 @@ export function AppShell({
             {notificationsOpen ? (
               <section
                 aria-label="Central de notificações"
-                className="absolute right-0 top-12 z-50 w-[min(360px,calc(100vw-2rem))] overflow-hidden rounded-xl border border-slate-200 bg-white shadow-xl"
-              >
+                className="absolute right-0 top-12 z-50 w-[min(360px,calc(100vw-2rem))] overflow-hidden rounded-xl border border-slate-200 bg-white shadow-xl">
                 <div className="flex items-center justify-between border-b border-slate-100 px-4 py-3">
                   <h2 className="text-sm font-semibold text-slate-900">
                     Notificações
@@ -328,21 +358,21 @@ export function AppShell({
                   <Link
                     href="/configuracoes"
                     onClick={() => setNotificationsOpen(false)}
-                    className="text-xs font-medium text-indigo-600 hover:text-indigo-700"
-                  >
+                    className="text-xs font-medium text-indigo-600 hover:text-indigo-700">
                     Preferências
                   </Link>
                 </div>
                 {visibleNotifications.length ? (
                   <ul className="max-h-[min(60vh,420px)] overflow-y-auto">
                     {visibleNotifications.map((notification) => (
-                      <li key={notification.id} className="border-b border-slate-100 last:border-0">
+                      <li
+                        key={notification.id}
+                        className="border-b border-slate-100 last:border-0">
                         {notification.destino ? (
                           <Link
                             href={notification.destino}
                             onClick={() => setNotificationsOpen(false)}
-                            className="block px-4 py-3 transition hover:bg-slate-50"
-                          >
+                            className="block px-4 py-3 transition hover:bg-slate-50">
                             <NotificationText notification={notification} />
                           </Link>
                         ) : (
@@ -361,13 +391,11 @@ export function AppShell({
               </section>
             ) : null}
 
-            
-
             <button type="button" aria-label="Ajuda" className="text-slate-500">
               <Icon name="help" className="h-[18px] w-[18px]" />
             </button>
             <span className="hidden h-8 border-l border-slate-200 sm:block" />
-            
+
             {/* Bloco do perfil dinâmico que puxa os dados do localStorage */}
             <div className="relative">
               <button
@@ -379,8 +407,7 @@ export function AppShell({
                   setProfileMenuOpen((open) => !open);
                   setNotificationsOpen(false);
                 }}
-                className="flex items-center gap-2 rounded-lg p-1 text-left transition hover:bg-slate-50"
-              >
+                className="flex items-center gap-2 rounded-lg p-1 text-left transition hover:bg-slate-50">
                 <div className="flex h-8 w-8 items-center justify-center rounded-full bg-indigo-600 text-[10px] font-semibold text-white">
                   {userProfile.inicial}
                 </div>
@@ -401,22 +428,19 @@ export function AppShell({
                 <div
                   role="menu"
                   aria-label="Opções da conta"
-                  className="absolute right-0 top-12 z-50 w-56 overflow-hidden rounded-xl border border-slate-200 bg-white p-1.5 shadow-xl"
-                >
+                  className="absolute right-0 top-12 z-50 w-56 overflow-hidden rounded-xl border border-slate-200 bg-white p-1.5 shadow-xl">
                   <Link
                     role="menuitem"
                     href="/perfil"
                     onClick={() => setProfileMenuOpen(false)}
-                    className="block rounded-lg px-3 py-2 text-sm text-slate-700 hover:bg-slate-50"
-                  >
+                    className="block rounded-lg px-3 py-2 text-sm text-slate-700 hover:bg-slate-50">
                     Meu perfil
                   </Link>
                   <Link
                     role="menuitem"
                     href="/configuracoes"
                     onClick={() => setProfileMenuOpen(false)}
-                    className="block rounded-lg px-3 py-2 text-sm text-slate-700 hover:bg-slate-50"
-                  >
+                    className="block rounded-lg px-3 py-2 text-sm text-slate-700 hover:bg-slate-50">
                     Configurações
                   </Link>
                   <div className="my-1 border-t border-slate-100" />
@@ -425,8 +449,7 @@ export function AppShell({
                     type="button"
                     disabled={loggingOut}
                     onClick={handleLogout}
-                    className="block w-full rounded-lg px-3 py-2 text-left text-sm font-medium text-red-600 hover:bg-red-50 disabled:cursor-wait disabled:opacity-60"
-                  >
+                    className="block w-full rounded-lg px-3 py-2 text-left text-sm font-medium text-red-600 hover:bg-red-50 disabled:cursor-wait disabled:opacity-60">
                     {loggingOut ? "Saindo..." : "Sair da conta"}
                   </button>
                   {logoutError ? (
@@ -437,7 +460,6 @@ export function AppShell({
                 </div>
               ) : null}
             </div>
-            
           </div>
         </header>
 

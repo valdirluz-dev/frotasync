@@ -14,6 +14,8 @@ export function useCriarTarefa() {
       await Promise.all([
         queryClient.invalidateQueries({ queryKey: ["dashboard"] }),
         queryClient.invalidateQueries({ queryKey: ["unidades"] }),
+        queryClient.invalidateQueries({ queryKey: ["historico-alteracoes"] }),
+        queryClient.invalidateQueries({ queryKey: ["unidades", "historico"] }),
         queryClient.invalidateQueries({
           queryKey: ["unidades", "indicadores", tarefa.unidadeId],
         }),

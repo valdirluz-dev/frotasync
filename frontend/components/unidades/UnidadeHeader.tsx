@@ -32,11 +32,20 @@ export function UnidadeHeader({
           {unidade.endereco.logradouro}, {unidade.endereco.numero} -{" "}
           {unidade.endereco.cidade}/{unidade.endereco.uf}
         </p>
-        {canManageStatus ? (
-          <Link href={`/unidades/${unidade.id}/editar`} className="mt-3 inline-flex items-center rounded-lg border border-indigo-200 px-3 py-1.5 text-xs font-semibold text-indigo-700 hover:bg-indigo-50 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-indigo-500 focus-visible:ring-offset-2">
-            ✎ Editar unidade
+        <div className="mt-3 flex flex-wrap gap-2">
+          {canManageStatus ? (
+            <Link
+              href={`/unidades/${unidade.id}/editar`}
+              className="inline-flex items-center rounded-lg border border-indigo-200 px-3 py-1.5 text-xs font-semibold text-indigo-700 hover:bg-indigo-50 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-indigo-500 focus-visible:ring-offset-2">
+              ✎ Editar unidade
+            </Link>
+          ) : null}
+          <Link
+            href={`/unidades/${unidade.id}/historico`}
+            className="inline-flex items-center rounded-lg border border-slate-200 px-3 py-1.5 text-xs font-semibold text-slate-700 hover:bg-slate-50 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-indigo-500 focus-visible:ring-offset-2">
+            Ver histórico de alterações
           </Link>
-        ) : null}
+        </div>
       </div>
 
       {canManageStatus ? (

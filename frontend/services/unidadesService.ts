@@ -4,6 +4,7 @@ import { IdentificadorUnidadeDuplicadoError } from "@/lib/errors";
 import { wait } from "@/lib/mockApi";
 import { STATUS_COLORS } from "@/lib/statusColors";
 import { monthKey, offsetMonthKey, percentVariation } from "@/lib/month";
+import { registrarEventoHistoricoUnidade } from "@/services/historicoUnidadesService";
 import type { UnidadeFormValues } from "@/schemas/unidade";
 import type {
   Paginated,
@@ -103,6 +104,13 @@ export async function criarUnidade(data: UnidadeFormValues): Promise<Unidade> {
   };
 
   mockUnidades.push(unidade);
+  registrarEventoHistoricoUnidade({
+    unidadeId: unidade.id,
+    acao: "Cadastrou a unidade",
+    entidade: "Unidade",
+    entidadeId: unidade.id,
+    entidadeNome: unidade.nome,
+  });
   return unidade;
 }
 
@@ -139,6 +147,13 @@ export async function atualizarUnidade(id: string, data: UnidadeFormValues): Pro
     atualizadoEm: new Date().toISOString(),
   };
   mockUnidades[index] = updated;
+  registrarEventoHistoricoUnidade({
+    unidadeId: updated.id,
+    acao: "Atualizou os dados da unidade",
+    entidade: "Unidade",
+    entidadeId: updated.id,
+    entidadeNome: updated.nome,
+  });
   return updated;
 }
 
@@ -233,5 +248,14 @@ export async function alterarStatusUnidade(
     atualizadoEm: new Date().toISOString(),
   };
   mockUnidades[unidadeIndex] = updated;
+  if (unidade.status !== status) {
+    registrarEventoHistoricoUnidade({
+      unidadeId: updated.id,
+      acao: `Alterou o status da unidade de ${unidade.status} para ${status}`,
+      entidade: "Unidade",
+      entidadeId: updated.id,
+      entidadeNome: updated.nome,
+    });
+  }
   return updated;
 }

@@ -105,6 +105,24 @@ export type Tarefa = {
   descricao?: string;
 };
 
+export type HistoricoUnidadeEvento = {
+  id: string;
+  unidadeId: string;
+  usuario: string;
+  acao: string;
+  entidade: "Unidade" | "Documento" | "Tarefa";
+  entidadeId: string;
+  entidadeNome: string;
+  criadoEm: string;
+};
+export type HistoricoFilters = {
+  page: number;
+  pageSize: number;
+  search: string;
+  unidadeId: string;
+  entidade: HistoricoUnidadeEvento["entidade"] | "Todas";
+};
+
 export type DashboardDistribution = { label: string; value: number; color: string };
 export type DashboardIndicators = {
   unidades: DashboardDistribution[];

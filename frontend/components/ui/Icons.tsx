@@ -17,6 +17,7 @@ export type IconName =
   | "document" //Novo Icon 
   | "building" //Novo Icon
   | "tasks" //Novo Icon
+  | "history" //Novo Icon
   | "eye"
   //---Novos ícones para Login, Cadastro e Recuperação de senha---
   | "email" //Ícone email
@@ -135,6 +136,12 @@ export function Icon({ name, ...props }: IconProps) {
         <line x1="14" y1="11" x2="17" y2="11" />
         <path d="M9 16l1 1 2-2" />
         <line x1="14" y1="16" x2="17" y2="16" />
+      </>
+    ),
+    history: (
+      <>
+        <path d="M3 12a9 9 0 1 0 2.64-6.36L3 8" />
+        <path d="M3 3v5h5m4-1v5l3 2" />
       </>
     ),
     eye: (
