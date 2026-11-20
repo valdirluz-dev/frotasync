@@ -1,0 +1,26 @@
+services:
+  db:
+    image: postgres:17-alpine
+    container_name: frotasync-db
+
+    restart: unless-stopped
+
+    environment:
+      POSTGRES_DB: frotasync
+      POSTGRES_USER: frotasync_dev
+      POSTGRES_PASSWORD: 12345678
+
+    ports:
+      - "5433:5432"
+
+    volumes:
+      - frotasync_data:/var/lib/postgresql/data
+
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U frotasync_dev -d frotasync"]
+      interval: 5s
+      timeout: 5s
+      retries: 5
+
+volumes:
+  frotasync_data:
