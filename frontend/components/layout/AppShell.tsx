@@ -2,7 +2,7 @@
 
 import Link from "next/link";
 import { useRouter } from "next/navigation";
-import { useState, useEffect, useSyncExternalStore, type ReactNode } from "react";
+import { useState, useSyncExternalStore, type ReactNode } from "react";
 import { obterPerfilConsolidado } from "@/mocks/profile";
 import { mockNotificacoes } from "@/mocks/notificacoes";
 import {
@@ -57,10 +57,6 @@ export function AppShell({
     };
   });
 
-  useEffect(() => {
-    document.documentElement.dataset.theme = preferences.theme;
-  }, [preferences.theme]);
-
   async function handleLogout() {
     setLoggingOut(true);
     setLogoutError("");
@@ -86,7 +82,12 @@ export function AppShell({
   const isConfigSection = activeTab === "configuracoes";
 
   return (
-    <div className="min-h-screen bg-surface font-[Inter,ui-sans-serif,system-ui,sans-serif] text-slate-900">
+    <div
+      data-page-section={activeTab}
+      className={`min-h-screen bg-surface font-[Inter,ui-sans-serif,system-ui,sans-serif] text-slate-900 ${
+        preferences.theme === "dark" ? "app-theme-dark" : ""
+      }`}
+    >
       <aside className="fixed inset-y-0 left-0 z-40 hidden w-[300px] border-r border-slate-200 bg-white px-6 pt-5 lg:block">
         <Brand />
         <nav aria-label="Menu principal" className="mt-10 space-y-2">

@@ -59,7 +59,7 @@ export function UnidadeInfoCard({
     : unavailable;
 
   return (
-    <section className="flex min-h-[320px] flex-col rounded-[30px] bg-[#4F46E5] p-6 text-white shadow-[0_5px_8px_rgba(15,23,42,0.20)] sm:min-h-[390px] sm:p-7">
+    <section className="unit-detail-info-card flex min-h-[320px] flex-col rounded-[30px] bg-[#4F46E5] p-6 text-white shadow-[0_5px_8px_rgba(15,23,42,0.20)] sm:min-h-[390px] sm:p-7">
       <h2 className="text-center text-2xl font-bold tracking-tight drop-shadow-sm sm:text-[27px]">
         Informações da unidade
       </h2>

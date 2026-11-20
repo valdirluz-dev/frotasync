@@ -5,13 +5,15 @@ import type { UnidadeListItem } from "@/types/domain";
 
 export function UnidadeCard({ unidade }: { unidade: UnidadeListItem }) {
   const activeBorder =
-    unidade.status === "Ativa" ? "border-green-500" : "border-red-500";
+    unidade.status === "Ativa"
+      ? "border-green-500 unit-active-border"
+      : "border-red-500 unit-inactive-border";
 
   return (
     <Link
       href={`/unidades/${unidade.id}`}
       aria-label={`Abrir Unidade ${unidade.nome}, ID ${unidade.codigo}`}
-      className={`group flex min-h-[250px] flex-col rounded-xl border-4 ${activeBorder} bg-[#4F46E5] p-4 text-white shadow-[0_3px_7px_rgba(15,23,42,0.22)] transition duration-150 hover:-translate-y-1 hover:shadow-lg focus-visible:outline-none focus-visible:ring-4 focus-visible:ring-indigo-300 focus-visible:ring-offset-2`}>
+      className={`unit-card group flex min-h-[250px] flex-col rounded-xl border-4 ${activeBorder} bg-[#4F46E5] p-4 text-white shadow-[0_3px_7px_rgba(15,23,42,0.22)] transition duration-150 hover:-translate-y-1 hover:shadow-lg focus-visible:outline-none focus-visible:ring-4 focus-visible:ring-indigo-300 focus-visible:ring-offset-2`}>
       <div className="min-w-0 text-center">
         <h2 className="line-clamp-2 text-[18px] font-bold leading-tight sm:text-xl">
           Unidade {unidade.nome} (ID {unidade.codigo})
