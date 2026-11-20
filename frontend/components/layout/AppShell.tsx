@@ -245,10 +245,14 @@ export function AppShell({
               )
             ) : (
               <div className="hidden items-center gap-2 text-xs sm:flex">
-                <span className="text-slate-500">Dashboard Global</span>
-                <span className="text-slate-300">/</span>
                 <span className="font-semibold capitalize text-slate-800">
-                  {activeTab}
+                  {isDashboardSection
+                    ? "Dashboard Global"
+                    : isDocumentsSection
+                      ? "Documentos"
+                      : isTasksSection
+                        ? "Tarefas"
+                        : "Configurações"}
                 </span>
               </div>
             )}
