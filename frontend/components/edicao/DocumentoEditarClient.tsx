@@ -27,6 +27,25 @@ export function DocumentoEditarClient({ id, unidadeId, porUnidade = false }: { i
   const inactive = unidade?.status === "Inativa";
   const base = porUnidade ? `/unidades/${unidadeId}?aba=documentos` : "/documentos";
   const back = () => router.push(base);
+  const breadcrumb = porUnidade ? (
+    <>
+      <span className="text-slate-500">Unidades</span>
+      <span className="text-slate-300">/</span>
+      <span className="max-w-[220px] truncate text-slate-500">
+        {unidade?.nome ?? `Unidade ${unidadeId}`} (ID {unidade?.codigo ?? unidadeId})
+      </span>
+      <span className="text-slate-300">/</span>
+      <span className="text-slate-500">Documentos</span>
+      <span className="text-slate-300">/</span>
+      <span className="font-semibold text-slate-800">Editar Documento</span>
+    </>
+  ) : (
+    <>
+      <span className="text-slate-500">Documentos</span>
+      <span className="text-slate-300">/</span>
+      <span className="font-semibold text-slate-800">Editar Documento</span>
+    </>
+  );
 
   const submit: SubmitHandler<DocumentoFormValues> = (values) => { setPending(values); setDialogOpen(true); };
   async function confirm() {
@@ -44,14 +63,14 @@ export function DocumentoEditarClient({ id, unidadeId, porUnidade = false }: { i
     }
   }
 
-  if (documentQuery.isPending || unitQuery.isPending) return <EditPageShell activeTab="documentos" breadcrumb={<span>Dashboard Global / Documentos / Editar Documento</span>} title="Editar documento" backLabel="Voltar para documentos" onBack={back}><EditLoading /></EditPageShell>;
-  if (documentQuery.isError || unitQuery.isError || !documento || !unidade || documento.unidadeId !== unidadeId) return <EditPageShell activeTab="documentos" breadcrumb={<span>Dashboard Global / Documentos / Editar Documento</span>} title="Editar documento" backLabel="Voltar para documentos" onBack={back}><EditError onRetry={() => { void documentQuery.refetch(); void unitQuery.refetch(); }} /></EditPageShell>;
-  if (inactive) return <EditPageShell activeTab={porUnidade ? "unidades" : "documentos"} breadcrumb={<span>{porUnidade ? `Unidades / ${unidade?.nome} (ID ${unidade?.codigo}) / Documentos / Editar Documento` : "Dashboard Global / Documentos / Editar Documento"}</span>} title="Editar documento" backLabel="Voltar para documentos" onBack={back}><div className="h-20" /><UnidadeInativaDialog unidade={unidade!} open resource="documento" onClose={back} onReturnToUnits={() => router.push("/unidades")} /></EditPageShell>;
+  if (documentQuery.isPending || unitQuery.isPending) return <EditPageShell activeTab={porUnidade ? "unidades" : "documentos"} breadcrumb={breadcrumb} title="Editar documento" backLabel="Voltar para documentos" onBack={back}><EditLoading /></EditPageShell>;
+  if (documentQuery.isError || unitQuery.isError || !documento || !unidade || documento.unidadeId !== unidadeId) return <EditPageShell activeTab={porUnidade ? "unidades" : "documentos"} breadcrumb={breadcrumb} title="Editar documento" backLabel="Voltar para documentos" onBack={back}><EditError onRetry={() => { void documentQuery.refetch(); void unitQuery.refetch(); }} /></EditPageShell>;
+  if (inactive) return <EditPageShell activeTab={porUnidade ? "unidades" : "documentos"} breadcrumb={breadcrumb} title="Editar documento" backLabel="Voltar para documentos" onBack={back}><div className="h-20" /><UnidadeInativaDialog unidade={unidade!} open resource="documento" onClose={back} onReturnToUnits={() => router.push("/unidades")} /></EditPageShell>;
 
   return (
     <EditPageShell
       activeTab={porUnidade ? "unidades" : "documentos"}
-      breadcrumb={<><span className="text-slate-500">{porUnidade ? "Unidades" : "Dashboard Global"}</span><span className="text-slate-300">/</span>{porUnidade ? <><span className="max-w-[220px] truncate text-slate-500">{unidade?.nome} (ID {unidade?.codigo})</span><span className="text-slate-300">/</span></> : null}<span className="text-slate-500">Documentos</span><span className="text-slate-300">/</span><span className="font-semibold text-slate-800">Editar Documento</span></>}
+      breadcrumb={breadcrumb}
       title="Editar documento"
       backLabel="Voltar para documentos"
       onBack={back}

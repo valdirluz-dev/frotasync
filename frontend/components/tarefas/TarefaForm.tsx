@@ -130,15 +130,23 @@ export function TarefaForm({
             <>
               <input type="hidden" {...register("unidadeId")} />
               {mode === "criar" && unidadeBloqueada ? (
-                <Select
-                  id="tarefa-unidade"
-                  value={tarefa?.unidadeId ?? ""}
-                  disabled
-                  aria-disabled="true">
-                  <option value={tarefa?.unidadeId ?? ""}>
-                    {unidadeNome} (ID {tarefa?.unidadeId ?? ""})
-                  </option>
-                </Select>
+                <div className="relative">
+                  <Select
+                    id="tarefa-unidade"
+                    value={tarefa?.unidadeId ?? ""}
+                    disabled
+                    aria-disabled="true"
+                    className="appearance-none bg-slate-50 pr-12">
+                    <option value={tarefa?.unidadeId ?? ""}>
+                      {unidadeNome} (ID {tarefa?.unidadeId ?? ""})
+                    </option>
+                  </Select>
+                  <span
+                    aria-hidden="true"
+                    className="pointer-events-none absolute right-4 top-1/2 -translate-y-1/2">
+                    🔒
+                  </span>
+                </div>
               ) : (
                 <div className="relative">
                   <Input
