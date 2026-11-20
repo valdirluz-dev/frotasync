@@ -11,7 +11,7 @@ services:
       POSTGRES_PASSWORD: 12345678
 
     ports:
-      - "5433:5432"
+      - "5433 :5432"
 
     volumes:
       - frotasync_data:/var/lib/postgresql/data
