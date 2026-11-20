@@ -227,7 +227,11 @@ export function UnidadeDetalheClient({ id }: { id: string }) {
             <section
               aria-label="Resumo da unidade"
               className="grid gap-5 xl:grid-cols-3">
-              <UnidadeInfoCard unidade={unidade} />
+              <UnidadeInfoCard
+                unidade={unidade}
+                indicadores={indicatorsQuery.data ?? undefined}
+                indicadoresLoading={indicatorsQuery.isPending}
+              />
               {indicatorsQuery.isPending ? (
                 <>
                   <div className="min-h-[390px] animate-pulse rounded-[30px] bg-indigo-100" />
