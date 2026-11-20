@@ -95,7 +95,9 @@ export function UnidadeDetalheClient({ id }: { id: string }) {
   const changeStatusMutation = useAlterarStatusUnidade();
 
   const [statusToSet, setStatusToSet] = useState<UnidadeStatus | null>(null);
-  const [inativaDialogOpen, setInativaDialogOpen] = useState(false);
+  const [inativaDialogResource, setInativaDialogResource] = useState<
+    "documento" | "tarefa" | null
+  >(null);
   const unidade = unitQuery.data;
   const isAdministrator = usuario.perfil === "Administrador";
   const isInactive = unidade?.status === "Inativa";
@@ -288,21 +290,28 @@ export function UnidadeDetalheClient({ id }: { id: string }) {
                   )}
                 </div>
                 {activeTab === "documentos" ? (
-                  <Link
-                    href={`/unidades/${id}/documentos/novo`}
-                    aria-disabled={isInactive}
-                    onClick={(event) => {
-                      if (isInactive) event.preventDefault();
-                    }}
-                    className={`inline-flex h-10 shrink-0 items-center justify-center gap-2 rounded-xl px-4 text-xs font-semibold text-white shadow-sm ${isInactive ? "cursor-not-allowed bg-indigo-300" : "bg-indigo-600 hover:bg-indigo-700"}`}>
-                    <Icon name="plus" className="h-4 w-4" />
-                    Novo documento
-                  </Link>
+                  isInactive ? (
+                    <button
+                      type="button"
+                      aria-disabled="true"
+                      onClick={() => setInativaDialogResource("documento")}
+                      className="inline-flex h-10 shrink-0 items-center justify-center gap-2 rounded-xl bg-indigo-300 px-4 text-xs font-semibold text-white shadow-sm hover:bg-indigo-400 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-indigo-500 focus-visible:ring-offset-2">
+                      <Icon name="plus" className="h-4 w-4" />
+                      Novo documento
+                    </button>
+                  ) : (
+                    <Link
+                      href={`/unidades/${id}/documentos/novo`}
+                      className="inline-flex h-10 shrink-0 items-center justify-center gap-2 rounded-xl bg-indigo-600 px-4 text-xs font-semibold text-white shadow-sm hover:bg-indigo-700">
+                      <Icon name="plus" className="h-4 w-4" />
+                      Novo documento
+                    </Link>
+                  )
                 ) : isInactive ? (
                   <button
                     type="button"
                     aria-disabled="true"
-                    onClick={() => setInativaDialogOpen(true)}
+                    onClick={() => setInativaDialogResource("tarefa")}
                     className="inline-flex h-10 shrink-0 items-center justify-center gap-2 rounded-xl bg-indigo-300 px-4 text-xs font-semibold text-white shadow-sm hover:bg-indigo-400 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-indigo-500 focus-visible:ring-offset-2">
                     <Icon name="plus" className="h-4 w-4" />
                     Nova Tarefa
@@ -394,9 +403,18 @@ export function UnidadeDetalheClient({ id }: { id: string }) {
           ) : null}
           <UnidadeInativaDialog
             unidade={unidade}
-            open={inativaDialogOpen}
-            onClose={() => setInativaDialogOpen(false)}
-            onReturnToUnits={() => router.push("/unidades")}
+            open={inativaDialogResource !== null}
+            resource={inativaDialogResource ?? "tarefa"}
+            onClose={() => {
+              setInativaDialogResource(null);
+              router.push(`/unidades/${id}`);
+            }}
+            onReturnToUnits={() => {
+              setInativaDialogResource(null);
+              router.push(
+                `/unidades/${id}?aba=${inativaDialogResource === "documento" ? "documentos" : "tarefas"}`,
+              );
+            }}
           />
         </>
       )}

@@ -29,7 +29,7 @@ export function UnidadeInativaDialog({
           <p>Documentos e tarefas de unidades inativas não podem ser modificados.</p>
         </div>
       }
-      confirmLabel="Voltar para unidades"
+      confirmLabel="Voltar para unidade"
       showCancel={false}
       onCancel={onClose}
       onConfirm={onReturnToUnits}
