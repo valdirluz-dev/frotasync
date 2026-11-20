@@ -9,6 +9,35 @@ export async function obterTarefa(id: string): Promise<Tarefa | null> {
   return mockTarefas.find((item) => item.id === id) ?? null;
 }
 
+export async function criarTarefa(data: TarefaFormValues): Promise<Tarefa> {
+  await wait();
+
+  const unidade = mockUnidades.find((item) => item.id === data.unidadeId);
+  if (!unidade) throw new RecursoNaoEncontradoError("Unidade");
+  if (unidade.status === "Inativa") throw new UnidadeInativaError();
+
+  const nextSequence =
+    mockTarefas.reduce((maximum, tarefa) => {
+      const matched = /^task-(\d+)$/.exec(tarefa.id);
+      return Math.max(maximum, matched ? Number(matched[1]) : 0);
+    }, 0) + 1;
+  const today = new Date();
+  today.setUTCHours(0, 0, 0, 0);
+
+  const tarefa: Tarefa = {
+    id: `task-${String(nextSequence).padStart(3, "0")}`,
+    titulo: data.titulo.trim(),
+    unidadeId: unidade.id,
+    dataInicio: today.toISOString().slice(0, 10),
+    prazoFinal: data.prazoFinal,
+    status: "Pendente",
+    dataConclusao: null,
+    descricao: data.descricao?.trim() || undefined,
+  };
+  mockTarefas.push(tarefa);
+  return tarefa;
+}
+
 export async function atualizarTarefa(id: string, data: TarefaFormValues): Promise<Tarefa> {
   await wait();
   const index = mockTarefas.findIndex((item) => item.id === id);

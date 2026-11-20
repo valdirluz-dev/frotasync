@@ -308,14 +308,12 @@ export function UnidadeDetalheClient({ id }: { id: string }) {
                     Nova Tarefa
                   </button>
                 ) : (
-                  <button
-                    type="button"
-                    disabled
-                    title="Em breve"
-                    className="inline-flex h-10 shrink-0 items-center justify-center gap-2 rounded-xl bg-indigo-600 px-4 text-xs font-semibold text-white shadow-sm disabled:cursor-not-allowed">
+                  <Link
+                    href={`/unidades/${id}/tarefas/nova`}
+                    className="inline-flex h-10 shrink-0 items-center justify-center gap-2 rounded-xl bg-indigo-600 px-4 text-xs font-semibold text-white shadow-sm hover:bg-indigo-700">
                     <Icon name="plus" className="h-4 w-4" />
                     Nova Tarefa
-                  </button>
+                  </Link>
                 )}
               </div>
 
