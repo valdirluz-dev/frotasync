@@ -1,5 +1,3 @@
-import { Icon } from "@/components/ui/Icons";
-
 type Tab = "documentos" | "tarefas";
 
 export function TabPill({
@@ -25,10 +23,7 @@ export function TabPill({
         {documentTabIsActive ? (
           "Documentos"
         ) : (
-          <>
-            <span>ver Docs</span>
-            <Icon name="right" className="h-3.5 w-3.5" />
-          </>
+          <span>ver Docs</span>
         )}
       </button>
       <button
@@ -38,10 +33,7 @@ export function TabPill({
         onClick={() => onChange("tarefas")}
         className={`inline-flex items-center gap-1 rounded-full px-3 py-1.5 text-xs sm:px-4 ${documentTabIsActive ? "bg-indigo-600 font-semibold text-white" : "font-bold text-slate-900"}`}>
         {documentTabIsActive ? (
-          <>
-            <Icon name="left" className="h-3.5 w-3.5" />
-            <span>ver tarefas</span>
-          </>
+          <span>ver tarefas</span>
         ) : (
           "Tarefas"
         )}
