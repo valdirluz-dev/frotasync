@@ -209,10 +209,6 @@ export default function Login() {
             Ainda não tem uma conta?{" "}
             <Link
               href="/cadastro/Dados-Pessoais"
-              onClick={() => {
-                //Grava um cookie temporário que autoriza o usuário a avançar no fluxo de cadastro.
-                document.cookie = "pode_cadastrar=true; path=/; max-age=600; SameSite=Lax"
-              }}
               className="text-blue-600 font-semibold hover:underline"
             >
               Cadastre-se
