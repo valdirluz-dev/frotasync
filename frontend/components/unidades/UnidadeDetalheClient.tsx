@@ -1,6 +1,7 @@
 "use client";
 
 import { usePathname, useRouter, useSearchParams } from "next/navigation";
+import Link from "next/link";
 import { useCallback, useEffect, useState } from "react";
 
 import { AppShell } from "@/components/layout/AppShell";
@@ -287,14 +288,16 @@ export function UnidadeDetalheClient({ id }: { id: string }) {
                   )}
                 </div>
                 {activeTab === "documentos" ? (
-                  <button
-                    type="button"
-                    disabled
-                    title={isInactive ? "Unidade inativa" : "Em breve"}
-                    className={`inline-flex h-10 shrink-0 items-center justify-center gap-2 rounded-xl px-4 text-xs font-semibold text-white shadow-sm disabled:cursor-not-allowed ${isInactive ? "bg-indigo-300" : "bg-indigo-600"}`}>
+                  <Link
+                    href={`/unidades/${id}/documentos/novo`}
+                    aria-disabled={isInactive}
+                    onClick={(event) => {
+                      if (isInactive) event.preventDefault();
+                    }}
+                    className={`inline-flex h-10 shrink-0 items-center justify-center gap-2 rounded-xl px-4 text-xs font-semibold text-white shadow-sm ${isInactive ? "cursor-not-allowed bg-indigo-300" : "bg-indigo-600 hover:bg-indigo-700"}`}>
                     <Icon name="plus" className="h-4 w-4" />
                     Novo documento
-                  </button>
+                  </Link>
                 ) : isInactive ? (
                   <button
                     type="button"

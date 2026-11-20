@@ -1,20 +1,19 @@
 "use client";
 
 import { zodResolver } from "@hookform/resolvers/zod";
-import { useEffect, useMemo, useState } from "react";
+import { useMemo, useState } from "react";
 import { useForm, useWatch, type SubmitHandler } from "react-hook-form";
 
 import { StatusBadge } from "@/components/dashboard/StatusBadge";
 import { Button, FormField, Input, Select, Textarea } from "@/components/ui";
 import { calcularStatusDocumento } from "@/lib/status";
 import {
+  documentoCadastroSchema,
   documentoSchema,
   type DocumentoFormInput,
   type DocumentoFormValues,
 } from "@/schemas/documento";
 import type { Documento, DocumentoAnexo } from "@/types/domain";
-
-const maxFileSize = 10 * 1024 * 1024;
 
 function formatFileSize(bytes: number) {
   if (bytes < 1024) return `${bytes} B`;
@@ -22,10 +21,14 @@ function formatFileSize(bytes: number) {
   return `${(bytes / (1024 * 1024)).toFixed(1)} MB`;
 }
 
+type UnidadeOption = { id: string; nome: string; codigo: string };
+
 type DocumentoFormProps = {
   documento: Documento;
   unidadeNome: string;
   categorias: string[];
+  unidades?: UnidadeOption[];
+  unidadeBloqueada?: boolean;
   mode?: "criar" | "editar";
   defaultValues?: Partial<DocumentoFormInput>;
   isSaving?: boolean;
@@ -38,6 +41,8 @@ export function DocumentoForm({
   documento,
   unidadeNome,
   categorias,
+  unidades,
+  unidadeBloqueada = false,
   mode = "editar",
   defaultValues,
   isSaving = false,
@@ -49,6 +54,7 @@ export function DocumentoForm({
   const initial = useMemo<DocumentoFormInput>(
     () => ({
       nome: documento.nome,
+      unidadeId: documento.unidadeId,
       categoria: documento.categoria,
       dataEmissao: documento.dataEmissao ?? "",
       dataValidade: documento.dataValidade,
@@ -61,29 +67,22 @@ export function DocumentoForm({
   const {
     register,
     handleSubmit,
-    watch,
     control,
-    setError,
+    setValue,
     formState: { errors, isDirty, isSubmitting },
   } = useForm<DocumentoFormInput, unknown, DocumentoFormValues>({
-    resolver: zodResolver(documentoSchema),
+    resolver: zodResolver(
+      mode === "criar" ? documentoCadastroSchema : documentoSchema,
+    ),
     defaultValues: initial,
     mode: "onSubmit",
     reValidateMode: "onChange",
     shouldFocusError: true,
   });
 
-  useEffect(() => {
-    if (!selectedFile) return;
-    if (selectedFile.size > maxFileSize)
-      setError("anexo", {
-        type: "validate",
-        message: "O arquivo deve ter no máximo 10 MB.",
-      });
-  }, [selectedFile, setError]);
-
   const validade = useWatch({ control, name: "dataValidade" });
   const descricao = useWatch({ control, name: "descricao" }) ?? "";
+  const anexoSize = selectedFile?.size ?? documento.anexo?.tamanhoBytes;
   const statusPreview = validade ? calcularStatusDocumento(validade) : null;
   const busy = isSaving || isSubmitting;
 
@@ -96,20 +95,6 @@ export function DocumentoForm({
     if (mode === "editar" && !isDirty) {
       onNoChanges?.();
       return;
-    }
-    if (selectedFile) {
-      if (selectedFile.size > maxFileSize) return;
-      if (
-        !["application/pdf", "image/jpeg", "image/png"].includes(
-          selectedFile.type,
-        )
-      ) {
-        setError("anexo", {
-          type: "validate",
-          message: "Envie um PDF, JPG ou PNG.",
-        });
-        return;
-      }
     }
     onSubmit({ ...values, anexo: selectedFile });
   }
@@ -133,21 +118,56 @@ export function DocumentoForm({
             {...register("nome")}
           />
         </FormField>
-        <FormField id="documento-unidade" label="Unidade" required>
-          <div className="relative">
-            <Input
+        <FormField
+          id="documento-unidade"
+          label="Unidade"
+          required
+          error={error("unidadeId")}>
+          {unidades ? (
+            <Select
               id="documento-unidade"
-              value={`${unidadeNome} (ID ${documento.unidadeId})`}
-              readOnly
-              aria-readonly="true"
-              className="pr-12 bg-slate-50 text-slate-500"
-            />
-            <span
-              aria-hidden="true"
-              className="pointer-events-none absolute right-4 top-1/2 -translate-y-1/2 text-slate-400">
-              🔒
-            </span>
-          </div>
+              aria-required="true"
+              aria-invalid={Boolean(errors.unidadeId)}
+              {...register("unidadeId")}>
+              <option value="">Selecione uma unidade ativa</option>
+              {unidades.map((unidade) => (
+                <option key={unidade.id} value={unidade.id}>
+                  {unidade.nome} (ID {unidade.codigo})
+                </option>
+              ))}
+            </Select>
+          ) : mode === "criar" && unidadeBloqueada ? (
+            <>
+              <input type="hidden" {...register("unidadeId")} />
+              <Select
+                id="documento-unidade"
+                value={documento.unidadeId}
+                disabled
+                aria-disabled="true">
+                <option value={documento.unidadeId}>
+                  {unidadeNome} (ID {documento.unidadeId})
+                </option>
+              </Select>
+            </>
+          ) : (
+            <>
+              <input type="hidden" {...register("unidadeId")} />
+              <div className="relative">
+                <Input
+                  id="documento-unidade"
+                  value={`${unidadeNome} (ID ${documento.unidadeId})`}
+                  readOnly
+                  aria-readonly="true"
+                  className="bg-slate-50 pr-12 text-slate-500"
+                />
+                <span
+                  aria-hidden="true"
+                  className="pointer-events-none absolute right-4 top-1/2 -translate-y-1/2 text-slate-400">
+                  🔒
+                </span>
+              </div>
+            </>
+          )}
         </FormField>
         <FormField
           id="documento-categoria"
@@ -188,12 +208,10 @@ export function DocumentoForm({
         <FormField
           id="data-emissao"
           label="Data de emissão"
-          required
           error={error("dataEmissao")}>
           <Input
             id="data-emissao"
             type="date"
-            aria-required="true"
             aria-invalid={Boolean(errors.dataEmissao)}
             {...register("dataEmissao")}
           />
@@ -214,39 +232,48 @@ export function DocumentoForm({
             {...register("dataValidade")}
           />
         </FormField>
-        <FormField id="documento-anexo" label="Anexo" error={error("anexo")}>
+        <FormField
+          id="documento-anexo"
+          label="Anexo"
+          required={mode === "criar"}
+          error={error("anexo")}>
           <div className="rounded-2xl border border-slate-200 bg-slate-50 p-4">
             <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
               <div className="min-w-0">
                 <p className="truncate text-sm font-semibold text-slate-800">
-                  {documento.anexo?.nome ?? "Nenhum arquivo anexado"}
+                  {selectedFile?.name ??
+                    documento.anexo?.nome ??
+                    "Nenhum arquivo anexado"}
                 </p>
-                {documento.anexo ? (
+                {anexoSize !== undefined ? (
                   <p className="mt-1 text-xs text-slate-500">
-                    {formatFileSize(documento.anexo.tamanhoBytes)}
+                    {formatFileSize(anexoSize)}
                   </p>
                 ) : null}
               </div>
               <label className="inline-flex cursor-pointer items-center justify-center rounded-xl border border-slate-300 bg-white px-3 py-2 text-xs font-semibold text-slate-700 hover:bg-slate-100">
-                Substituir arquivo
+                {documento.anexo ? "Substituir arquivo" : "Anexar arquivo"}
                 <input
                   id="documento-anexo"
                   type="file"
                   className="sr-only"
                   accept="application/pdf,image/jpeg,image/png"
+                  aria-required={mode === "criar"}
+                  aria-invalid={Boolean(errors.anexo)}
                   aria-describedby={
                     errors.anexo ? "documento-anexo-error" : undefined
                   }
-                  onChange={(event) => setSelectedFile(event.target.files?.[0])}
+                  onChange={(event) => {
+                    const file = event.target.files?.[0];
+                    setSelectedFile(file);
+                    setValue("anexo", file, {
+                      shouldDirty: true,
+                      shouldValidate: true,
+                    });
+                  }}
                 />
               </label>
             </div>
-            {selectedFile ? (
-              <p className="mt-3 text-xs font-medium text-indigo-700">
-                Novo arquivo: {selectedFile.name} (
-                {formatFileSize(selectedFile.size)})
-              </p>
-            ) : null}
           </div>
         </FormField>
       </div>
@@ -276,7 +303,7 @@ export function DocumentoForm({
             </span>
           }
           className="w-full rounded-xl lg:w-auto">
-          Salvar alterações
+          {mode === "criar" ? "Cadastrar documento" : "Salvar alterações"}
         </Button>
       </div>
     </form>
