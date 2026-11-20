@@ -13,7 +13,7 @@ Projeto da Residência — Motiron Technologies
 
 - Desenvolvedor(a): Valdir
 - Desenvolvedor(a): Filipe
-- Desenvolvedor(a): Gabrieli
+- Desenvolvedor(a): Gabrielly
 - Desenvolvedor(a): Lucas Vinícius
 - Desenvolvedor(a): Murilo
 - Desenvolvedor(a): Niedson

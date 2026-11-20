@@ -1,19 +1,73 @@
+
+<<<<<<< HEAD
+=======
+import { loginSchema } from "@/schemas/acesso";
+
+>>>>>>> f13a41d9f08de0ef78f282cfb715fd7112a3d412
+import { tabelaUsuarios, rascunhoCadastro, setUsuarioLogado, UsuarioRegistro } from "./authStore";
+
 export interface IDadosLogin {
   email: string;
   senha: string;
   confirmarSenha?: string;
 }
 
-export async function mockValidarDadosLogin(dados: IDadosLogin) {
-  await new Promise((resolve) => setTimeout(resolve, 300));
+export function obterDadosLoginSalvos(): IDadosLogin[] {
+  return tabelaUsuarios.map((u) => ({
+    email: u.email,
+    senha: u.senhaHash,
+  }));
+}
 
-  if (!dados.email || !dados.senha) {
-    return { success: false, message: "Preencha o e-mail e a senha." };
+export async function mockValidarDadosLogin(novosDados: IDadosLogin) {
+  await new Promise((r) => setTimeout(r, 400));
+
+<<<<<<< HEAD
+  if (!novosDados.email || !novosDados.senha) {
+=======
+  if (!loginSchema.safeParse(novosDados).success) {
+>>>>>>> f13a41d9f08de0ef78f282cfb715fd7112a3d412
+    return { success: false, message: "Preencha o e-mail corporativo e a senha." };
   }
 
-  if (dados.email === "admin@frotasync.com") {
-    return { success: false, message: "Este e-mail já está cadastrado no sistema." };
+  // Verifica se o e-mail já existe
+  const jaExiste = tabelaUsuarios.some(
+    (u) => u.email.toLowerCase() === novosDados.email.trim().toLowerCase()
+  );
+
+  if (jaExiste) {
+    return { success: false, message: "Este e-mail corporativo já está em uso." };
   }
 
-  return { success: true, message: "Credenciais de acesso disponíveis!" };
+  // Consolida o novo usuário com todas as etapas do cadastro
+  const novoUsuarioCompleto: UsuarioRegistro = {
+    id: `usr-${Date.now()}`,
+    nome: rascunhoCadastro.nome || "Novo Usuário",
+    cpf: rascunhoCadastro.cpf || "",
+    telefone: rascunhoCadastro.telefone || "",
+    cargo: rascunhoCadastro.cargo || "Administrador",
+    email: novosDados.email,
+    senhaHash: novosDados.senha, // Na persistência, apenas a senha
+    nomeEmpresa: rascunhoCadastro.nomeEmpresa || "",
+    razaoSocial: rascunhoCadastro.razaoSocial || "",
+    cnpj: rascunhoCadastro.cnpj || "",
+    segmento: rascunhoCadastro.segmento || "",
+    tipoUnidade: rascunhoCadastro.tipoUnidade || "Matriz",
+    cep: rascunhoCadastro.cep || "",
+    estado: rascunhoCadastro.estado || "",
+    cidade: rascunhoCadastro.cidade || "",
+    bairro: rascunhoCadastro.bairro || "",
+    logradouro: rascunhoCadastro.logradouro || "",
+    numero: rascunhoCadastro.numero || "",
+    criadoEm: new Date().toISOString().slice(0, 10),
+  };
+
+  // Insere na lista em memória e torna-o o usuário atual
+  tabelaUsuarios.push(novoUsuarioCompleto);
+  setUsuarioLogado(novoUsuarioCompleto);
+
+  return {
+    success: true,
+    message: "Cadastro finalizado com sucesso!",
+  };
 }

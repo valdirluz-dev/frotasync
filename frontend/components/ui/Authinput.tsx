@@ -29,13 +29,15 @@ export const AuthInput = forwardRef<HTMLInputElement, AuthInputProps>(
                     )}
 
                     {/*Campo de texto com estilos dinâmicos baseados no estado de erro */}
-                    <input
+                   <input
                         {...props}
                         ref={ref} 
-                        className={`w-full rounded-md border p-3 text-sm text-gray-800 placeholder-gray-500 outline-none transition focus:bg-white ${
+                        className={`w-full rounded-md border p-3 text-sm text-gray-800 placeholder-gray-500 outline-none transition ${
                             error 
                                 ? "border-red-500 bg-red-50 focus:border-red-500" 
-                                : "border-gray-300 bg-gray-200 focus:border-blue-500 focus:ring-1 focus:ring-blue-500"
+                                : props.value 
+                                    ? "border-blue-300 bg-blue-50/50 focus:border-blue-500 focus:ring-1 focus:ring-blue-500" // Fica azulzinho assim que tem texto (seja digitado ou do CEP)
+                                    : "border-gray-300 bg-gray-200 focus:border-blue-500 focus:ring-1 focus:ring-blue-500" // Fica cinza quando está vazio
                         } ${icon ? "pl-11" : "px-3"} ${className}`}
                     />
                 </div>

@@ -109,8 +109,11 @@ Future backend reference (not in current scope): **NestJS**, **PostgreSQL**, **J
 git clone https://github.com/valdirluz-dev/frotasync.git
 cd frotasync
 npm run install:app
+cp frontend/.env.example frontend/.env.local
 npm run dev
 ```
+
+Before starting, generate a key with `node -e "console.log(require('node:crypto').randomBytes(32).toString('base64url'))"` and use it as the value of `FROTASYNC_SESSION_SECRET` in `frontend/.env.local`. Do not share or commit this key.
 
 Open [http://localhost:3000](http://localhost:3000). Use mock credentials defined in the project’s mock user layer (example from API design: `colaborador@frotasync.com.br`).
 
@@ -150,6 +153,6 @@ Open [http://localhost:3000](http://localhost:3000). Use mock credentials define
 
 **Development squad (Motiron Residency):**
 
-Valdir · Filipe · Gabrielli · Lucas Vinícius · Murilo · Niedson · Silas
+Valdir · Filipe · Gabrielly · Lucas Vinícius · Murilo · Niedson · Silas
 
 **License:** [MIT](LICENSE) — Copyright (c) 2026 valdir_luz

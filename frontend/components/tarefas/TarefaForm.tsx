@@ -7,7 +7,11 @@ import { StatusBadge } from "@/components/dashboard/StatusBadge";
 import { Button, FormField, Input, Textarea } from "@/components/ui";
 import {
   tarefaSchema,
+<<<<<<< HEAD
   prazoAlteradoValido,
+=======
+  tarefaEdicaoSchema,
+>>>>>>> f13a41d9f08de0ef78f282cfb715fd7112a3d412
   type TarefaFormInput,
   type TarefaFormValues,
 } from "@/schemas/tarefa";
@@ -50,14 +54,27 @@ export function TarefaForm({
     descricao: tarefa?.descricao ?? "",
     ...defaultValues,
   };
+<<<<<<< HEAD
+=======
+  const schema =
+    mode === "editar" && tarefa
+      ? tarefaEdicaoSchema(tarefa.prazoFinal)
+      : tarefaSchema;
+>>>>>>> f13a41d9f08de0ef78f282cfb715fd7112a3d412
   const {
     register,
     handleSubmit,
     watch,
+<<<<<<< HEAD
     setError,
     formState: { errors, isDirty, isSubmitting },
   } = useForm<TarefaFormInput, unknown, TarefaFormValues>({
     resolver: zodResolver(tarefaSchema),
+=======
+    formState: { errors, isDirty, isSubmitting },
+  } = useForm<TarefaFormInput, unknown, TarefaFormValues>({
+    resolver: zodResolver(schema),
+>>>>>>> f13a41d9f08de0ef78f282cfb715fd7112a3d412
     defaultValues: initial,
     mode: "onSubmit",
     reValidateMode: "onChange",
@@ -76,6 +93,7 @@ export function TarefaForm({
       onNoChanges?.();
       return;
     }
+<<<<<<< HEAD
 if (
   tarefa &&
   !prazoAlteradoValido(values.prazoFinal, tarefa.prazoFinal)
@@ -85,6 +103,8 @@ if (
       });
       return;
     }
+=======
+>>>>>>> f13a41d9f08de0ef78f282cfb715fd7112a3d412
     onSubmit(values);
   }
 
