@@ -5,21 +5,12 @@ import {
   SESSION_COOKIE_NAME,
   verifySessionToken,
 } from "@/lib/auth/session";
+import { isPublicRoute } from "@/lib/auth/publicRoutes";
 
 export async function proxy(request: NextRequest) {
   const { pathname } = request.nextUrl;
 
-  // Login and its API endpoint must be reachable without a session.
-  if (pathname === "/login" || pathname === "/api/auth/login") {
-    return NextResponse.next();
-  }
-
-  if (pathname.startsWith("/cadastro")) {
-    const podeCadastrar = request.cookies.get("pode_cadastrar");
-
-    if (!podeCadastrar?.value) {
-      return NextResponse.redirect(new URL("/login", request.url));
-    }
+  if (isPublicRoute(pathname)) {
     return NextResponse.next();
   }
 

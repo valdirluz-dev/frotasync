@@ -21,7 +21,7 @@ export function StatusDonutCard({
 
   const card = (
     <section
-      className={`flex h-full min-h-[320px] flex-col items-center rounded-[30px] px-5 py-6 text-white shadow-[0_5px_8px_rgba(15,23,42,0.20)] sm:min-h-[350px] lg:min-h-[390px] ${muted ? "bg-[#A5A0F0]" : "bg-[#4F46E5]"}`}
+      className={`dashboard-status-card flex h-full min-h-[320px] flex-col items-center rounded-[30px] px-5 py-6 text-white transition-[background-color,box-shadow] duration-200 sm:min-h-[350px] lg:min-h-[390px] ${muted ? "bg-[#A5A0F0] shadow-[0_5px_8px_rgba(15,23,42,0.12)]" : "bg-[#4F46E5] shadow-[0_0_0_2px_rgba(255,255,255,0.65),0_0_24px_rgba(79,70,229,0.3),0_5px_8px_rgba(15,23,42,0.2)]"}`}
       aria-label={`Indicadores de ${title}`}>
       <h2 className="text-center text-2xl font-bold tracking-tight drop-shadow-sm sm:text-[30px]">
         {title}

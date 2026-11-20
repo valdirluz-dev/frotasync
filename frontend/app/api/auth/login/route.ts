@@ -2,7 +2,8 @@ import { cookies } from "next/headers";
 import { z } from "zod";
 
 import { loginSchema } from "@/schemas/acesso";
-import { tabelaUsuarios } from "@/mocks/authStore";
+import { buscarUsuarioPorEmail } from "@/mocks/authStore";
+import { verifyPassword } from "@/lib/auth/password";
 import {
   createSessionToken,
   hasSessionSecret,
@@ -40,14 +41,9 @@ export async function POST(request: Request) {
     );
   }
 
-  const user = tabelaUsuarios.find(
-    (item) =>
-      item.email.trim().toLowerCase() ===
-        result.data.email.trim().toLowerCase() &&
-      item.senhaHash === result.data.senha,
-  );
+  const user = buscarUsuarioPorEmail(result.data.email);
 
-  if (!user) {
+  if (!user || !(await verifyPassword(result.data.senha, user.senhaHash))) {
     return Response.json(
       { message: "E-mail ou senha incorretos." },
       { status: 401 },

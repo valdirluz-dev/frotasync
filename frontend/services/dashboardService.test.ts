@@ -12,7 +12,6 @@ import {
 import {
   alterarStatusUnidade,
   obterIndicadoresUnidade,
-  obterUnidade,
 } from "./unidadesService";
 import {
   getDashboardDocuments,

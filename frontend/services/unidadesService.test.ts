@@ -1,6 +1,7 @@
 import { describe, expect, it } from "vitest";
 
 import { mockUnidades } from "@/mocks/dashboard";
+import { mockHistoricoUnidades } from "@/mocks/historicoUnidades";
 import { IdentificadorUnidadeDuplicadoError } from "@/lib/errors";
 import {
   criarUnidade,
@@ -87,11 +88,24 @@ describe("criarUnidade", () => {
       expect(unidade.criadoEm).toEqual(expect.any(String));
       expect(unidade.atualizadoEm).toBe(unidade.criadoEm);
       expect(mockUnidades).toContain(unidade);
+      expect(mockHistoricoUnidades).toContainEqual(
+        expect.objectContaining({
+          unidadeId: unidade.id,
+          entidade: "Unidade",
+          entidadeId: unidade.id,
+          entidadeNome: unidade.nome,
+        }),
+      );
     } finally {
       const createdIndex = mockUnidades.findIndex(
         (item) => item.id === unidade.id,
       );
       if (createdIndex >= 0) mockUnidades.splice(createdIndex, 1);
+      for (let index = mockHistoricoUnidades.length - 1; index >= 0; index -= 1) {
+        if (mockHistoricoUnidades[index]?.entidadeId === unidade.id) {
+          mockHistoricoUnidades.splice(index, 1);
+        }
+      }
     }
   });
 });

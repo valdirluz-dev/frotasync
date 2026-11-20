@@ -6,7 +6,7 @@ export function UnidadeStatusPill({ status }: { status: UnidadeStatus }) {
 
   return (
     <span
-      className={`relative flex w-full items-center justify-center rounded-full px-3 py-2 text-xs font-bold tracking-wide ${presentation.pill}`}>
+      className={`unit-status-pill relative flex w-full items-center justify-center rounded-full px-3 py-2 text-xs font-bold tracking-wide ${status === "Ativa" ? "unit-pill-active" : "unit-pill-inactive"} ${presentation.pill}`}>
       <span
         aria-hidden="true"
         className={`absolute left-3 h-2.5 w-2.5 rounded-full ${presentation.indicator}`}

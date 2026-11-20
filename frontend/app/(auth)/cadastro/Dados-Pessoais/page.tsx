@@ -1,53 +1,14 @@
 "use client";
 
 import React, { useState } from "react";
+import Image from "next/image";
 import { useRouter } from "next/navigation";
 import { AuthInput } from "@/components/ui/Authinput";
 import { Button } from "@/components/ui";
 import { simularEnvioDadosPessoais } from "@/mocks/dadosPessoais";
-<<<<<<< HEAD
-
-// Máscara de formatação em tempo real para o CPF (000.000.000-00)
-const formatCPF = (value: string) => {
-  return value
-    .replace(/\D/g, "")
-    .replace(/(\d{3})(\d)/, "$1.$2")
-    .replace(/(\d{3})(\d)/, "$1.$2")
-    .replace(/(\d{3})(\d{1,2})/, "$1-$2")
-    .slice(0, 14);
-};
-
-// Máscara de formatação em tempo real para o Telefone (+55 (00) 00000-0000)
-const formatPhone = (value: string) => {
-  const digits = value.replace(/\D/g, "");
-  if (digits.length <= 2) return digits ? `+${digits}` : "";
-  if (digits.length <= 4) return `+${digits.slice(0, 2)} (${digits.slice(2)})`;
-  if (digits.length <= 9) return `+${digits.slice(0, 2)} (${digits.slice(2, 4)}) ${digits.slice(4)}`;
-  return `+${digits.slice(0, 2)} (${digits.slice(2, 4)}) ${digits.slice(4, 9)}-${digits.slice(9, 13)}`;
-};
-
-// Validação matemática real e oficial dos dígitos verificadores do CPF
-const isValidCPF = (cpf: string) => {
-  const cleanCPF = cpf.replace(/\D/g, "");
-  if (cleanCPF.length !== 11 || /^(\d)\1{10}$/.test(cleanCPF)) return false;
-
-  let sum = 0;
-  for (let i = 1; i <= 9; i++) sum += parseInt(cleanCPF.substring(i - 1, i)) * (11 - i);
-  let remainder = (sum * 10) % 11;
-  if (remainder === 10 || remainder === 11) remainder = 0;
-  if (remainder !== parseInt(cleanCPF.substring(9, 10))) return false;
-
-  sum = 0;
-  for (let i = 1; i <= 10; i++) sum += parseInt(cleanCPF.substring(i - 1, i)) * (12 - i);
-  remainder = (sum * 10) % 11;
-  if (remainder === 10 || remainder === 11) remainder = 0;
-  return remainder === parseInt(cleanCPF.substring(10, 11));
-};
-=======
 import { cadastroPessoalSchema } from "@/schemas/cadastroPessoal";
 import { formatCpf, formatPhone } from "@/utils/formatters";
 import { zodErrorsByField } from "@/utils/zodErrors";
->>>>>>> f13a41d9f08de0ef78f282cfb715fd7112a3d412
 
 export default function DadosPessoais() {
   const router = useRouter();
@@ -68,11 +29,7 @@ export default function DadosPessoais() {
     const { name, value } = e.target;
     let formattedValue = value;
 
-<<<<<<< HEAD
-    if (name === "cpf") formattedValue = formatCPF(value);
-=======
     if (name === "cpf") formattedValue = formatCpf(value);
->>>>>>> f13a41d9f08de0ef78f282cfb715fd7112a3d412
     else if (name === "telefone") formattedValue = formatPhone(value);
 
     setFormData((prev) => ({ ...prev, [name]: formattedValue }));
@@ -85,33 +42,6 @@ export default function DadosPessoais() {
   // Validação geral do formulário e submissão para a próxima etapa
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-<<<<<<< HEAD
-    const newErrors: { [key: string]: string } = {};
-
-    if (!formData.nome.trim()) newErrors.nome = "Digite seu nome completo";
-    if (!formData.cpf) newErrors.cpf = "Digite seu CPF";
-    else if (!isValidCPF(formData.cpf)) newErrors.cpf = "CPF inválido. Verifique os números novamente.";
-
-    if (!formData.telefone) newErrors.telefone = "Digite seu número de telefone";
-    else if (formData.telefone.replace(/\D/g, "").length < 10) newErrors.telefone = "Telefone incompleto";
-
-    if (!formData.cargo.trim()) newErrors.cargo = "Digite seu cargo ou papel na empresa";
-
-    setErrors(newErrors);
-
-    if (Object.keys(newErrors).length === 0) {
-      // Salva os dados na memória RAM do mock e avança para a Etapa 2 (Dados da Empresa)
-      const resposta = await simularEnvioDadosPessoais({
-        id: "perfil-001",
-        ...formData,
-      });
-
-      if (resposta.success) {
-        router.push("/cadastro/Dados-da-Empresa");
-      } else {
-        alert(resposta.message);
-      }
-=======
     const result = cadastroPessoalSchema.safeParse(formData);
     if (!result.success) {
       setErrors(zodErrorsByField(result.error));
@@ -128,7 +58,6 @@ export default function DadosPessoais() {
       router.push("/cadastro/Dados-da-Empresa");
     } else {
       alert(resposta.message);
->>>>>>> f13a41d9f08de0ef78f282cfb715fd7112a3d412
     }
   };
 
@@ -185,11 +114,7 @@ export default function DadosPessoais() {
             value={formData.telefone}
             onChange={handleChange}
             placeholder="*+55 (00) 00000-0000"
-<<<<<<< HEAD
-            maxLength={19}
-=======
             maxLength={20}
->>>>>>> f13a41d9f08de0ef78f282cfb715fd7112a3d412
             error={errors.telefone}
           />
 
@@ -217,9 +142,11 @@ export default function DadosPessoais() {
         <div className="contents md:flex md:w-1/2 md:bg-[#ECEFF4] md:p-8 md:flex-col md:items-center md:justify-between md:order-2">
           <div className="w-full bg-[#ECEFF4] md:bg-transparent p-6 md:p-0 flex flex-col items-start md:items-center order-1 border-b md:border-b-0 border-gray-200">
             
-            <img
+            <Image
               src="/img/dados-pessoais.png"
               alt="Ilustração de Cadastro"
+              width={507}
+              height={351}
               className="h-[140px] md:h-[280px] w-auto object-contain mx-auto mb-4"
             />
 

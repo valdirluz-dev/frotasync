@@ -25,8 +25,27 @@ export function TarefaEditarClient({ id, unidadeId, porUnidade = false }: { id: 
   const tarefa = taskQuery.data;
   const unidade = unitQuery.data;
   const inactive = unidade?.status === "Inativa";
-  const base = porUnidade ? `/unidades/${unidadeId}?aba=tarefas` : `/dashboard?aba=tarefas`;
+  const base = porUnidade ? `/unidades/${unidadeId}?aba=tarefas` : "/tarefas";
   const back = () => router.push(base);
+  const breadcrumb = porUnidade ? (
+    <>
+      <span className="text-slate-500">Unidades</span>
+      <span className="text-slate-300">/</span>
+      <span className="max-w-[220px] truncate text-slate-500">
+        {unidade?.nome ?? `Unidade ${unidadeId}`} (ID {unidade?.codigo ?? unidadeId})
+      </span>
+      <span className="text-slate-300">/</span>
+      <span className="text-slate-500">Tarefas</span>
+      <span className="text-slate-300">/</span>
+      <span className="font-semibold text-slate-800">Editar Tarefa</span>
+    </>
+  ) : (
+    <>
+      <span className="text-slate-500">Tarefas</span>
+      <span className="text-slate-300">/</span>
+      <span className="font-semibold text-slate-800">Editar Tarefa</span>
+    </>
+  );
 
   const submit: SubmitHandler<TarefaFormValues> = (values) => { setPending(values); setDialogOpen(true); };
   async function confirm() {
@@ -35,21 +54,23 @@ export function TarefaEditarClient({ id, unidadeId, porUnidade = false }: { id: 
       const updated = await mutation.mutateAsync({ id, data: pending });
       setDialogOpen(false);
       showToast("Tarefa atualizada com sucesso", "success");
-      router.push(`${base}&q=${encodeURIComponent(updated.titulo)}`);
+      router.push(
+        `${base}${base.includes("?") ? "&" : "?"}q=${encodeURIComponent(updated.titulo)}`,
+      );
     } catch (error) {
       setDialogOpen(false);
       showToast(error instanceof Error && error.message.includes("inativa") ? "Não é possível modificar registros de uma unidade inativa." : "Não foi possível atualizar a tarefa. Tente novamente.", "error");
     }
   }
 
-  if (taskQuery.isPending || unitQuery.isPending) return <EditPageShell activeTab="tarefas" breadcrumb={<span>Dashboard Global / Tarefas / Editar Tarefa</span>} title="Editar Tarefa" backLabel="Voltar para tarefas" onBack={back}><EditLoading /></EditPageShell>;
-  if (taskQuery.isError || unitQuery.isError || !tarefa || !unidade || tarefa.unidadeId !== unidadeId) return <EditPageShell activeTab="tarefas" breadcrumb={<span>Dashboard Global / Tarefas / Editar Tarefa</span>} title="Editar Tarefa" backLabel="Voltar para tarefas" onBack={back}><EditError onRetry={() => { void taskQuery.refetch(); void unitQuery.refetch(); }} /></EditPageShell>;
-  if (inactive) return <EditPageShell activeTab={porUnidade ? "unidades" : "tarefas"} breadcrumb={<span>{porUnidade ? `Unidades / ${unidade?.nome} (ID ${unidade?.codigo}) / Tarefas / Editar Tarefa` : "Dashboard Global / Tarefas / Editar Tarefa"}</span>} title="Editar Tarefa" backLabel="Voltar para tarefas" onBack={back}><div className="h-20" /><UnidadeInativaDialog unidade={unidade!} open resource="tarefa" onClose={back} onReturnToUnits={() => router.push("/unidades")} /></EditPageShell>;
+  if (taskQuery.isPending || unitQuery.isPending) return <EditPageShell activeTab={porUnidade ? "unidades" : "tarefas"} breadcrumb={breadcrumb} title="Editar Tarefa" backLabel="Voltar para tarefas" onBack={back}><EditLoading /></EditPageShell>;
+  if (taskQuery.isError || unitQuery.isError || !tarefa || !unidade || tarefa.unidadeId !== unidadeId) return <EditPageShell activeTab={porUnidade ? "unidades" : "tarefas"} breadcrumb={breadcrumb} title="Editar Tarefa" backLabel="Voltar para tarefas" onBack={back}><EditError onRetry={() => { void taskQuery.refetch(); void unitQuery.refetch(); }} /></EditPageShell>;
+  if (inactive) return <EditPageShell activeTab={porUnidade ? "unidades" : "tarefas"} breadcrumb={breadcrumb} title="Editar Tarefa" backLabel="Voltar para tarefas" onBack={back}><div className="h-20" /><UnidadeInativaDialog unidade={unidade!} open resource="tarefa" onClose={back} onReturnToUnits={() => router.push("/unidades")} /></EditPageShell>;
 
   return (
     <EditPageShell
       activeTab={porUnidade ? "unidades" : "tarefas"}
-      breadcrumb={<><span className="text-slate-500">{porUnidade ? "Unidades" : "Dashboard Global"}</span><span className="text-slate-300">/</span>{porUnidade ? <><span className="max-w-[220px] truncate text-slate-500">{unidade?.nome} (ID {unidade?.codigo})</span><span className="text-slate-300">/</span></> : null}<span className="text-slate-500">Tarefas</span><span className="text-slate-300">/</span><span className="font-semibold text-slate-800">Editar Tarefa</span></>}
+      breadcrumb={breadcrumb}
       title="Editar Tarefa"
       backLabel="Voltar para tarefas"
       onBack={back}

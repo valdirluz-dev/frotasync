@@ -3,10 +3,47 @@ import { RecursoNaoEncontradoError, UnidadeInativaError } from "@/lib/errors";
 import { wait } from "@/lib/mockApi";
 import type { Tarefa, TarefaStatus } from "@/types/domain";
 import type { TarefaFormValues } from "@/schemas/tarefa";
+import { registrarEventoHistoricoUnidade } from "@/services/historicoUnidadesService";
 
 export async function obterTarefa(id: string): Promise<Tarefa | null> {
   await wait(120);
   return mockTarefas.find((item) => item.id === id) ?? null;
+}
+
+export async function criarTarefa(data: TarefaFormValues): Promise<Tarefa> {
+  await wait();
+
+  const unidade = mockUnidades.find((item) => item.id === data.unidadeId);
+  if (!unidade) throw new RecursoNaoEncontradoError("Unidade");
+  if (unidade.status === "Inativa") throw new UnidadeInativaError();
+
+  const nextSequence =
+    mockTarefas.reduce((maximum, tarefa) => {
+      const matched = /^task-(\d+)$/.exec(tarefa.id);
+      return Math.max(maximum, matched ? Number(matched[1]) : 0);
+    }, 0) + 1;
+  const today = new Date();
+  today.setUTCHours(0, 0, 0, 0);
+
+  const tarefa: Tarefa = {
+    id: `task-${String(nextSequence).padStart(3, "0")}`,
+    titulo: data.titulo.trim(),
+    unidadeId: unidade.id,
+    dataInicio: today.toISOString().slice(0, 10),
+    prazoFinal: data.prazoFinal,
+    status: "Pendente",
+    dataConclusao: null,
+    descricao: data.descricao?.trim() || undefined,
+  };
+  mockTarefas.push(tarefa);
+  registrarEventoHistoricoUnidade({
+    unidadeId: tarefa.unidadeId,
+    acao: "Cadastrou a tarefa",
+    entidade: "Tarefa",
+    entidadeId: tarefa.id,
+    entidadeNome: tarefa.titulo,
+  });
+  return tarefa;
 }
 
 export async function atualizarTarefa(id: string, data: TarefaFormValues): Promise<Tarefa> {
@@ -28,6 +65,13 @@ export async function atualizarTarefa(id: string, data: TarefaFormValues): Promi
     dataConclusao: current.dataConclusao,
   };
   mockTarefas[index] = updated;
+  registrarEventoHistoricoUnidade({
+    unidadeId: updated.unidadeId,
+    acao: "Atualizou a tarefa",
+    entidade: "Tarefa",
+    entidadeId: updated.id,
+    entidadeNome: updated.titulo,
+  });
   return updated;
 }
 
@@ -55,5 +99,14 @@ export async function alterarStatusTarefa(
     ...unidade,
     atualizadoEm: new Date().toISOString(),
   };
+  if (tarefa.status !== status) {
+    registrarEventoHistoricoUnidade({
+      unidadeId: tarefa.unidadeId,
+      acao: `Alterou o status da tarefa de ${tarefa.status} para ${status}`,
+      entidade: "Tarefa",
+      entidadeId: tarefa.id,
+      entidadeNome: tarefa.titulo,
+    });
+  }
   return updated;
 }

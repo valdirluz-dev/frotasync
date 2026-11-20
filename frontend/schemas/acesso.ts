@@ -12,7 +12,7 @@ export const loginSchema = z.object({
   }),
 });
 
-const senhaForte = z
+export const senhaForte = z
   .string()
   .refine((value) => value.trim().length > 0, {
     message: "Digite uma senha",
@@ -45,6 +45,27 @@ export const cadastroAcessoSchema = z
     aceiteTermos: z.boolean().refine((value) => value, {
       message:
         "É necessário aceitar os Termos de Uso e a Política de Privacidade.",
+    }),
+  })
+  .superRefine((values, ctx) => {
+    if (
+      values.confirmarSenha.trim().length > 0 &&
+      values.confirmarSenha !== values.senha
+    ) {
+      ctx.addIssue({
+        code: "custom",
+        path: ["confirmarSenha"],
+        message: "As senhas não coincidem",
+      });
+    }
+  });
+
+export const redefinirSenhaSchema = z
+  .object({
+    token: z.string().min(1, "Solicite um novo código de recuperação."),
+    senha: senhaForte,
+    confirmarSenha: z.string().refine((value) => value.trim().length > 0, {
+      message: "Confirme sua nova senha",
     }),
   })
   .superRefine((values, ctx) => {

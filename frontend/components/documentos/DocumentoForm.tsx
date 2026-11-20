@@ -139,15 +139,23 @@ export function DocumentoForm({
           ) : mode === "criar" && unidadeBloqueada ? (
             <>
               <input type="hidden" {...register("unidadeId")} />
-              <Select
-                id="documento-unidade"
-                value={documento.unidadeId}
-                disabled
-                aria-disabled="true">
-                <option value={documento.unidadeId}>
-                  {unidadeNome} (ID {documento.unidadeId})
-                </option>
-              </Select>
+              <div className="relative">
+                <Select
+                  id="documento-unidade"
+                  value={documento.unidadeId}
+                  disabled
+                  aria-disabled="true"
+                  className="appearance-none bg-slate-50 pr-12">
+                  <option value={documento.unidadeId}>
+                    {unidadeNome} (ID {documento.unidadeId})
+                  </option>
+                </Select>
+                <span
+                  aria-hidden="true"
+                  className="pointer-events-none absolute right-4 top-1/2 -translate-y-1/2">
+                  🔒
+                </span>
+              </div>
             </>
           ) : (
             <>

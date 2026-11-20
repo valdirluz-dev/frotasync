@@ -1,21 +1,19 @@
 "use client";
 
 import { zodResolver } from "@hookform/resolvers/zod";
-import { useForm, type SubmitHandler } from "react-hook-form";
+import { useForm, useWatch, type SubmitHandler } from "react-hook-form";
 
 import { StatusBadge } from "@/components/dashboard/StatusBadge";
-import { Button, FormField, Input, Textarea } from "@/components/ui";
+import { Button, FormField, Input, Select, Textarea } from "@/components/ui";
 import {
   tarefaSchema,
-<<<<<<< HEAD
-  prazoAlteradoValido,
-=======
   tarefaEdicaoSchema,
->>>>>>> f13a41d9f08de0ef78f282cfb715fd7112a3d412
   type TarefaFormInput,
   type TarefaFormValues,
 } from "@/schemas/tarefa";
 import type { Tarefa } from "@/types/domain";
+
+type UnidadeOption = { id: string; nome: string; codigo: string };
 
 function formatDate(value: string | null | undefined) {
   if (!value) return "—";
@@ -30,6 +28,8 @@ function formatDate(value: string | null | undefined) {
 type TarefaFormProps = {
   tarefa: Tarefa | null;
   unidadeNome: string;
+  unidades?: UnidadeOption[];
+  unidadeBloqueada?: boolean;
   mode?: "criar" | "editar";
   defaultValues?: Partial<TarefaFormInput>;
   isSaving?: boolean;
@@ -41,6 +41,8 @@ type TarefaFormProps = {
 export function TarefaForm({
   tarefa,
   unidadeNome,
+  unidades,
+  unidadeBloqueada = false,
   mode = "editar",
   defaultValues,
   isSaving = false,
@@ -50,37 +52,28 @@ export function TarefaForm({
 }: TarefaFormProps) {
   const initial: TarefaFormInput = {
     titulo: tarefa?.titulo ?? "",
+    unidadeId: tarefa?.unidadeId ?? "",
     prazoFinal: tarefa?.prazoFinal ?? "",
     descricao: tarefa?.descricao ?? "",
     ...defaultValues,
   };
-<<<<<<< HEAD
-=======
   const schema =
     mode === "editar" && tarefa
       ? tarefaEdicaoSchema(tarefa.prazoFinal)
       : tarefaSchema;
->>>>>>> f13a41d9f08de0ef78f282cfb715fd7112a3d412
   const {
     register,
     handleSubmit,
-    watch,
-<<<<<<< HEAD
-    setError,
-    formState: { errors, isDirty, isSubmitting },
-  } = useForm<TarefaFormInput, unknown, TarefaFormValues>({
-    resolver: zodResolver(tarefaSchema),
-=======
+    control,
     formState: { errors, isDirty, isSubmitting },
   } = useForm<TarefaFormInput, unknown, TarefaFormValues>({
     resolver: zodResolver(schema),
->>>>>>> f13a41d9f08de0ef78f282cfb715fd7112a3d412
     defaultValues: initial,
     mode: "onSubmit",
     reValidateMode: "onChange",
     shouldFocusError: true,
   });
-  const descricao = watch("descricao") ?? "";
+  const descricao = useWatch({ control, name: "descricao" }) ?? "";
   const busy = isSaving || isSubmitting;
 
   function fieldError(field: keyof TarefaFormInput) {
@@ -93,18 +86,6 @@ export function TarefaForm({
       onNoChanges?.();
       return;
     }
-<<<<<<< HEAD
-if (
-  tarefa &&
-  !prazoAlteradoValido(values.prazoFinal, tarefa.prazoFinal)
-) {      setError("prazoFinal", {
-        type: "validate",
-        message: "O prazo não pode ser anterior a hoje quando alterado.",
-      });
-      return;
-    }
-=======
->>>>>>> f13a41d9f08de0ef78f282cfb715fd7112a3d412
     onSubmit(values);
   }
 
@@ -127,21 +108,63 @@ if (
             {...register("titulo")}
           />
         </FormField>
-        <FormField id="tarefa-unidade" label="Unidade" required>
-          <div className="relative">
-            <Input
+        <FormField
+          id="tarefa-unidade"
+          label="Unidade"
+          required
+          error={fieldError("unidadeId")}>
+          {unidades ? (
+            <Select
               id="tarefa-unidade"
-              value={`${unidadeNome} (ID ${tarefa?.unidadeId ?? ""})`}
-              readOnly
-              aria-readonly="true"
-              className="pr-12 bg-slate-50 text-slate-500"
-            />
-            <span
-              aria-hidden="true"
-              className="pointer-events-none absolute right-4 top-1/2 -translate-y-1/2 text-slate-400">
-              🔒
-            </span>
-          </div>
+              aria-required="true"
+              aria-invalid={Boolean(errors.unidadeId)}
+              {...register("unidadeId")}>
+              <option value="">Selecione uma unidade ativa</option>
+              {unidades.map((unidade) => (
+                <option key={unidade.id} value={unidade.id}>
+                  {unidade.nome} (ID {unidade.codigo})
+                </option>
+              ))}
+            </Select>
+          ) : (
+            <>
+              <input type="hidden" {...register("unidadeId")} />
+              {mode === "criar" && unidadeBloqueada ? (
+                <div className="relative">
+                  <Select
+                    id="tarefa-unidade"
+                    value={tarefa?.unidadeId ?? ""}
+                    disabled
+                    aria-disabled="true"
+                    className="appearance-none bg-slate-50 pr-12">
+                    <option value={tarefa?.unidadeId ?? ""}>
+                      {unidadeNome} (ID {tarefa?.unidadeId ?? ""})
+                    </option>
+                  </Select>
+                  <span
+                    aria-hidden="true"
+                    className="pointer-events-none absolute right-4 top-1/2 -translate-y-1/2">
+                    🔒
+                  </span>
+                </div>
+              ) : (
+                <div className="relative">
+                  <Input
+                    id="tarefa-unidade"
+                    value={`${unidadeNome} (ID ${tarefa?.unidadeId ?? ""})`}
+                    readOnly
+                    aria-readonly="true"
+                    className="bg-slate-50 pr-12 text-slate-500"
+                  />
+                  <span
+                    aria-hidden="true"
+                    className="pointer-events-none absolute right-4 top-1/2 -translate-y-1/2 text-slate-400">
+                    🔒
+                  </span>
+                </div>
+              )}
+            </>
+          )}
         </FormField>
         <FormField
           id="tarefa-descricao"
@@ -188,7 +211,10 @@ if (
           <FormField id="tarefa-inicio" label="Data de início">
             <Input
               id="tarefa-inicio"
-              value={formatDate(tarefa?.dataInicio)}
+              value={formatDate(
+                tarefa?.dataInicio ||
+                  (mode === "criar" ? new Date().toISOString() : null),
+              )}
               readOnly
               aria-readonly="true"
               className="bg-slate-50 text-slate-500"
@@ -231,7 +257,7 @@ if (
             </span>
           }
           className="w-full rounded-xl lg:w-auto">
-          Salvar alterações
+          {mode === "criar" ? "Criar tarefa" : "Salvar alterações"}
         </Button>
       </div>
     </form>

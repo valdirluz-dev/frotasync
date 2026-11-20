@@ -1,6 +1,7 @@
 "use client";
 
 import React, { useState } from "react";
+import Image from "next/image";
 import { useRouter } from "next/navigation";
 import Link from "next/link";
 
@@ -209,10 +210,6 @@ export default function Login() {
             Ainda não tem uma conta?{" "}
             <Link
               href="/cadastro/Dados-Pessoais"
-              onClick={() => {
-                //Grava um cookie temporário que autoriza o usuário a avançar no fluxo de cadastro.
-                document.cookie = "pode_cadastrar=true; path=/; max-age=600; SameSite=Lax"
-              }}
               className="text-blue-600 font-semibold hover:underline"
             >
               Cadastre-se
@@ -222,9 +219,11 @@ export default function Login() {
 
         {/* Lado Direito: Ilustração */}
         <div className="w-full md:w-1/2 bg-[#ECEFF4] p-8 flex flex-col items-center justify-center order-1 md:order-2">
-          <img
+          <Image
             src="/img/login.png"
             alt="Ilustração de Login"
+            width={608}
+            height={416}
             className="h-[200px] md:h-[300px] w-auto object-contain mx-auto"
           />
         </div>
@@ -234,8 +233,7 @@ export default function Login() {
       <CookieModal
         isOpen={isCookieModalOpen}
         onClose={() => setIsCookieModalOpen(false)}
-        onSave={(optionalAccepted) => {
-        }}
+        onSave={() => undefined}
       />
     </div>
   );

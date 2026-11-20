@@ -1,36 +1,53 @@
 import { describe, expect, it } from "vitest";
-<<<<<<< HEAD
-import { prazoAlteradoValido } from "./tarefa";
 
-describe("prazo de tarefa", () => {
-  it("aceita tarefa atrasada quando o prazo não foi alterado", () => {
-    expect(prazoAlteradoValido("2020-01-01", "2020-01-01", new Date("2026-10-06T00:00:00Z"))).toBe(true);
+import { mockNovaTarefa } from "@/mocks/tarefas";
+import { tarefaEdicaoSchema, tarefaSchema } from "./tarefa";
+
+describe("tarefaSchema", () => {
+  it("aceita dados válidos e normaliza os espaços", () => {
+    const result = tarefaSchema.safeParse({
+      ...mockNovaTarefa,
+      titulo: "  Manutenção preventiva  ",
+      descricao: "  Conferir os veículos  ",
+    });
+
+    expect(result.success).toBe(true);
+    if (result.success) {
+      expect(result.data.titulo).toBe("Manutenção preventiva");
+      expect(result.data.descricao).toBe("Conferir os veículos");
+    }
   });
 
-  it("recusa alteração para o passado", () => {
-    expect(prazoAlteradoValido("2020-01-01", "2020-01-02", new Date("2026-10-06T00:00:00Z"))).toBe(false);
-=======
-import { tarefaEdicaoSchema } from "./tarefa";
+  it("exige título, unidade e prazo com data válida", () => {
+    const result = tarefaSchema.safeParse({
+      ...mockNovaTarefa,
+      titulo: "",
+      unidadeId: "",
+      prazoFinal: "2027-02-31",
+    });
 
-const validTask = {
-  titulo: "Manutenção preventiva",
-  prazoFinal: "2020-01-01",
-  descricao: "",
-};
-
-describe("prazo de tarefa", () => {
-  it("aceita tarefa atrasada quando o prazo não foi alterado", () => {
-    expect(
-      tarefaEdicaoSchema("2020-01-01", new Date("2026-10-06T00:00:00Z"))
-        .safeParse(validTask).success,
-    ).toBe(true);
+    expect(result.success).toBe(false);
+    if (!result.success) {
+      expect(result.error.issues.map((issue) => issue.path[0])).toEqual(
+        expect.arrayContaining(["titulo", "unidadeId", "prazoFinal"]),
+      );
+    }
   });
 
-  it("recusa alteração para o passado", () => {
+  it("aceita tarefa atrasada quando o prazo não foi alterado", () => {
+    const result = tarefaEdicaoSchema(
+      "2020-01-01",
+      new Date("2026-10-06T00:00:00Z"),
+    ).safeParse({ ...mockNovaTarefa, prazoFinal: "2020-01-01" });
+
+    expect(result.success).toBe(true);
+  });
+
+  it("recusa alteração do prazo para uma data passada", () => {
     const result = tarefaEdicaoSchema(
       "2020-01-02",
       new Date("2026-10-06T00:00:00Z"),
-    ).safeParse(validTask);
+    ).safeParse({ ...mockNovaTarefa, prazoFinal: "2020-01-01" });
 
     expect(result.success).toBe(false);
     if (!result.success) {
@@ -38,6 +55,5 @@ describe("prazo de tarefa", () => {
         "O prazo não pode ser anterior a hoje quando alterado.",
       );
     }
->>>>>>> f13a41d9f08de0ef78f282cfb715fd7112a3d412
   });
 });

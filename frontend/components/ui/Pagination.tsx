@@ -12,7 +12,7 @@ export function Pagination({
   totalPages: number;
   total: number;
   pageSize: number;
-  entity: "documentos" | "tarefas" | "unidades";
+  entity: "documentos" | "tarefas" | "unidades" | "eventos" | "alterações";
   onChange: (nextPage: number) => void;
 }) {
   const first = total === 0 ? 0 : (page - 1) * pageSize + 1;

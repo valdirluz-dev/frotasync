@@ -1,8 +1,16 @@
 "use client";
 
 import Link from "next/link";
-import { useState, useEffect, type ReactNode } from "react";
+import { useRouter } from "next/navigation";
+import { useState, useSyncExternalStore, type ReactNode } from "react";
 import { obterPerfilConsolidado } from "@/mocks/profile";
+import { mockNotificacoes } from "@/mocks/notificacoes";
+import {
+  getAppPreferencesSnapshot,
+  getServerPreferencesSnapshot,
+  parseAppPreferences,
+  subscribeToPreferences,
+} from "@/lib/preferences";
 
 import { Icon } from "@/components/ui/Icons";
 
@@ -11,7 +19,14 @@ export function AppShell({
   breadcrumb = "section",
   children,
 }: {
-  activeTab: "dashboard" | "documentos" | "tarefas" | "unidades" | "configuracoes";
+  activeTab:
+    | "dashboard"
+    | "documentos"
+    | "tarefas"
+    | "unidades"
+    | "historico"
+    | "configuracoes"
+    | "perfil";
   breadcrumb?:
     | "section"
     | "newUnit"
@@ -19,44 +34,70 @@ export function AppShell({
     | { custom: ReactNode };
   children: ReactNode;
 }) {
+  const router = useRouter();
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
+  const [notificationsOpen, setNotificationsOpen] = useState(false);
+  const [profileMenuOpen, setProfileMenuOpen] = useState(false);
+  const [loggingOut, setLoggingOut] = useState(false);
+  const [logoutError, setLogoutError] = useState("");
+  const preferenceSnapshot = useSyncExternalStore(
+    subscribeToPreferences,
+    getAppPreferencesSnapshot,
+    getServerPreferencesSnapshot,
+  );
+  const preferences = parseAppPreferences(preferenceSnapshot);
+  const visibleNotifications = mockNotificacoes.filter(
+    (notification) => preferences.notifications[notification.categoria],
+  );
+  const unreadNotifications = visibleNotifications.filter(
+    (notification) => !notification.lida,
+  ).length;
 
   // ESTADO DO PERFIL: Atualizado para consumir o perfil consolidado do profile.ts
-  const [userProfile, setUserProfile] = useState({
-    nome: "Maria Luiza da Silva",
-    cargo: "Administradora de Frotas",
-    inicial: "ML"
+  const [userProfile] = useState(() => {
+    const profile = obterPerfilConsolidado();
+    const nome = profile.nome || "Maria Luiza da Silva";
+    return {
+      nome,
+      cargo: profile.cargo || "Administradora de Frotas",
+      inicial: nome.substring(0, 2).toUpperCase(),
+    };
   });
 
-  useEffect(() => {
-    // Puxa os dados consolidados do mock/localStorage
-    const perfilConsolidado = obterPerfilConsolidado();
-    
-    if (perfilConsolidado && perfilConsolidado.nome) {
-      const nomeExibicao = perfilConsolidado.nome;
-      const iniciais = nomeExibicao.substring(0, 2).toUpperCase();
+  async function handleLogout() {
+    setLoggingOut(true);
+    setLogoutError("");
 
-      setUserProfile({
-        nome: nomeExibicao,
-        cargo: perfilConsolidado.cargo || "Administrador",
-        inicial: iniciais
-      });
+    try {
+      const response = await fetch("/api/auth/logout", { method: "POST" });
+      if (!response.ok) {
+        throw new Error("A solicitação de logout falhou.");
+      }
+
+      router.replace("/login");
+    } catch {
+      setLogoutError("Não foi possível sair da conta. Tente novamente.");
+      setLoggingOut(false);
     }
-  }, []);
-  
+  }
+
   // Variáveis isoladas e estritas para controlar exatamente qual aba está ativa
   const isDashboardSection = activeTab === "dashboard";
   const isUnitsSection = activeTab === "unidades";
   const isDocumentsSection = activeTab === "documentos";
   const isTasksSection = activeTab === "tarefas";
+  const isHistorySection = activeTab === "historico";
   const isConfigSection = activeTab === "configuracoes";
 
   return (
-    <div className="min-h-screen bg-surface font-[Inter,ui-sans-serif,system-ui,sans-serif] text-slate-900">
+    <div
+      data-page-section={activeTab}
+      className={`min-h-screen bg-surface font-[Inter,ui-sans-serif,system-ui,sans-serif] text-slate-900 ${
+        preferences.theme === "dark" ? "app-theme-dark" : ""
+      }`}>
       <aside className="fixed inset-y-0 left-0 z-40 hidden w-[300px] border-r border-slate-200 bg-white px-6 pt-5 lg:block">
         <Brand />
         <nav aria-label="Menu principal" className="mt-10 space-y-2">
-          
           {/* Botão do Dashboard */}
           <Link
             href="/dashboard"
@@ -80,7 +121,7 @@ export function AppShell({
             <Icon name="units" />
             Unidades
           </Link>
-        
+
           {/* Botão Documentos */}
           <Link
             href="/documentos"
@@ -103,6 +144,17 @@ export function AppShell({
             }`}>
             <Icon name="tasks" />
             Tarefas
+          </Link>
+
+          <Link
+            href="/historico"
+            className={`flex items-center gap-3 rounded-xl px-4 py-3 text-sm ${
+              isHistorySection
+                ? "bg-indigo-50 font-semibold text-indigo-700"
+                : "text-slate-600 hover:bg-slate-50"
+            }`}>
+            <Icon name="history" />
+            Histórico global
           </Link>
 
           {/* Botão Configurações */}
@@ -183,6 +235,17 @@ export function AppShell({
               </Link>
               <Link
                 onClick={() => setMobileMenuOpen(false)}
+                href="/historico"
+                className={`flex items-center gap-3 rounded-xl px-4 py-3 text-sm ${
+                  isHistorySection
+                    ? "bg-indigo-50 font-semibold text-indigo-700"
+                    : "text-slate-600"
+                }`}>
+                <Icon name="history" />
+                Histórico global
+              </Link>
+              <Link
+                onClick={() => setMobileMenuOpen(false)}
                 href="/configuracoes"
                 className={`flex items-center gap-3 rounded-xl px-4 py-3 text-sm ${
                   isConfigSection
@@ -245,15 +308,21 @@ export function AppShell({
               )
             ) : (
               <div className="hidden items-center gap-2 text-xs sm:flex">
-                <span className="text-slate-500">Dashboard Global</span>
-                <span className="text-slate-300">/</span>
                 <span className="font-semibold capitalize text-slate-800">
-                  {activeTab}
+                  {isDashboardSection
+                    ? "Dashboard Global"
+                    : isDocumentsSection
+                      ? "Documentos"
+                      : isTasksSection
+                        ? "Tarefas"
+                        : isHistorySection
+                          ? "Histórico de alterações"
+                          : "Configurações"}
                 </span>
               </div>
             )}
           </div>
-          <div className="flex items-center gap-3 sm:gap-5">
+          <div className="relative flex items-center gap-3 sm:gap-5">
             <label className="hidden h-10 w-[220px] items-center gap-2 rounded-xl border border-slate-200 bg-surface px-3 text-slate-400 md:flex xl:w-[270px]">
               <Icon name="search" className="h-4 w-4" />
               <input
@@ -265,45 +334,133 @@ export function AppShell({
             <button
               type="button"
               aria-label="Notificações"
+              aria-expanded={notificationsOpen}
+              onClick={() => setNotificationsOpen((open) => !open)}
               className="group relative text-slate-500">
-              <Icon name="bell" className="h-[18px] w-[18px] group-hover:animate-wiggle" />
-              <span className="absolute -right-0.5 -top-0.5 h-1.5 w-1.5 rounded-full bg-red-500 ring-2 ring-white" />
+              <Icon
+                name="bell"
+                className="h-[18px] w-[18px] group-hover:animate-wiggle"
+              />
+              {unreadNotifications > 0 ? (
+                <span className="absolute -right-1 -top-1 flex h-4 min-w-4 items-center justify-center rounded-full bg-red-500 px-1 text-[9px] font-semibold text-white ring-2 ring-white">
+                  {unreadNotifications}
+                </span>
+              ) : null}
             </button>
 
-            
+            {notificationsOpen ? (
+              <section
+                aria-label="Central de notificações"
+                className="absolute right-0 top-12 z-50 w-[min(360px,calc(100vw-2rem))] overflow-hidden rounded-xl border border-slate-200 bg-white shadow-xl">
+                <div className="flex items-center justify-between border-b border-slate-100 px-4 py-3">
+                  <h2 className="text-sm font-semibold text-slate-900">
+                    Notificações
+                  </h2>
+                  <Link
+                    href="/configuracoes"
+                    onClick={() => setNotificationsOpen(false)}
+                    className="text-xs font-medium text-indigo-600 hover:text-indigo-700">
+                    Preferências
+                  </Link>
+                </div>
+                {visibleNotifications.length ? (
+                  <ul className="max-h-[min(60vh,420px)] overflow-y-auto">
+                    {visibleNotifications.map((notification) => (
+                      <li
+                        key={notification.id}
+                        className="border-b border-slate-100 last:border-0">
+                        {notification.destino ? (
+                          <Link
+                            href={notification.destino}
+                            onClick={() => setNotificationsOpen(false)}
+                            className="block px-4 py-3 transition hover:bg-slate-50">
+                            <NotificationText notification={notification} />
+                          </Link>
+                        ) : (
+                          <div className="px-4 py-3">
+                            <NotificationText notification={notification} />
+                          </div>
+                        )}
+                      </li>
+                    ))}
+                  </ul>
+                ) : (
+                  <p className="px-4 py-6 text-center text-sm text-slate-500">
+                    Nenhuma notificação habilitada.
+                  </p>
+                )}
+              </section>
+            ) : null}
 
             <button type="button" aria-label="Ajuda" className="text-slate-500">
               <Icon name="help" className="h-[18px] w-[18px]" />
             </button>
             <span className="hidden h-8 border-l border-slate-200 sm:block" />
-            
+
             {/* Bloco do perfil dinâmico que puxa os dados do localStorage */}
-            <Link 
-              href="/perfil" 
-              className="flex items-center gap-2 rounded-lg p-1 transition hover:bg-slate-50 cursor-pointer"
-            >
-              {/* Círculo com as iniciais dinâmicas (ex: MA) */}
-              <div className="flex h-8 w-8 items-center justify-center rounded-full bg-indigo-600 text-[10px] font-semibold text-white">
-                {userProfile.inicial}
-              </div>
-
-              {/* Nome e cargo dinâmicos */}
-              <div className="hidden leading-tight sm:block text-left">
-                <div className="text-xs font-semibold text-slate-800">
-                  {userProfile.nome}
+            <div className="relative">
+              <button
+                type="button"
+                aria-label="Menu da conta"
+                aria-haspopup="menu"
+                aria-expanded={profileMenuOpen}
+                onClick={() => {
+                  setProfileMenuOpen((open) => !open);
+                  setNotificationsOpen(false);
+                }}
+                className="flex items-center gap-2 rounded-lg p-1 text-left transition hover:bg-slate-50">
+                <div className="flex h-8 w-8 items-center justify-center rounded-full bg-indigo-600 text-[10px] font-semibold text-white">
+                  {userProfile.inicial}
                 </div>
-                <div className="mt-0.5 text-[10px] text-slate-400">
-                  {userProfile.cargo}
+                <div className="hidden leading-tight sm:block">
+                  <div className="text-xs font-semibold text-slate-800">
+                    {userProfile.nome}
+                  </div>
+                  <div className="mt-0.5 text-[10px] text-slate-400">
+                    {userProfile.cargo}
+                  </div>
                 </div>
-              </div>
-
-              {/* Ícone de chevron / setinha para indicar que é clicável */}
-              <Icon
-                name="chevron"
-                className="hidden h-4 w-4 text-slate-400 sm:block"
-              />
-            </Link>
-            
+                <Icon
+                  name="chevron"
+                  className="hidden h-4 w-4 text-slate-400 sm:block"
+                />
+              </button>
+              {profileMenuOpen ? (
+                <div
+                  role="menu"
+                  aria-label="Opções da conta"
+                  className="absolute right-0 top-12 z-50 w-56 overflow-hidden rounded-xl border border-slate-200 bg-white p-1.5 shadow-xl">
+                  <Link
+                    role="menuitem"
+                    href="/perfil"
+                    onClick={() => setProfileMenuOpen(false)}
+                    className="block rounded-lg px-3 py-2 text-sm text-slate-700 hover:bg-slate-50">
+                    Meu perfil
+                  </Link>
+                  <Link
+                    role="menuitem"
+                    href="/configuracoes"
+                    onClick={() => setProfileMenuOpen(false)}
+                    className="block rounded-lg px-3 py-2 text-sm text-slate-700 hover:bg-slate-50">
+                    Configurações
+                  </Link>
+                  <div className="my-1 border-t border-slate-100" />
+                  <button
+                    role="menuitem"
+                    type="button"
+                    disabled={loggingOut}
+                    onClick={handleLogout}
+                    className="block w-full rounded-lg px-3 py-2 text-left text-sm font-medium text-red-600 hover:bg-red-50 disabled:cursor-wait disabled:opacity-60">
+                    {loggingOut ? "Saindo..." : "Sair da conta"}
+                  </button>
+                  {logoutError ? (
+                    <p role="alert" className="px-3 pb-2 text-xs text-red-600">
+                      {logoutError}
+                    </p>
+                  ) : null}
+                </div>
+              ) : null}
+            </div>
           </div>
         </header>
 
@@ -330,5 +487,25 @@ function Brand() {
         </div>
       </div>
     </div>
+  );
+}
+
+function NotificationText({
+  notification,
+}: {
+  notification: (typeof mockNotificacoes)[number];
+}) {
+  return (
+    <>
+      <p className="text-sm font-semibold text-slate-800">
+        {notification.titulo}
+      </p>
+      <p className="mt-1 text-xs leading-5 text-slate-500">
+        {notification.descricao}
+      </p>
+      <p className="mt-2 text-[10px] text-slate-400">
+        {new Date(notification.criadaEm).toLocaleString("pt-BR")}
+      </p>
+    </>
   );
 }

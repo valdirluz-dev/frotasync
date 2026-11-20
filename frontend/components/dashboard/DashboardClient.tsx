@@ -1,15 +1,11 @@
 "use client";
 
-import { useRouter, useSearchParams } from "next/navigation";
 import { AppShell } from "@/components/layout/AppShell";
 import { ErrorState } from "@/components/ui/StateViews";
 import { StatusDonutCard } from "@/components/dashboard/StatusDonutCard";
 import { useDashboardIndicators } from "@/hooks/useDashboard";
 
 export function DashboardClient() {
-  const router = useRouter();
-  const searchParams = useSearchParams();
-
   const indicatorQuery = useDashboardIndicators();
   const indicators = indicatorQuery.data;
 
