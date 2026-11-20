@@ -25,7 +25,7 @@ export function DocumentoEditarClient({ id, unidadeId, porUnidade = false }: { i
   const documento = documentQuery.data;
   const unidade = unitQuery.data;
   const inactive = unidade?.status === "Inativa";
-  const base = porUnidade ? `/unidades/${unidadeId}?aba=documentos` : `/dashboard?aba=documentos`;
+  const base = porUnidade ? `/unidades/${unidadeId}?aba=documentos` : "/documentos";
   const back = () => router.push(base);
 
   const submit: SubmitHandler<DocumentoFormValues> = (values) => { setPending(values); setDialogOpen(true); };
@@ -35,7 +35,9 @@ export function DocumentoEditarClient({ id, unidadeId, porUnidade = false }: { i
       const updated = await mutation.mutateAsync({ id, data: pending, anexo: toDocumentoAnexo(pending.anexo) });
       setDialogOpen(false);
       showToast("Documento atualizado com sucesso", "success");
-      router.push(`${base}&q=${encodeURIComponent(updated.nome)}`);
+      router.push(
+        `${base}${base.includes("?") ? "&" : "?"}q=${encodeURIComponent(updated.nome)}`,
+      );
     } catch (error) {
       setDialogOpen(false);
       showToast(error instanceof Error && error.message.includes("inativa") ? "Não é possível modificar registros de uma unidade inativa." : "Não foi possível atualizar o documento. Tente novamente.", "error");

@@ -25,7 +25,7 @@ export function TarefaEditarClient({ id, unidadeId, porUnidade = false }: { id: 
   const tarefa = taskQuery.data;
   const unidade = unitQuery.data;
   const inactive = unidade?.status === "Inativa";
-  const base = porUnidade ? `/unidades/${unidadeId}?aba=tarefas` : `/dashboard?aba=tarefas`;
+  const base = porUnidade ? `/unidades/${unidadeId}?aba=tarefas` : "/tarefas";
   const back = () => router.push(base);
 
   const submit: SubmitHandler<TarefaFormValues> = (values) => { setPending(values); setDialogOpen(true); };
@@ -35,7 +35,9 @@ export function TarefaEditarClient({ id, unidadeId, porUnidade = false }: { id: 
       const updated = await mutation.mutateAsync({ id, data: pending });
       setDialogOpen(false);
       showToast("Tarefa atualizada com sucesso", "success");
-      router.push(`${base}&q=${encodeURIComponent(updated.titulo)}`);
+      router.push(
+        `${base}${base.includes("?") ? "&" : "?"}q=${encodeURIComponent(updated.titulo)}`,
+      );
     } catch (error) {
       setDialogOpen(false);
       showToast(error instanceof Error && error.message.includes("inativa") ? "Não é possível modificar registros de uma unidade inativa." : "Não foi possível atualizar a tarefa. Tente novamente.", "error");
