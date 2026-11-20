@@ -8,6 +8,10 @@ export function TabPill({
   onChange: (tab: Tab) => void;
 }) {
   const documentTabIsActive = activeTab === "documentos";
+  const activeClasses =
+    "bg-indigo-700 font-bold text-white shadow-[0_0_10px_rgba(79,70,229,0.35)]";
+  const inactiveClasses =
+    "font-medium text-slate-500 hover:bg-indigo-50 hover:text-indigo-700";
 
   return (
     <div
@@ -18,25 +22,21 @@ export function TabPill({
         type="button"
         role="tab"
         aria-selected={documentTabIsActive}
+        aria-label={
+          documentTabIsActive ? "Documentos" : "Ver documentos"
+        }
         onClick={() => onChange("documentos")}
-        className={`inline-flex items-center gap-1 rounded-full px-3 py-1.5 text-xs sm:px-4 ${documentTabIsActive ? "font-bold text-slate-900" : "bg-indigo-600 font-semibold text-white"}`}>
-        {documentTabIsActive ? (
-          "Documentos"
-        ) : (
-          <span>ver Docs</span>
-        )}
+        className={`inline-flex items-center rounded-full px-3 py-1.5 text-xs transition-colors sm:px-4 ${documentTabIsActive ? activeClasses : inactiveClasses}`}>
+        {documentTabIsActive ? "Documentos" : "Ver documentos"}
       </button>
       <button
         type="button"
         role="tab"
         aria-selected={!documentTabIsActive}
+        aria-label={!documentTabIsActive ? "Tarefas" : "Ver tarefas"}
         onClick={() => onChange("tarefas")}
-        className={`inline-flex items-center gap-1 rounded-full px-3 py-1.5 text-xs sm:px-4 ${documentTabIsActive ? "bg-indigo-600 font-semibold text-white" : "font-bold text-slate-900"}`}>
-        {documentTabIsActive ? (
-          <span>ver tarefas</span>
-        ) : (
-          "Tarefas"
-        )}
+        className={`inline-flex items-center rounded-full px-3 py-1.5 text-xs transition-colors sm:px-4 ${documentTabIsActive ? inactiveClasses : activeClasses}`}>
+        {documentTabIsActive ? "Ver tarefas" : "Tarefas"}
       </button>
     </div>
   );

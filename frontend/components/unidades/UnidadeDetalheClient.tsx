@@ -249,12 +249,12 @@ export function UnidadeDetalheClient({ id }: { id: string }) {
                   <StatusDonutCard
                     title="Documentos"
                     data={indicatorsQuery.data.documentos}
-                    muted={isInactive || activeTab !== "documentos"}
+                    muted={activeTab !== "documentos"}
                   />
                   <StatusDonutCard
                     title="Tarefas"
                     data={indicatorsQuery.data.tarefas}
-                    muted={isInactive || activeTab !== "tarefas"}
+                    muted={activeTab !== "tarefas"}
                   />
                 </>
               )}
@@ -299,14 +299,14 @@ export function UnidadeDetalheClient({ id }: { id: string }) {
                       type="button"
                       aria-disabled="true"
                       onClick={() => setInativaDialogResource("documento")}
-                      className="inline-flex h-10 shrink-0 items-center justify-center gap-2 rounded-xl bg-indigo-300 px-4 text-xs font-semibold text-white shadow-sm hover:bg-indigo-400 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-indigo-500 focus-visible:ring-offset-2">
+                      className="inline-flex h-10 shrink-0 items-center justify-center gap-2 rounded-xl bg-indigo-300 px-4 text-xs font-semibold text-white opacity-100 shadow-sm hover:bg-indigo-400 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-indigo-500 focus-visible:ring-offset-2">
                       <Icon name="plus" className="h-4 w-4" />
                       Novo documento
                     </button>
                   ) : (
                     <Link
                       href={`/unidades/${id}/documentos/novo`}
-                      className="inline-flex h-10 shrink-0 items-center justify-center gap-2 rounded-xl bg-indigo-600 px-4 text-xs font-semibold text-white shadow-sm hover:bg-indigo-700">
+                      className="inline-flex h-10 shrink-0 items-center justify-center gap-2 rounded-xl bg-indigo-600 px-4 text-xs font-semibold text-white opacity-100 shadow-sm hover:bg-indigo-700">
                       <Icon name="plus" className="h-4 w-4" />
                       Novo documento
                     </Link>
@@ -316,14 +316,14 @@ export function UnidadeDetalheClient({ id }: { id: string }) {
                     type="button"
                     aria-disabled="true"
                     onClick={() => setInativaDialogResource("tarefa")}
-                    className="inline-flex h-10 shrink-0 items-center justify-center gap-2 rounded-xl bg-indigo-300 px-4 text-xs font-semibold text-white shadow-sm hover:bg-indigo-400 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-indigo-500 focus-visible:ring-offset-2">
+                    className="inline-flex h-10 shrink-0 items-center justify-center gap-2 rounded-xl bg-indigo-300 px-4 text-xs font-semibold text-white opacity-100 shadow-sm hover:bg-indigo-400 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-indigo-500 focus-visible:ring-offset-2">
                     <Icon name="plus" className="h-4 w-4" />
                     Nova Tarefa
                   </button>
                 ) : (
                   <Link
                     href={`/unidades/${id}/tarefas/nova`}
-                    className="inline-flex h-10 shrink-0 items-center justify-center gap-2 rounded-xl bg-indigo-600 px-4 text-xs font-semibold text-white shadow-sm hover:bg-indigo-700">
+                    className="inline-flex h-10 shrink-0 items-center justify-center gap-2 rounded-xl bg-indigo-600 px-4 text-xs font-semibold text-white opacity-100 shadow-sm hover:bg-indigo-700">
                     <Icon name="plus" className="h-4 w-4" />
                     Nova Tarefa
                   </Link>
