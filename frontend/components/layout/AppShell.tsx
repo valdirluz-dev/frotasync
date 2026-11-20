@@ -1,8 +1,15 @@
 "use client";
 
 import Link from "next/link";
-import { useState, useEffect, type ReactNode } from "react";
+import { useState, useEffect, useSyncExternalStore, type ReactNode } from "react";
 import { obterPerfilConsolidado } from "@/mocks/profile";
+import { mockNotificacoes } from "@/mocks/notificacoes";
+import {
+  getAppPreferencesSnapshot,
+  getServerPreferencesSnapshot,
+  parseAppPreferences,
+  subscribeToPreferences,
+} from "@/lib/preferences";
 
 import { Icon } from "@/components/ui/Icons";
 
@@ -20,29 +27,34 @@ export function AppShell({
   children: ReactNode;
 }) {
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
+  const [notificationsOpen, setNotificationsOpen] = useState(false);
+  const preferenceSnapshot = useSyncExternalStore(
+    subscribeToPreferences,
+    getAppPreferencesSnapshot,
+    getServerPreferencesSnapshot,
+  );
+  const preferences = parseAppPreferences(preferenceSnapshot);
+  const visibleNotifications = mockNotificacoes.filter(
+    (notification) => preferences.notifications[notification.categoria],
+  );
+  const unreadNotifications = visibleNotifications.filter(
+    (notification) => !notification.lida,
+  ).length;
 
   // ESTADO DO PERFIL: Atualizado para consumir o perfil consolidado do profile.ts
-  const [userProfile, setUserProfile] = useState({
-    nome: "Maria Luiza da Silva",
-    cargo: "Administradora de Frotas",
-    inicial: "ML"
+  const [userProfile] = useState(() => {
+    const profile = obterPerfilConsolidado();
+    const nome = profile.nome || "Maria Luiza da Silva";
+    return {
+      nome,
+      cargo: profile.cargo || "Administradora de Frotas",
+      inicial: nome.substring(0, 2).toUpperCase(),
+    };
   });
 
   useEffect(() => {
-    // Puxa os dados consolidados do mock/localStorage
-    const perfilConsolidado = obterPerfilConsolidado();
-    
-    if (perfilConsolidado && perfilConsolidado.nome) {
-      const nomeExibicao = perfilConsolidado.nome;
-      const iniciais = nomeExibicao.substring(0, 2).toUpperCase();
-
-      setUserProfile({
-        nome: nomeExibicao,
-        cargo: perfilConsolidado.cargo || "Administrador",
-        inicial: iniciais
-      });
-    }
-  }, []);
+    document.documentElement.dataset.theme = preferences.theme;
+  }, [preferences.theme]);
   
   // Variáveis isoladas e estritas para controlar exatamente qual aba está ativa
   const isDashboardSection = activeTab === "dashboard";
@@ -257,7 +269,7 @@ export function AppShell({
               </div>
             )}
           </div>
-          <div className="flex items-center gap-3 sm:gap-5">
+          <div className="relative flex items-center gap-3 sm:gap-5">
             <label className="hidden h-10 w-[220px] items-center gap-2 rounded-xl border border-slate-200 bg-surface px-3 text-slate-400 md:flex xl:w-[270px]">
               <Icon name="search" className="h-4 w-4" />
               <input
@@ -269,10 +281,62 @@ export function AppShell({
             <button
               type="button"
               aria-label="Notificações"
-              className="group relative text-slate-500">
+              aria-expanded={notificationsOpen}
+              onClick={() => setNotificationsOpen((open) => !open)}
+              className="group relative text-slate-500"
+            >
               <Icon name="bell" className="h-[18px] w-[18px] group-hover:animate-wiggle" />
-              <span className="absolute -right-0.5 -top-0.5 h-1.5 w-1.5 rounded-full bg-red-500 ring-2 ring-white" />
+              {unreadNotifications > 0 ? (
+                <span className="absolute -right-1 -top-1 flex h-4 min-w-4 items-center justify-center rounded-full bg-red-500 px-1 text-[9px] font-semibold text-white ring-2 ring-white">
+                  {unreadNotifications}
+                </span>
+              ) : null}
             </button>
+
+            {notificationsOpen ? (
+              <section
+                aria-label="Central de notificações"
+                className="absolute right-0 top-12 z-50 w-[min(360px,calc(100vw-2rem))] overflow-hidden rounded-xl border border-slate-200 bg-white shadow-xl"
+              >
+                <div className="flex items-center justify-between border-b border-slate-100 px-4 py-3">
+                  <h2 className="text-sm font-semibold text-slate-900">
+                    Notificações
+                  </h2>
+                  <Link
+                    href="/configuracoes"
+                    onClick={() => setNotificationsOpen(false)}
+                    className="text-xs font-medium text-indigo-600 hover:text-indigo-700"
+                  >
+                    Preferências
+                  </Link>
+                </div>
+                {visibleNotifications.length ? (
+                  <ul className="max-h-[min(60vh,420px)] overflow-y-auto">
+                    {visibleNotifications.map((notification) => (
+                      <li key={notification.id} className="border-b border-slate-100 last:border-0">
+                        {notification.destino ? (
+                          <Link
+                            href={notification.destino}
+                            onClick={() => setNotificationsOpen(false)}
+                            className="block px-4 py-3 transition hover:bg-slate-50"
+                          >
+                            <NotificationText notification={notification} />
+                          </Link>
+                        ) : (
+                          <div className="px-4 py-3">
+                            <NotificationText notification={notification} />
+                          </div>
+                        )}
+                      </li>
+                    ))}
+                  </ul>
+                ) : (
+                  <p className="px-4 py-6 text-center text-sm text-slate-500">
+                    Nenhuma notificação habilitada.
+                  </p>
+                )}
+              </section>
+            ) : null}
 
             
 
@@ -334,5 +398,25 @@ function Brand() {
         </div>
       </div>
     </div>
+  );
+}
+
+function NotificationText({
+  notification,
+}: {
+  notification: (typeof mockNotificacoes)[number];
+}) {
+  return (
+    <>
+      <p className="text-sm font-semibold text-slate-800">
+        {notification.titulo}
+      </p>
+      <p className="mt-1 text-xs leading-5 text-slate-500">
+        {notification.descricao}
+      </p>
+      <p className="mt-2 text-[10px] text-slate-400">
+        {new Date(notification.criadaEm).toLocaleString("pt-BR")}
+      </p>
+    </>
   );
 }
