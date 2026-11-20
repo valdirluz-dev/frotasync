@@ -6,6 +6,10 @@ describe("isPublicRoute", () => {
   it.each([
     "/login",
     "/api/auth/login",
+    "/api/auth/register",
+    "/api/auth/password-recovery/request",
+    "/api/auth/password-recovery/verify",
+    "/api/auth/password-recovery/reset",
     "/cadastro",
     "/cadastro/Dados-Pessoais",
     "/cadastro/Dados-da-Empresa",

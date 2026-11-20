@@ -1,6 +1,10 @@
 const publicExactRoutes = new Set([
   "/login",
   "/api/auth/login",
+  "/api/auth/register",
+  "/api/auth/password-recovery/request",
+  "/api/auth/password-recovery/verify",
+  "/api/auth/password-recovery/reset",
   "/cadastro",
   "/recuperar-senha",
 ]);

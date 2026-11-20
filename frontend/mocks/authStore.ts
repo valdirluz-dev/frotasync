@@ -1,5 +1,3 @@
-import type { ProfileData } from "./profile";
-
 export interface UsuarioRegistro {
   id: string;
   nome: string;
@@ -49,7 +47,27 @@ const USUARIO_PADRAO: UsuarioRegistro = {
 export const tabelaUsuarios: UsuarioRegistro[] = [USUARIO_PADRAO];
 
 // Rascunho temporário do wizard de cadastro enquanto o usuário digita
-export let rascunhoCadastro: Partial<UsuarioRegistro> = { };
+export const rascunhoCadastro: Partial<UsuarioRegistro> = {};
+
+export function buscarUsuarioPorEmail(email: string) {
+  const normalizedEmail = email.trim().toLowerCase();
+  return tabelaUsuarios.find(
+    (usuario) => usuario.email.trim().toLowerCase() === normalizedEmail,
+  );
+}
+
+export function adicionarUsuario(usuario: UsuarioRegistro): boolean {
+  if (buscarUsuarioPorEmail(usuario.email)) return false;
+  tabelaUsuarios.push(usuario);
+  return true;
+}
+
+export function atualizarSenhaUsuario(userId: string, senhaHash: string): boolean {
+  const usuario = tabelaUsuarios.find((item) => item.id === userId);
+  if (!usuario) return false;
+  usuario.senhaHash = senhaHash;
+  return true;
+}
 
 // Usuário que fez login no momento
 export let usuarioLogadoAtual: UsuarioRegistro = USUARIO_PADRAO;

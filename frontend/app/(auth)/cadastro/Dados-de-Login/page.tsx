@@ -73,6 +73,9 @@ export default function DadosLogin() {
       const resposta = await mockValidarDadosLogin({
         email: result.data.email,
         senha: result.data.senha,
+        confirmarSenha: result.data.confirmarSenha,
+        aceiteTermos: result.data.aceiteTermos,
+        website: formData.website,
       });
 
       if (resposta.success) {
@@ -82,6 +85,7 @@ export default function DadosLogin() {
       }
     } catch (error) {
       console.error("Erro ao validar login:", error);
+      alert("Não foi possível concluir o cadastro. Tente novamente.");
     } finally {
       setLoading(false);
     }
