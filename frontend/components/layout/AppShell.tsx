@@ -1,6 +1,7 @@
 "use client";
 
 import Link from "next/link";
+import { useRouter } from "next/navigation";
 import { useState, useEffect, useSyncExternalStore, type ReactNode } from "react";
 import { obterPerfilConsolidado } from "@/mocks/profile";
 import { mockNotificacoes } from "@/mocks/notificacoes";
@@ -26,8 +27,12 @@ export function AppShell({
     | { custom: ReactNode };
   children: ReactNode;
 }) {
+  const router = useRouter();
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
   const [notificationsOpen, setNotificationsOpen] = useState(false);
+  const [profileMenuOpen, setProfileMenuOpen] = useState(false);
+  const [loggingOut, setLoggingOut] = useState(false);
+  const [logoutError, setLogoutError] = useState("");
   const preferenceSnapshot = useSyncExternalStore(
     subscribeToPreferences,
     getAppPreferencesSnapshot,
@@ -55,6 +60,23 @@ export function AppShell({
   useEffect(() => {
     document.documentElement.dataset.theme = preferences.theme;
   }, [preferences.theme]);
+
+  async function handleLogout() {
+    setLoggingOut(true);
+    setLogoutError("");
+
+    try {
+      const response = await fetch("/api/auth/logout", { method: "POST" });
+      if (!response.ok) {
+        throw new Error("A solicitação de logout falhou.");
+      }
+
+      router.replace("/login");
+    } catch {
+      setLogoutError("Não foi possível sair da conta. Tente novamente.");
+      setLoggingOut(false);
+    }
+  }
   
   // Variáveis isoladas e estritas para controlar exatamente qual aba está ativa
   const isDashboardSection = activeTab === "dashboard";
@@ -346,31 +368,74 @@ export function AppShell({
             <span className="hidden h-8 border-l border-slate-200 sm:block" />
             
             {/* Bloco do perfil dinâmico que puxa os dados do localStorage */}
-            <Link 
-              href="/perfil" 
-              className="flex items-center gap-2 rounded-lg p-1 transition hover:bg-slate-50 cursor-pointer"
-            >
-              {/* Círculo com as iniciais dinâmicas (ex: MA) */}
-              <div className="flex h-8 w-8 items-center justify-center rounded-full bg-indigo-600 text-[10px] font-semibold text-white">
-                {userProfile.inicial}
-              </div>
-
-              {/* Nome e cargo dinâmicos */}
-              <div className="hidden leading-tight sm:block text-left">
-                <div className="text-xs font-semibold text-slate-800">
-                  {userProfile.nome}
+            <div className="relative">
+              <button
+                type="button"
+                aria-label="Menu da conta"
+                aria-haspopup="menu"
+                aria-expanded={profileMenuOpen}
+                onClick={() => {
+                  setProfileMenuOpen((open) => !open);
+                  setNotificationsOpen(false);
+                }}
+                className="flex items-center gap-2 rounded-lg p-1 text-left transition hover:bg-slate-50"
+              >
+                <div className="flex h-8 w-8 items-center justify-center rounded-full bg-indigo-600 text-[10px] font-semibold text-white">
+                  {userProfile.inicial}
                 </div>
-                <div className="mt-0.5 text-[10px] text-slate-400">
-                  {userProfile.cargo}
+                <div className="hidden leading-tight sm:block">
+                  <div className="text-xs font-semibold text-slate-800">
+                    {userProfile.nome}
+                  </div>
+                  <div className="mt-0.5 text-[10px] text-slate-400">
+                    {userProfile.cargo}
+                  </div>
                 </div>
-              </div>
-
-              {/* Ícone de chevron / setinha para indicar que é clicável */}
-              <Icon
-                name="chevron"
-                className="hidden h-4 w-4 text-slate-400 sm:block"
-              />
-            </Link>
+                <Icon
+                  name="chevron"
+                  className="hidden h-4 w-4 text-slate-400 sm:block"
+                />
+              </button>
+              {profileMenuOpen ? (
+                <div
+                  role="menu"
+                  aria-label="Opções da conta"
+                  className="absolute right-0 top-12 z-50 w-56 overflow-hidden rounded-xl border border-slate-200 bg-white p-1.5 shadow-xl"
+                >
+                  <Link
+                    role="menuitem"
+                    href="/perfil"
+                    onClick={() => setProfileMenuOpen(false)}
+                    className="block rounded-lg px-3 py-2 text-sm text-slate-700 hover:bg-slate-50"
+                  >
+                    Meu perfil
+                  </Link>
+                  <Link
+                    role="menuitem"
+                    href="/configuracoes"
+                    onClick={() => setProfileMenuOpen(false)}
+                    className="block rounded-lg px-3 py-2 text-sm text-slate-700 hover:bg-slate-50"
+                  >
+                    Configurações
+                  </Link>
+                  <div className="my-1 border-t border-slate-100" />
+                  <button
+                    role="menuitem"
+                    type="button"
+                    disabled={loggingOut}
+                    onClick={handleLogout}
+                    className="block w-full rounded-lg px-3 py-2 text-left text-sm font-medium text-red-600 hover:bg-red-50 disabled:cursor-wait disabled:opacity-60"
+                  >
+                    {loggingOut ? "Saindo..." : "Sair da conta"}
+                  </button>
+                  {logoutError ? (
+                    <p role="alert" className="px-3 pb-2 text-xs text-red-600">
+                      {logoutError}
+                    </p>
+                  ) : null}
+                </div>
+              ) : null}
+            </div>
             
           </div>
         </header>
