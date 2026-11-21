@@ -2,7 +2,10 @@ import { createPaginatedResponse } from './pagination-response.util';
 
 describe('createPaginatedResponse', () => {
   it('should return the correct paginated response structure', () => {
-    const items = [{ id: 1, nome: 'Empresa A' }, { id: 2, nome: 'Empresa B' }];
+    const items = [
+      { id: 1, nome: 'Empresa A' },
+      { id: 2, nome: 'Empresa B' },
+    ];
 
     const meta = {
       page: 1,
@@ -48,6 +51,44 @@ describe('createPaginatedResponse', () => {
       page: 1,
       pageSize: 20,
       total: 0,
+      totalPages: 1,
+    });
+  });
+
+  it('should preserve pagination metadata for a different page', () => {
+    const items = [{ id: 21, nome: 'Empresa C' }];
+
+    const meta = {
+      page: 2,
+      pageSize: 20,
+      total: 45,
+      totalPages: 3,
+    };
+
+    expect(createPaginatedResponse(items, meta)).toEqual({
+      items,
+      page: 2,
+      pageSize: 20,
+      total: 45,
+      totalPages: 3,
+    });
+  });
+
+  it('should support different item types through generics', () => {
+    const items = ['Documento A', 'Documento B'];
+
+    const meta = {
+      page: 1,
+      pageSize: 20,
+      total: 2,
+      totalPages: 1,
+    };
+
+    expect(createPaginatedResponse(items, meta)).toEqual({
+      items,
+      page: 1,
+      pageSize: 20,
+      total: 2,
       totalPages: 1,
     });
   });
