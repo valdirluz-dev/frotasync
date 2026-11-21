@@ -18,9 +18,7 @@ describe('ZodValidationPipe', () => {
   });
 
   it('should transform string values into numbers', () => {
-    expect(
-      pipe.transform({ page: '3', pageSize: '50' }, {} as never),
-    ).toEqual({
+    expect(pipe.transform({ page: '3', pageSize: '50' }, {} as never)).toEqual({
       page: 3,
       pageSize: 50,
     });
@@ -49,6 +47,73 @@ describe('ZodValidationPipe', () => {
           },
         ],
       });
+    }
+  });
+
+  it('should return nested field paths in validation errors', () => {
+    const nestedPipe = new ZodValidationPipe(
+      z.object({
+        usuario: z.object({
+          email: z.string().email(),
+        }),
+      }),
+    );
+
+    try {
+      nestedPipe.transform(
+        {
+          usuario: {
+            email: 'email-invalido',
+          },
+        },
+        {} as never,
+      );
+    } catch (error) {
+      expect(error).toBeInstanceOf(BadRequestException);
+
+      const exception = error as BadRequestException;
+      const response = exception.getResponse() as {
+        errors: { field: string; message: string }[];
+      };
+
+      expect(response.errors).toEqual([
+        {
+          field: 'usuario.email',
+          message: expect.any(String),
+        },
+      ]);
+    }
+  });
+
+  it('should return multiple validation errors', () => {
+    const multipleErrorsPipe = new ZodValidationPipe(
+      z.object({
+        page: z.coerce.number().int().min(1),
+        pageSize: z.coerce.number().int().min(1).max(100),
+      }),
+    );
+
+    try {
+      multipleErrorsPipe.transform(
+        {
+          page: '0',
+          pageSize: '101',
+        },
+        {} as never,
+      );
+    } catch (error) {
+      expect(error).toBeInstanceOf(BadRequestException);
+
+      const exception = error as BadRequestException;
+      const response = exception.getResponse() as {
+        errors: { field: string; message: string }[];
+      };
+
+      expect(response.errors).toHaveLength(2);
+      expect(response.errors.map((item) => item.field)).toEqual([
+        'page',
+        'pageSize',
+      ]);
     }
   });
 });
