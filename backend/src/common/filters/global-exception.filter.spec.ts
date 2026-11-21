@@ -132,4 +132,39 @@ describe('GlobalExceptionFilter', () => {
       }),
     );
   });
+
+  it('should standardize Zod validation error messages', () => {
+    const exception = new HttpException(
+      {
+        statusCode: 400,
+        message: 'Validation failed',
+        errors: [
+          {
+            field: 'email',
+            message: 'Email inválido',
+          },
+        ],
+      },
+      HttpStatus.BAD_REQUEST,
+    );
+
+    filter.catch(exception, mockHost);
+
+    expect(mockResponse.status).toHaveBeenCalledWith(400);
+
+    expect(mockResponse.json).toHaveBeenCalledWith(
+      expect.objectContaining({
+        status: 400,
+        error: 'BAD_REQUEST',
+        message: 'Um ou mais campos são inválidos',
+        path: '/api/v1/empresas',
+        erros: [
+          {
+            campo: 'email',
+            mensagem: 'Email inválido',
+          },
+        ],
+      }),
+    );
+  });
 });

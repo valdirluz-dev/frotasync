@@ -37,27 +37,25 @@ export class GlobalExceptionFilter implements ExceptionFilter {
     const exceptionResponse =
       exception instanceof HttpException ? exception.getResponse() : null;
 
-        const responseBody: Record<string, unknown> =
+    const responseBody: Record<string, unknown> =
       typeof exceptionResponse === 'object' && exceptionResponse !== null
-        ? exceptionResponse as Record<string, unknown>
+        ? (exceptionResponse as Record<string, unknown>)
         : {};
 
     const isInternalError = status >= 500;
 
     const message = isInternalError
       ? 'Erro interno do servidor'
-      : typeof responseBody.message === 'string'
-        ? responseBody.message
-        : status === HttpStatus.BAD_REQUEST
-          ? 'Um ou mais campos são inválidos'
+      : status === HttpStatus.BAD_REQUEST
+        ? 'Um ou mais campos são inválidos'
+        : typeof responseBody.message === 'string'
+          ? responseBody.message
           : exception instanceof HttpException
             ? exception.message
             : 'Erro inesperado';
 
     const codigo =
-      typeof responseBody.codigo === 'string'
-        ? responseBody.codigo
-        : undefined;
+      typeof responseBody.codigo === 'string' ? responseBody.codigo : undefined;
 
     const erros: CampoInvalido[] = Array.isArray(responseBody.errors)
       ? responseBody.errors.map((item: any) => ({
