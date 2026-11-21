@@ -7,6 +7,21 @@ import {
 } from '@nestjs/common';
 import { Request, Response } from 'express';
 
+interface CampoInvalido {
+  campo: string;
+  mensagem: string;
+}
+
+interface ApiErrorResponse {
+  timestamp: string;
+  status: number;
+  error: string;
+  codigo?: string;
+  message: string;
+  path: string;
+  erros: CampoInvalido[];
+}
+
 @Catch()
 export class GlobalExceptionFilter implements ExceptionFilter {
   catch(exception: unknown, host: ArgumentsHost): void {
@@ -22,24 +37,52 @@ export class GlobalExceptionFilter implements ExceptionFilter {
     const exceptionResponse =
       exception instanceof HttpException ? exception.getResponse() : null;
 
-    const message =
-      typeof exceptionResponse === 'object' &&
-      exceptionResponse !== null &&
-      'message' in exceptionResponse
-        ? exceptionResponse.message
-        : exception instanceof Error
-          ? exception.message
-          : 'Erro interno do servidor';
+    const responseBody =
+      typeof exceptionResponse === 'object' && exceptionResponse !== null
+        ? exceptionResponse
+        : {};
+
+    const isInternalError = status >= 500;
+
+    const message = isInternalError
+      ? 'Erro interno do servidor'
+      : typeof responseBody.message === 'string'
+        ? responseBody.message
+        : status === HttpStatus.BAD_REQUEST
+          ? 'Um ou mais campos são inválidos'
+          : exception instanceof HttpException
+            ? exception.message
+            : 'Erro inesperado';
+
+    const codigo =
+      typeof responseBody.codigo === 'string'
+        ? responseBody.codigo
+        : undefined;
+
+    const erros: CampoInvalido[] = Array.isArray(responseBody.errors)
+      ? responseBody.errors.map((item: any) => ({
+          campo: item.field ?? item.campo ?? '',
+          mensagem: item.message ?? item.mensagem ?? '',
+        }))
+      : Array.isArray(responseBody.erros)
+        ? responseBody.erros.map((item: any) => ({
+            campo: item.campo ?? '',
+            mensagem: item.mensagem ?? '',
+          }))
+        : [];
 
     const error = HttpStatus[status] ?? 'INTERNAL_SERVER_ERROR';
 
-    response.status(status).json({
+    const errorResponse: ApiErrorResponse = {
       timestamp: new Date().toISOString(),
       status,
       error,
+      ...(codigo && { codigo }),
       message,
       path: request.url,
-      erros: [],
-    });
+      erros: erros,
+    };
+
+    response.status(status).json(errorResponse);
   }
 }
