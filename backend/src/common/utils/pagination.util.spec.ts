@@ -44,4 +44,26 @@ describe('calculatePagination', () => {
       take: 20,
     });
   });
+
+  it('should handle total exactly divisible by pageSize', () => {
+    expect(calculatePagination({ page: 2, pageSize: 20 }, 40)).toEqual({
+      page: 2,
+      pageSize: 20,
+      total: 40,
+      totalPages: 2,
+      skip: 20,
+      take: 20,
+    });
+  });
+
+  it('should calculate the last partial page correctly', () => {
+    expect(calculatePagination({ page: 3, pageSize: 20 }, 45)).toEqual({
+      page: 3,
+      pageSize: 20,
+      total: 45,
+      totalPages: 3,
+      skip: 40,
+      take: 20,
+    });
+  });
 });
