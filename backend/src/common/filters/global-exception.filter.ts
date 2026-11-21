@@ -37,9 +37,9 @@ export class GlobalExceptionFilter implements ExceptionFilter {
     const exceptionResponse =
       exception instanceof HttpException ? exception.getResponse() : null;
 
-    const responseBody =
+        const responseBody: Record<string, unknown> =
       typeof exceptionResponse === 'object' && exceptionResponse !== null
-        ? exceptionResponse
+        ? exceptionResponse as Record<string, unknown>
         : {};
 
     const isInternalError = status >= 500;
