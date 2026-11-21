@@ -2,3 +2,8 @@ node_modules
 .sh
 .zip
 frontend/.env.local
+
+# Environment variables
+.env
+.env.*
+!.env.example
