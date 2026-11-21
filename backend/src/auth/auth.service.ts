@@ -82,54 +82,101 @@ export class AuthService {
 
     const senhaHash = await bcrypt.hash(dados.login.senha, 10);
 
-    const cadastro = await this.prisma.$transaction(async (tx) => {
-      const empresa = await tx.empresa.create({
-        data: {
-          nome_fantasia: dados.empresa.nomeEmpresa,
-          razao_social: dados.empresa.razaoSocial,
-          cnpj: dados.empresa.cnpj,
-          segmento: dados.empresa.segmento,
-          tipo_unidade: dados.empresa.tipoUnidade,
-          cep: dados.empresa.cep,
-          logradouro: dados.empresa.logradouro,
-          numero: dados.empresa.numero,
-          complemento: dados.empresa.complemento,
-          bairro: dados.empresa.bairro,
-          cidade: dados.empresa.cidade,
-          uf: dados.empresa.uf,
-        },
-      });
+    let cadastro;
 
-      const usuario = await tx.usuario.create({
-        data: {
-          empresa_id: empresa.id,
-          nome: dados.pessoais.nome,
-          cpf: dados.pessoais.cpf,
-          telefone: dados.pessoais.telefone,
-          cargo: dados.pessoais.cargo,
-          email,
-          senha_hash: senhaHash,
-          papel: 'administrador',
-          aceite_termos_em: new Date(),
-        },
-        select: {
-          id: true,
-          nome: true,
-          email: true,
-          papel: true,
-        },
-      });
+    try {
+      cadastro = await this.prisma.$transaction(async (tx) => {
+        const empresa = await tx.empresa.create({
+          data: {
+            nome_fantasia: dados.empresa.nomeEmpresa,
+            razao_social: dados.empresa.razaoSocial,
+            cnpj: dados.empresa.cnpj,
+            segmento: dados.empresa.segmento,
+            tipo_unidade: dados.empresa.tipoUnidade,
+            cep: dados.empresa.cep,
+            logradouro: dados.empresa.logradouro,
+            numero: dados.empresa.numero,
+            complemento: dados.empresa.complemento,
+            bairro: dados.empresa.bairro,
+            cidade: dados.empresa.cidade,
+            uf: dados.empresa.uf,
+          },
+        });
 
-      return {
-        empresaId: empresa.id,
-        usuario: {
-          id: usuario.id,
-          nome: usuario.nome,
-          email: usuario.email,
-          perfil: usuario.papel,
-        },
-      };
-    });
+        const usuario = await tx.usuario.create({
+          data: {
+            empresa_id: empresa.id,
+            nome: dados.pessoais.nome,
+            cpf: dados.pessoais.cpf,
+            telefone: dados.pessoais.telefone,
+            cargo: dados.pessoais.cargo,
+            email,
+            senha_hash: senhaHash,
+            papel: 'administrador',
+            aceite_termos_em: new Date(),
+          },
+          select: {
+            id: true,
+            nome: true,
+            email: true,
+            papel: true,
+          },
+        });
+
+        return {
+          empresaId: empresa.id,
+          usuario: {
+            id: usuario.id,
+            nome: usuario.nome,
+            email: usuario.email,
+            perfil: usuario.papel,
+          },
+        };
+      });
+    } catch (error) {
+      if (
+        error instanceof Prisma.PrismaClientKnownRequestError &&
+        error.code === 'P2002'
+      ) {
+        const alvo = error.meta?.target;
+        const campos = typeof alvo === 'string'
+          ? [alvo]
+          : Array.isArray(alvo)
+            ? alvo.filter((item): item is string => typeof item === 'string')
+            : [];
+        const identificador = campos.join(',').toLowerCase();
+
+        if (identificador.includes('email')) {
+          throw this.conflitoCadastro(
+            'EMAIL_DUPLICADO',
+            'login.email',
+            'Este e-mail já está cadastrado.',
+          );
+        }
+
+        if (identificador.includes('cpf')) {
+          throw this.conflitoCadastro(
+            'CPF_DUPLICADO',
+            'pessoais.cpf',
+            'Este CPF já está cadastrado.',
+          );
+        }
+
+        if (identificador.includes('cnpj')) {
+          throw this.conflitoCadastro(
+            'CNPJ_DUPLICADO',
+            'empresa.cnpj',
+            'Este CNPJ já está cadastrado.',
+          );
+        }
+
+        throw new InternalServerErrorException(
+          'Erro interno ao cadastrar usuário.',
+        );
+      }
+
+      throw error;
+    }
 
     return cadastro;
   }
