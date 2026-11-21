@@ -20,6 +20,8 @@ O projeto utiliza responsabilidades separadas para gerenciamento do banco:
 
 O Prisma não deve ser utilizado para executar alterações estruturais no banco. As migrações são gerenciadas exclusivamente pelo Flyway.
 
+O Prisma Client é utilizado pela aplicação para realizar operações de leitura e escrita de dados no PostgreSQL, respeitando o schema previamente definido e gerenciado pelo Flyway.
+
 ## Ambiente de desenvolvimento
 
 ### Requisitos
