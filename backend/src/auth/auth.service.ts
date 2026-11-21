@@ -31,17 +31,12 @@ export class AuthService {
   ): Promise<void> {
     const emailNormalizado = email.trim().toLowerCase();
 
-    const usuarioExistente = await this.prisma.usuario.findFirst({
-      where: {
-        OR: [{ email: emailNormalizado }, { cpf }],
-      },
-      select: {
-        email: true,
-        cpf: true,
-      },
+    const usuarioPorEmail = await this.prisma.usuario.findUnique({
+      where: { email: emailNormalizado },
+      select: { id: true },
     });
 
-    if (usuarioExistente?.email === emailNormalizado) {
+    if (usuarioPorEmail) {
       throw this.conflitoCadastro(
         'EMAIL_DUPLICADO',
         'login.email',
@@ -49,7 +44,12 @@ export class AuthService {
       );
     }
 
-    if (usuarioExistente?.cpf === cpf) {
+    const usuarioPorCpf = await this.prisma.usuario.findUnique({
+      where: { cpf },
+      select: { id: true },
+    });
+
+    if (usuarioPorCpf) {
       throw this.conflitoCadastro(
         'CPF_DUPLICADO',
         'pessoais.cpf',
@@ -57,12 +57,12 @@ export class AuthService {
       );
     }
 
-    const empresaExistente = await this.prisma.empresa.findUnique({
+    const empresaPorCnpj = await this.prisma.empresa.findUnique({
       where: { cnpj },
       select: { id: true },
     });
 
-    if (empresaExistente) {
+    if (empresaPorCnpj) {
       throw this.conflitoCadastro(
         'CNPJ_DUPLICADO',
         'empresa.cnpj',
