@@ -82,6 +82,55 @@ export class AuthService {
 
     const senhaHash = await bcrypt.hash(dados.login.senha, 10);
 
-    // Próxima etapa: persistência transacional
+    const cadastro = await this.prisma.$transaction(async (tx) => {
+      const empresa = await tx.empresa.create({
+        data: {
+          nome_fantasia: dados.empresa.nomeEmpresa,
+          razao_social: dados.empresa.razaoSocial,
+          cnpj: dados.empresa.cnpj,
+          segmento: dados.empresa.segmento,
+          tipo_unidade: dados.empresa.tipoUnidade,
+          cep: dados.empresa.cep,
+          logradouro: dados.empresa.logradouro,
+          numero: dados.empresa.numero,
+          complemento: dados.empresa.complemento,
+          bairro: dados.empresa.bairro,
+          cidade: dados.empresa.cidade,
+          uf: dados.empresa.uf,
+        },
+      });
+
+      const usuario = await tx.usuario.create({
+        data: {
+          empresa_id: empresa.id,
+          nome: dados.pessoais.nome,
+          cpf: dados.pessoais.cpf,
+          telefone: dados.pessoais.telefone,
+          cargo: dados.pessoais.cargo,
+          email,
+          senha_hash: senhaHash,
+          papel: 'administrador',
+          aceite_termos_em: new Date(),
+        },
+        select: {
+          id: true,
+          nome: true,
+          email: true,
+          papel: true,
+        },
+      });
+
+      return {
+        empresaId: empresa.id,
+        usuario: {
+          id: usuario.id,
+          nome: usuario.nome,
+          email: usuario.email,
+          perfil: usuario.papel,
+        },
+      };
+    });
+
+    return cadastro;
   }
 }
