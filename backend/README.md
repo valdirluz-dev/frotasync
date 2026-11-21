@@ -1,35 +1,114 @@
-# Backend Frotasync
+# Backend FROTASYNC
 
-Base da API em NestJS com TypeScript. Os diretórios de módulos existentes na
-raiz (`auth`, `usuarios`, `unidades` e demais) foram preservados para integração
-gradual; regras de negócio e acesso ao banco ainda não estão implementados.
+API do sistema FROTASYNC, desenvolvida com NestJS e TypeScript, com PostgreSQL como banco de dados relacional, Prisma como ORM e Flyway como ferramenta exclusiva de gerenciamento de migrações de schema.
 
-## Desenvolvimento local
+## Stack
 
-Requer Node.js 20.19 ou superior e npm.
+- **NestJS** — Framework backend
+- **TypeScript** — Linguagem
+- **PostgreSQL 17** — Banco de dados
+- **Prisma 7** — ORM e geração do Prisma Client
+- **Flyway** — Versionamento e execução de migrações SQL
+- **Docker Compose** — Ambiente local para o PostgreSQL
 
-```sh
-npm ci
+## Arquitetura de banco de dados
+
+O projeto utiliza responsabilidades separadas para gerenciamento do banco:
+
+- **Flyway:** responsável pela criação, alteração e versionamento do schema do banco de dados.
+- **Prisma:** responsável pelo acesso aos dados, consultas e integração com a aplicação por meio do Prisma Client.
+
+O Prisma não deve ser utilizado para executar alterações estruturais no banco. As migrações são gerenciadas exclusivamente pelo Flyway.
+
+## Ambiente de desenvolvimento
+
+### Requisitos
+
+- Node.js 20.19 ou superior
+- npm
+- Docker
+- Docker Compose
+
+### PostgreSQL
+
+O PostgreSQL 17 é executado localmente através do Docker Compose, configurado no diretório raiz do projeto.
+
+O banco utiliza a porta `5433` no host, mapeada para a porta `5432` do container, e é exposto somente à interface local (`127.0.0.1`).
+
+### Configuração da API
+
+Na pasta `backend`, copie o arquivo de exemplo de ambiente:
+
+```bash
 cp .env.example .env
-# Atualize DATABASE_URL com as credenciais locais do PostgreSQL.
+```
+
+Configure a variável `DATABASE_URL` com as credenciais locais do PostgreSQL.
+
+### Instalação
+
+```bash
+npm ci
+```
+
+### Executar em desenvolvimento
+
+```bash
 npm run start:dev
 ```
 
-A API escuta na porta definida por `PORT` (3000 por padrão). O endpoint
-`GET /health` retorna `{"status":"ok"}`. Para conectar ao PostgreSQL executado
-pelo Compose no host, use a porta 5433 em `DATABASE_URL`.
+A API utiliza a porta `3000` por padrão, podendo ser alterada através da variável de ambiente `PORT`.
 
-O build executa `prisma generate` para reconstruir o client ignorado pelo Git;
-isso não altera o schema do banco nem executa migrações.
+## Prisma
+
+O Prisma Client é gerado durante o processo de build e seu código gerado não é versionado no Git.
+
+A validação do schema pode ser realizada através do comando:
+
+```bash
+npx prisma validate
+```
+
+A geração do Prisma Client:
+
+```bash
+npx prisma generate
+```
+
+Esses comandos não executam migrações nem alteram a estrutura do banco de dados.
+
+## Healthcheck
+
+A API disponibiliza:
+
+```http
+GET /health
+```
+
+O endpoint retorna um status de liveness da aplicação. Ele confirma que a API está respondendo, mas não representa uma verificação completa da disponibilidade do PostgreSQL.
 
 ## Verificações
 
-```sh
+```bash
 npm run lint
 npm run build
 npm test
 ```
 
-O projeto apenas carrega as variáveis de ambiente neste estágio. A URL do banco
-fica preparada para a futura configuração do Prisma, que não está instalado;
-nenhuma migração é executada pela aplicação.
+## Migrações
+
+O schema do PostgreSQL é gerenciado exclusivamente pelo Flyway, através de migrações SQL versionadas.
+
+As migrações estão localizadas em:
+
+```text
+db/migration/
+```
+
+As alterações estruturais do banco devem ser realizadas por novas migrações Flyway, respeitando o histórico de versões existente.
+
+## Status do desenvolvimento
+
+A infraestrutura base do backend está configurada, incluindo NestJS, PostgreSQL, integração Prisma e versionamento do banco com Flyway.
+
+Os módulos de negócio e funcionalidades da API estão sendo implementados de forma incremental.
