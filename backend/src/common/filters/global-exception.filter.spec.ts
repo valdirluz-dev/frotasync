@@ -133,6 +133,30 @@ describe('GlobalExceptionFilter', () => {
     );
   });
 
+  it('should return a specific message for 503 service unavailable errors', () => {
+    const exception = new HttpException(
+      {
+        status: 'error',
+        database: 'disconnected',
+      },
+      HttpStatus.SERVICE_UNAVAILABLE,
+    );
+
+    filter.catch(exception, mockHost);
+
+    expect(mockResponse.status).toHaveBeenCalledWith(503);
+
+    expect(mockResponse.json).toHaveBeenCalledWith(
+      expect.objectContaining({
+        status: 503,
+        error: 'SERVICE_UNAVAILABLE',
+        message: 'Serviço indisponível',
+        path: '/api/v1/empresas',
+        erros: [],
+      }),
+    );
+  });
+
   it('should standardize Zod validation error messages', () => {
     const exception = new HttpException(
       {

@@ -62,15 +62,18 @@ export class GlobalExceptionFilter implements ExceptionFilter {
 
     const isInternalError = status >= 500;
 
-    const message = isInternalError
-      ? 'Erro interno do servidor'
-      : status === HttpStatus.BAD_REQUEST
-        ? 'Um ou mais campos são inválidos'
-        : typeof responseBody.message === 'string'
-          ? responseBody.message
-          : exception instanceof HttpException
-            ? exception.message
-            : 'Erro inesperado';
+    const message =
+      status === HttpStatus.SERVICE_UNAVAILABLE
+        ? 'Serviço indisponível'
+        : isInternalError
+          ? 'Erro interno do servidor'
+          : status === HttpStatus.BAD_REQUEST
+            ? 'Um ou mais campos são inválidos'
+            : typeof responseBody.message === 'string'
+              ? responseBody.message
+              : exception instanceof HttpException
+                ? exception.message
+                : 'Erro inesperado';
 
     const codigo =
       typeof responseBody.codigo === 'string' ? responseBody.codigo : undefined;
