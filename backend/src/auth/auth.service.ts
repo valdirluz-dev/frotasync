@@ -1,5 +1,12 @@
-import { ConflictException, Injectable } from '@nestjs/common';
+import {
+  ConflictException,
+  Injectable,
+  InternalServerErrorException,
+} from '@nestjs/common';
+import bcrypt from 'bcrypt';
+import { Prisma } from '../../generated/prisma/client';
 import { PrismaService } from '../prisma/prisma.service';
+import { CadastroDto } from './schemas/cadastro.schema';
 
 @Injectable()
 export class AuthService {
@@ -62,5 +69,19 @@ export class AuthService {
         'Este CNPJ já está cadastrado.',
       );
     }
+  }
+
+  async cadastrar(dados: CadastroDto) {
+    const email = dados.login.email.trim().toLowerCase();
+
+    await this.verificarDuplicidades(
+      email,
+      dados.pessoais.cpf,
+      dados.empresa.cnpj,
+    );
+
+    const senhaHash = await bcrypt.hash(dados.login.senha, 10);
+
+    // Próxima etapa: persistência transacional
   }
 }
