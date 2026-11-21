@@ -22,6 +22,25 @@ interface ApiErrorResponse {
   erros: CampoInvalido[];
 }
 
+function isRecord(value: unknown): value is Record<string, unknown> {
+  return typeof value === 'object' && value !== null && !Array.isArray(value);
+}
+
+function normalizeValidationError(value: unknown): CampoInvalido | null {
+  if (!isRecord(value)) {
+    return null;
+  }
+
+  const campo = value.field ?? value.campo;
+  const mensagem = value.message ?? value.mensagem;
+
+  if (typeof campo !== 'string' || typeof mensagem !== 'string') {
+    return null;
+  }
+
+  return { campo, mensagem };
+}
+
 @Catch()
 export class GlobalExceptionFilter implements ExceptionFilter {
   catch(exception: unknown, host: ArgumentsHost): void {
@@ -37,10 +56,7 @@ export class GlobalExceptionFilter implements ExceptionFilter {
     const exceptionResponse =
       exception instanceof HttpException ? exception.getResponse() : null;
 
-    const responseBody: Record<string, unknown> =
-      typeof exceptionResponse === 'object' && exceptionResponse !== null
-        ? (exceptionResponse as Record<string, unknown>)
-        : {};
+    const responseBody = isRecord(exceptionResponse) ? exceptionResponse : {};
 
     const isInternalError = status >= 500;
 
@@ -57,17 +73,15 @@ export class GlobalExceptionFilter implements ExceptionFilter {
     const codigo =
       typeof responseBody.codigo === 'string' ? responseBody.codigo : undefined;
 
-    const erros: CampoInvalido[] = Array.isArray(responseBody.errors)
-      ? responseBody.errors.map((item: any) => ({
-          campo: item.field ?? item.campo ?? '',
-          mensagem: item.message ?? item.mensagem ?? '',
-        }))
+    const rawErrors = Array.isArray(responseBody.errors)
+      ? responseBody.errors
       : Array.isArray(responseBody.erros)
-        ? responseBody.erros.map((item: any) => ({
-            campo: item.campo ?? '',
-            mensagem: item.mensagem ?? '',
-          }))
+        ? responseBody.erros
         : [];
+
+    const erros = rawErrors
+      .map(normalizeValidationError)
+      .filter((item): item is CampoInvalido => item !== null);
 
     const error = HttpStatus[status] ?? 'INTERNAL_SERVER_ERROR';
 
