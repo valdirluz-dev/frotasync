@@ -19,6 +19,9 @@ A API escuta na porta definida por `PORT` (3000 por padrão). O endpoint
 `GET /health` retorna `{"status":"ok"}`. Para conectar ao PostgreSQL executado
 pelo Compose no host, use a porta 5433 em `DATABASE_URL`.
 
+O build executa `prisma generate` para reconstruir o client ignorado pelo Git;
+isso não altera o schema do banco nem executa migrações.
+
 ## Verificações
 
 ```sh
