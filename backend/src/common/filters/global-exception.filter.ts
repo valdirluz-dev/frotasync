@@ -31,8 +31,10 @@ function normalizeValidationError(value: unknown): CampoInvalido | null {
     return null;
   }
 
-  const campo = value.field ?? value.campo;
-  const mensagem = value.message ?? value.mensagem;
+  const campo = typeof value.field === 'string' ? value.field : value.campo;
+
+  const mensagem =
+    typeof value.message === 'string' ? value.message : value.mensagem;
 
   if (typeof campo !== 'string' || typeof mensagem !== 'string') {
     return null;
