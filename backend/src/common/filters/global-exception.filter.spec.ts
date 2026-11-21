@@ -167,4 +167,46 @@ describe('GlobalExceptionFilter', () => {
       }),
     );
   });
+
+  it('should ignore malformed validation errors and use fallback fields', () => {
+    const exception = new HttpException(
+      {
+        statusCode: 400,
+        message: 'Validation failed',
+        errors: [
+          {
+            field: 123,
+            campo: 'email',
+            message: null,
+            mensagem: 'Email inválido',
+          },
+          null,
+          'invalid error',
+          {
+            field: 'nome',
+            message: 'Nome é obrigatório',
+          },
+        ],
+      },
+      HttpStatus.BAD_REQUEST,
+    );
+
+    filter.catch(exception, mockHost);
+
+    expect(mockResponse.json).toHaveBeenCalledWith(
+      expect.objectContaining({
+        status: 400,
+        erros: [
+          {
+            campo: 'email',
+            mensagem: 'Email inválido',
+          },
+          {
+            campo: 'nome',
+            mensagem: 'Nome é obrigatório',
+          },
+        ],
+      }),
+    );
+  });
 });
