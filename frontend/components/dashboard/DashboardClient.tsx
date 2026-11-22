@@ -6,6 +6,7 @@ import { StatusDonutCard } from "@/components/dashboard/StatusDonutCard";
 import { useDashboardIndicators } from "@/hooks/useDashboard";
 import { ProcessFlow } from "./ProcessFlow";
 import { LicenceStatus } from "./LicenceStatus";
+import { IssuedLicenses } from "./IssuedLicenses";
 
 export function DashboardClient() {
   const indicatorQuery = useDashboardIndicators();
@@ -60,6 +61,8 @@ export function DashboardClient() {
        {/*Status de linceças*/}
       <section  aria-label="Status de licenças" className="mt-6 grid grid-cols-1 gap-4 lg:grid-cols-2">
         <LicenceStatus/>
+        {/*Licenças Emitidas*/}
+        <IssuedLicenses/>
       </section>
 
     </AppShell>
