@@ -1,8 +1,28 @@
-import { Body, Controller, HttpCode, HttpStatus, Post } from '@nestjs/common';
+import {
+  Body,
+  Controller,
+  HttpCode,
+  HttpStatus,
+  Post,
+  Get,
+  Req,
+  UseGuards,
+} from '@nestjs/common';
+import { Request } from 'express';
 import { AuthService } from './auth.service';
 import { CadastroSchema, CadastroDto } from './schemas/cadastro.schema';
 import { ZodValidationPipe } from '../common/pipes/zod-validation.pipe';
 import { LoginSchema, LoginDto } from './schemas/login.schema';
+import { JwtAuthGuard } from './guards/jwt-auth.guard';
+
+interface AuthenticatedRequest extends Request {
+  user: {
+    id: string;
+    email: string;
+    papel: string;
+    empresaId: string;
+  };
+}
 
 @Controller('auth')
 export class AuthController {
@@ -17,5 +37,11 @@ export class AuthController {
   @HttpCode(HttpStatus.OK)
   login(@Body(new ZodValidationPipe(LoginSchema)) body: LoginDto) {
     return this.authService.login(body);
+  }
+
+  @Get('me')
+  @UseGuards(JwtAuthGuard)
+  me(@Req() req: AuthenticatedRequest) {
+    return req.user;
   }
 }
