@@ -8,21 +8,12 @@ import {
   Req,
   UseGuards,
 } from '@nestjs/common';
-import { Request } from 'express';
 import { AuthService } from './auth.service';
 import { CadastroSchema, CadastroDto } from './schemas/cadastro.schema';
 import { ZodValidationPipe } from '../common/pipes/zod-validation.pipe';
 import { LoginSchema, LoginDto } from './schemas/login.schema';
 import { JwtAuthGuard } from './guards/jwt-auth.guard';
-
-interface AuthenticatedRequest extends Request {
-  user: {
-    id: string;
-    email: string;
-    papel: string;
-    empresaId: string;
-  };
-}
+import { AuthenticatedRequest } from './interfaces/authenticated-request.interface';
 
 @Controller('auth')
 export class AuthController {
