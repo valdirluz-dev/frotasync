@@ -2,15 +2,61 @@ import {
   ConflictException,
   Injectable,
   InternalServerErrorException,
+  UnauthorizedException,
 } from '@nestjs/common';
+import { JwtService } from '@nestjs/jwt';
 import bcrypt from 'bcrypt';
 import { Prisma } from '../../generated/prisma/client';
 import { PrismaService } from '../prisma/prisma.service';
 import { CadastroDto } from './schemas/cadastro.schema';
+import { LoginDto } from './schemas/login.schema';
 
 @Injectable()
 export class AuthService {
-  constructor(private readonly prisma: PrismaService) {}
+  constructor(
+    private readonly prisma: PrismaService,
+    private readonly jwtService: JwtService,
+  ) {}
+
+  async login(dados: LoginDto) {
+    const email = dados.email.trim().toLowerCase();
+
+    const usuario = await this.prisma.usuario.findUnique({
+      where: { email },
+    });
+
+    if (!usuario) {
+      throw new UnauthorizedException('E-mail ou senha inválidos.');
+    }
+
+    const senhaValida = await bcrypt.compare(dados.senha, usuario.senha_hash);
+
+    if (!senhaValida) {
+      throw new UnauthorizedException('E-mail ou senha inválidos.');
+    }
+
+    const payload = {
+      sub: usuario.id,
+      email: usuario.email,
+      papel: usuario.papel,
+      empresaId: usuario.empresa_id,
+    };
+
+    const accessToken = await this.jwtService.signAsync(payload);
+
+    return {
+      access_token: accessToken,
+      token_type: 'Bearer',
+      expires_in: 900,
+      usuario: {
+        id: usuario.id,
+        nome: usuario.nome,
+        email: usuario.email,
+        papel: usuario.papel,
+        empresaId: usuario.empresa_id,
+      },
+    };
+  }
 
   private conflitoCadastro(
     codigo: string,
@@ -139,11 +185,12 @@ export class AuthService {
         error.code === 'P2002'
       ) {
         const alvo = error.meta?.target;
-        const campos = typeof alvo === 'string'
-          ? [alvo]
-          : Array.isArray(alvo)
-            ? alvo.filter((item): item is string => typeof item === 'string')
-            : [];
+        const campos =
+          typeof alvo === 'string'
+            ? [alvo]
+            : Array.isArray(alvo)
+              ? alvo.filter((item): item is string => typeof item === 'string')
+              : [];
         const identificador = campos.join(',').toLowerCase();
 
         if (identificador.includes('email')) {
