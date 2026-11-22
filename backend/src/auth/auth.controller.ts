@@ -1,4 +1,4 @@
-import { Body, Controller, Post } from '@nestjs/common';
+import { Body, Controller, HttpCode, HttpStatus, Post } from '@nestjs/common';
 import { AuthService } from './auth.service';
 import { CadastroSchema, CadastroDto } from './schemas/cadastro.schema';
 import { ZodValidationPipe } from '../common/pipes/zod-validation.pipe';
@@ -14,6 +14,7 @@ export class AuthController {
   }
 
   @Post('login')
+  @HttpCode(HttpStatus.OK)
   login(@Body(new ZodValidationPipe(LoginSchema)) body: LoginDto) {
     return this.authService.login(body);
   }
