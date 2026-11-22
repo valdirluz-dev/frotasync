@@ -5,6 +5,7 @@ import { ErrorState } from "@/components/ui/StateViews";
 import { StatusDonutCard } from "@/components/dashboard/StatusDonutCard";
 import { useDashboardIndicators } from "@/hooks/useDashboard";
 import { ProcessFlow } from "./ProcessFlow";
+import { LicenceStatus } from "./LicenceStatus";
 
 export function DashboardClient() {
   const indicatorQuery = useDashboardIndicators();
@@ -49,10 +50,18 @@ export function DashboardClient() {
             />
           </>
         )}
+
+        {/*Gráfico Fluxo de Progesso semanal */}
       </section>
       <section  aria-label="Fluxo de Progresso Semanal" className="mt-6">
         <ProcessFlow/>
       </section>
+
+       {/*Status de linceças*/}
+      <section  aria-label="Status de licenças" className="mt-6 grid grid-cols-1 gap-4 lg:grid-cols-2">
+        <LicenceStatus/>
+      </section>
+
     </AppShell>
   );
 }
