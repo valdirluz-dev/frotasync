@@ -1,17 +1,35 @@
 import {
   ConflictException,
   InternalServerErrorException,
+  UnauthorizedException,
 } from '@nestjs/common';
-import { afterEach, beforeEach, describe, expect, it, jest } from '@jest/globals';
+import {
+  afterEach,
+  beforeEach,
+  describe,
+  expect,
+  it,
+  jest,
+} from '@jest/globals';
 import bcrypt from 'bcrypt';
 import { Prisma } from '../../generated/prisma/client';
 import { PrismaService } from '../prisma/prisma.service';
 import { AuthService } from './auth.service';
+import { JwtService } from '@nestjs/jwt';
 import { CadastroDto } from './schemas/cadastro.schema';
 
 type FindUniqueArgs = {
   where: { email: string } | { cpf: string } | { cnpj: string };
-  select: { id: true };
+  select?: { id: true };
+};
+
+type UsuarioLoginMock = {
+  id: string;
+  nome: string;
+  email: string;
+  papel: string;
+  empresa_id: string;
+  senha_hash: string;
 };
 
 type EmpresaCreateArgs = {
@@ -68,6 +86,15 @@ const dadosCadastro = {
   },
 } satisfies CadastroDto;
 
+const usuarioLoginMock: UsuarioLoginMock = {
+  id: 'usuario-1',
+  nome: 'Pessoa Exemplo',
+  email: 'pessoa@example.com',
+  papel: 'administrador',
+  empresa_id: 'empresa-1',
+  senha_hash: 'hash-bcrypt-ficticio',
+};
+
 function createPrismaMock() {
   const tx: TransactionMock = {
     empresa: {
@@ -97,9 +124,14 @@ function createPrismaMock() {
   const prisma = {
     usuario: {
       findUnique: jest
-        .fn<(args: FindUniqueArgs) => Promise<{ id: string } | null>>()
+        .fn<
+          (
+            args: FindUniqueArgs,
+          ) => Promise<UsuarioLoginMock | { id: string } | null>
+        >()
         .mockResolvedValue(null),
     },
+
     empresa: {
       findUnique: jest
         .fn<(args: FindUniqueArgs) => Promise<{ id: string } | null>>()
@@ -160,12 +192,18 @@ describe('AuthService.cadastrar', () => {
 
   beforeEach(() => {
     const setup = createPrismaMock();
-    service = new AuthService(setup.prisma);
+
+    service = new AuthService(setup.prisma, {
+      signAsync: jest
+        .fn<() => Promise<string>>()
+        .mockResolvedValue('mock-access-token'),
+    } as unknown as JwtService);
+
     tx = setup.tx;
     mocks = setup.mocks;
-    jest.spyOn(bcrypt, 'hash').mockImplementation(() =>
-      Promise.resolve('senha-hash'),
-    );
+    jest
+      .spyOn(bcrypt, 'hash')
+      .mockImplementation(() => Promise.resolve('senha-hash'));
   });
 
   afterEach(() => {
@@ -370,5 +408,146 @@ describe('AuthService.cadastrar', () => {
     expect(mocks.$transaction).toHaveBeenCalledTimes(1);
     expect(tx.empresa.create).toHaveBeenCalledTimes(1);
     expect(tx.usuario.create).toHaveBeenCalledTimes(1);
+  });
+});
+
+describe('AuthService.login', () => {
+  let service: AuthService;
+  let mocks: ReturnType<typeof createPrismaMock>['mocks'];
+  let signAsyncMock: jest.Mock<
+    (payload: Record<string, unknown>) => Promise<string>
+  >;
+  let comparePasswordMock: jest.Mock<
+    (data: string, encrypted: string) => Promise<boolean>
+  >;
+
+  beforeEach(() => {
+    const setup = createPrismaMock();
+
+    mocks = setup.mocks;
+
+    signAsyncMock = jest
+      .fn<(payload: Record<string, unknown>) => Promise<string>>()
+      .mockResolvedValue('mock-access-token');
+
+    service = new AuthService(setup.prisma, {
+      signAsync: signAsyncMock,
+    } as unknown as JwtService);
+
+    comparePasswordMock = jest.spyOn(
+      bcrypt,
+      'compare',
+    ) as unknown as jest.Mock<
+      (data: string, encrypted: string) => Promise<boolean>
+    >;
+  });
+
+  afterEach(() => {
+    jest.restoreAllMocks();
+  });
+
+  it('autentica usuário com e-mail normalizado e retorna dados públicos', async () => {
+    mocks.usuario.findUnique.mockResolvedValue(usuarioLoginMock);
+    comparePasswordMock.mockResolvedValue(true);
+
+    const resultado = await service.login({
+      email: '  PESSOA@EXAMPLE.COM  ',
+      senha: 'SenhaForte1!',
+    });
+
+    expect(mocks.usuario.findUnique).toHaveBeenCalledWith({
+      where: { email: 'pessoa@example.com' },
+    });
+    expect(comparePasswordMock).toHaveBeenCalledWith(
+      'SenhaForte1!',
+      usuarioLoginMock.senha_hash,
+    );
+    expect(signAsyncMock).toHaveBeenCalledWith({
+      sub: 'usuario-1',
+      email: 'pessoa@example.com',
+      papel: 'administrador',
+      empresaId: 'empresa-1',
+    });
+    expect(resultado).toEqual({
+      access_token: 'mock-access-token',
+      token_type: 'Bearer',
+      expires_in: 900,
+      usuario: {
+        id: 'usuario-1',
+        nome: 'Pessoa Exemplo',
+        email: 'pessoa@example.com',
+        papel: 'administrador',
+        empresaId: 'empresa-1',
+      },
+    });
+    expect(resultado.usuario).not.toHaveProperty('senha_hash');
+  });
+
+  it('rejeita e-mail inexistente sem comparar senha ou gerar token', async () => {
+    mocks.usuario.findUnique.mockResolvedValue(null);
+
+    const error = await service
+      .login({
+        email: '  AUSENTE@EXAMPLE.COM  ',
+        senha: 'SenhaForte1!',
+      })
+      .then(
+        () => {
+          throw new Error('Era esperado um UnauthorizedException.');
+        },
+        (caught: unknown) => caught,
+      );
+
+    expect(mocks.usuario.findUnique).toHaveBeenCalledWith({
+      where: { email: 'ausente@example.com' },
+    });
+    expect(error).toBeInstanceOf(UnauthorizedException);
+    if (!(error instanceof UnauthorizedException)) {
+      return;
+    }
+    expect(error.getResponse()).toEqual(
+      expect.objectContaining({
+        statusCode: 401,
+        message: 'E-mail ou senha inválidos.',
+      }),
+    );
+    expect(comparePasswordMock).not.toHaveBeenCalled();
+    expect(signAsyncMock).not.toHaveBeenCalled();
+  });
+
+  it('rejeita senha incorreta com mensagem genérica e sem gerar token', async () => {
+    mocks.usuario.findUnique.mockResolvedValue(usuarioLoginMock);
+    comparePasswordMock.mockResolvedValue(false);
+
+    const error = await service
+      .login({
+        email: ' pessoa@example.com ',
+        senha: 'SenhaIncorreta!',
+      })
+      .then(
+        () => {
+          throw new Error('Era esperado um UnauthorizedException.');
+        },
+        (caught: unknown) => caught,
+      );
+
+    expect(mocks.usuario.findUnique).toHaveBeenCalledWith({
+      where: { email: 'pessoa@example.com' },
+    });
+    expect(comparePasswordMock).toHaveBeenCalledWith(
+      'SenhaIncorreta!',
+      usuarioLoginMock.senha_hash,
+    );
+    expect(error).toBeInstanceOf(UnauthorizedException);
+    if (!(error instanceof UnauthorizedException)) {
+      return;
+    }
+    expect(error.getResponse()).toEqual(
+      expect.objectContaining({
+        statusCode: 401,
+        message: 'E-mail ou senha inválidos.',
+      }),
+    );
+    expect(signAsyncMock).not.toHaveBeenCalled();
   });
 });
