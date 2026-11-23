@@ -564,17 +564,24 @@ export class DocumentosService {
   }
 
   private obterPeriodoValidade(): PeriodoValidade {
-    const agora = new Date();
-    const hoje = new Date(
-      Date.UTC(agora.getUTCFullYear(), agora.getUTCMonth(), agora.getUTCDate()),
-    );
-    const limiteProximoVencimento = new Date(hoje);
+    const partes = new Intl.DateTimeFormat('en-CA', {
+      timeZone: 'America/Recife',
+      year: 'numeric',
+      month: '2-digit',
+      day: '2-digit',
+    }).formatToParts(new Date());
+
+    const obterParte = (tipo: Intl.DateTimeFormatPartTypes): string =>
+      partes.find((parte) => parte.type === tipo)?.value ?? '';
+
+    const hoje = `${obterParte('year')}-${obterParte('month')}-${obterParte('day')}`;
+    const limiteProximoVencimento = new Date(`${hoje}T00:00:00.000Z`);
     limiteProximoVencimento.setUTCDate(
       limiteProximoVencimento.getUTCDate() + 15,
     );
 
     return {
-      hoje: hoje.toISOString().slice(0, 10),
+      hoje,
       limiteProximoVencimento: limiteProximoVencimento
         .toISOString()
         .slice(0, 10),

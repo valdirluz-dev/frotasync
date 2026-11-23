@@ -7,6 +7,7 @@ import { UnidadesModule } from './unidades/unidades.module';
 import { StorageModule } from './storage/storage.module';
 import { DocumentosModule } from './documentos/documentos.module';
 import { TarefasModule } from './tarefas/tarefas.module';
+import { DashboardModule } from './dashboard/dashboard.module';
 
 @Module({
   imports: [
@@ -17,6 +18,7 @@ import { TarefasModule } from './tarefas/tarefas.module';
     UnidadesModule,
     DocumentosModule,
     TarefasModule,
+    DashboardModule,
     StorageModule,
   ],
 })

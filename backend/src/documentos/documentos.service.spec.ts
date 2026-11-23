@@ -247,6 +247,20 @@ describe('DocumentosService', () => {
     jest.useRealTimers();
   });
 
+  it('usa a data civil de Recife quando o UTC já avançou para o dia seguinte', async () => {
+    jest.setSystemTime(new Date('2026-06-16T02:30:00.000Z'));
+    configurarResultados(0);
+
+    await service.listar(
+      { ...filtrosPadrao, statusValidade: 'proximo_vencimento' },
+      empresaId,
+    );
+
+    const contagem = consultarQuery(0);
+    expect(contagem.values).toContain('2026-06-15');
+    expect(contagem.values).toContain('2026-06-30');
+  });
+
   it('limita a listagem global à empresa autenticada em contagem e resultados', async () => {
     configurarResultados(0);
 
