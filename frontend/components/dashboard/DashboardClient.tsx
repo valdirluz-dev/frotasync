@@ -8,6 +8,7 @@ import { ProcessFlow } from "./ProcessFlow";
 import { LicenceStatus } from "./LicenceStatus";
 import { IssuedLicenses } from "./IssuedLicenses";
 import { ExpirationControl } from "./ExpirationControl";
+import { Productivity } from "./Productivity";
 
 export function DashboardClient() {
   const indicatorQuery = useDashboardIndicators();
@@ -67,8 +68,17 @@ export function DashboardClient() {
       </section>
 
       {/* Controle de Vencimentos & Prazos (gráfico de área + calendário) */}
-      <section aria-label="Controle de Vencimentos & Prazos" className="mt-6">
-        <ExpirationControl />
+      <section 
+      aria-label="Controle de Vencimentos & Prazos e produtividade" 
+      className="mt-6 grid grid-cols-1 gap-4 lg:grid-cols-3">
+        <div className="lg:col-span-2 min-w-0">
+          <ExpirationControl />
+        </div>
+
+        {/* Progresso da Metas da Semana */}
+        <div className="lg:col-span-1 min-w-0">
+          <Productivity />
+        </div>
       </section>
       
     </AppShell>
