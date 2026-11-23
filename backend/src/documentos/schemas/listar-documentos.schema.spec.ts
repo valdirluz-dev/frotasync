@@ -9,7 +9,7 @@ describe('ListarDocumentosSchema', () => {
       q: 'Alvará',
       categoria: 'Legal',
       unidadeId: unidadeIdValido,
-      validade: 'valido',
+      statusValidade: 'valido',
       page: '2',
       pageSize: '12',
     });
@@ -21,7 +21,7 @@ describe('ListarDocumentosSchema', () => {
         q: 'Alvará',
         categoria: 'Legal',
         unidadeId: unidadeIdValido,
-        validade: 'valido',
+        statusValidade: 'valido',
         page: 2,
         pageSize: 12,
       });
@@ -90,20 +90,22 @@ describe('ListarDocumentosSchema', () => {
     ).toBe(true);
   });
 
-  it('deve rejeitar validade inválida', () => {
+  it('deve rejeitar statusValidade inválido', () => {
     expect(
-      ListarDocumentosSchema.safeParse({ validade: 'vencido' }).success,
+      ListarDocumentosSchema.safeParse({ statusValidade: 'vencido' }).success,
     ).toBe(false);
   });
 
   it.each(['valido', 'proximo_vencimento', 'expirado'])(
-    'deve aceitar validade %s',
-    (validade) => {
-      expect(ListarDocumentosSchema.safeParse({ validade }).success).toBe(true);
+    'deve aceitar statusValidade %s',
+    (statusValidade) => {
+      expect(ListarDocumentosSchema.safeParse({ statusValidade }).success).toBe(
+        true,
+      );
     },
   );
 
-  it.each(['empresaId', 'status', 'statusValidade'])(
+  it.each(['empresaId', 'status', 'validade'])(
     'deve rejeitar o parâmetro desconhecido %s',
     (parametro) => {
       expect(
@@ -111,6 +113,12 @@ describe('ListarDocumentosSchema', () => {
       ).toBe(false);
     },
   );
+
+  it('deve rejeitar o nome antigo validade', () => {
+    expect(
+      ListarDocumentosSchema.safeParse({ validade: 'valido' }).success,
+    ).toBe(false);
+  });
 
   it('deve aplicar trim em q e categoria', () => {
     const resultado = ListarDocumentosSchema.safeParse({
