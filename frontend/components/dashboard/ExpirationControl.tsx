@@ -209,11 +209,11 @@ export function ExpirationControl({
           <div className="mt-4 flex flex-wrap items-center gap-5 text-xs font-medium text-slate-600">
             <span className="inline-flex items-center gap-1.5">
               <span className="h-2.5 w-2.5 rounded-full bg-red-500" />
-              Críticos
+              Vencimento crítico
             </span>
             <span className="inline-flex items-center gap-1.5">
               <span className="h-2.5 w-2.5 rounded-full bg-amber-400" />
-              Próximos
+              Vencimento próximo
             </span>
             <span className="inline-flex items-center gap-1.5">
               <span className="h-2.5 w-2.5 rounded-full bg-emerald-500" />
@@ -223,7 +223,7 @@ export function ExpirationControl({
         </div>
 
         {/* Coluna direita: Calendário mensal */}
-        <div className="flex flex-col justify-between">
+        <div className="flex flex-col h-full justify-start md:pl-6">
           <div className="mb-3 flex items-center justify-between">
             <h3 className="text-sm font-semibold text-slate-800">
               Calendário de Vencimentos
@@ -252,22 +252,6 @@ export function ExpirationControl({
                 {dia}
               </div>
             ))}
-          </div>
-
-          {/* Legenda do calendário */}
-          <div className="mt-4 flex flex-wrap items-center gap-5 text-xs font-medium text-slate-600">
-            <span className="inline-flex items-center gap-1.5">
-              <span className="h-2.5 w-2.5 rounded-full bg-red-500" />
-              Vencimento crítico
-            </span>
-            <span className="inline-flex items-center gap-1.5">
-              <span className="h-2.5 w-2.5 rounded-full bg-amber-400" />
-              Vencimento próximo
-            </span>
-            <span className="inline-flex items-center gap-1.5">
-              <span className="h-2.5 w-2.5 rounded-full bg-emerald-500" />
-              Renovado
-            </span>
           </div>
         </div>
       </div>

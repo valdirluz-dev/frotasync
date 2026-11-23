@@ -5,8 +5,7 @@ import { ErrorState } from "@/components/ui/StateViews";
 import { StatusDonutCard } from "@/components/dashboard/StatusDonutCard";
 import { useDashboardIndicators } from "@/hooks/useDashboard";
 import { ProcessFlow } from "./ProcessFlow";
-import { LicenceStatus } from "./LicenceStatus";
-import { IssuedLicenses } from "./IssuedLicenses";
+import { DocumentosETarefas } from "./Emitidos"; 
 import { ExpirationControl } from "./ExpirationControl";
 import { Productivity } from "./Productivity";
 
@@ -60,19 +59,13 @@ export function DashboardClient() {
         <ProcessFlow/>
       </section>
 
-       {/*Status de linceças*/}
-      <section  aria-label="Status de licenças" className="mt-6 grid grid-cols-1 gap-4 lg:grid-cols-2">
-        <LicenceStatus/>
-        {/*Licenças Emitidas*/}
-        <IssuedLicenses/>
-      </section>
 
-      {/* Controle de Vencimentos & Prazos (gráfico de área + calendário) */}
+      {/* Licenças Emitidas*/}
       <section 
-      aria-label="Controle de Vencimentos & Prazos e produtividade" 
+      aria-label="Documentos e tarefas emitidas" 
       className="mt-6 grid grid-cols-1 gap-4 lg:grid-cols-3">
         <div className="lg:col-span-2 min-w-0">
-          <ExpirationControl />
+         <DocumentosETarefas/>
         </div>
 
         {/* Progresso da Metas da Semana */}
@@ -80,6 +73,14 @@ export function DashboardClient() {
           <Productivity />
         </div>
       </section>
+
+       {/*Gráfico Fluxo de Progesso semanal */}
+      <section  aria-label="Fluxo de Progresso Semanal" className="mt-6">
+         <ExpirationControl />
+      </section>
+
+     
+       
       
     </AppShell>
   );

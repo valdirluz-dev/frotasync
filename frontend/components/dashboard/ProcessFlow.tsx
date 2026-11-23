@@ -113,7 +113,7 @@ export function ProcessFlow({
             {title}
           </h2>
           <p className="text-xs text-slate-500">
-            Evolução mensal de entregas e regularizações
+            Acompanhamento mensal de entregas concluídas e documentos regularizados
           </p>
         </div>
 
@@ -122,7 +122,7 @@ export function ProcessFlow({
             {ano}
           </span>
           <span className="rounded-lg bg-slate-100 px-2.5 py-1 text-xs font-semibold text-slate-700">
-            Total: {totalAnual}
+            Total no ano: {totalAnual}
           </span>
         </div>
       </div>
