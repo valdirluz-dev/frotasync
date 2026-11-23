@@ -107,7 +107,7 @@ export default function DadosLogin() {
       {/* Estrutura principal do formulário responsivo */}
       <form
         onSubmit={handleSubmit}
-        className="relative z-20 flex flex-col md:flex-row w-full max-w-[1100px] my-auto h-[92vh] shrink-0 overflow-y-auto md:overflow-hidden rounded-3xl bg-white shadow-2xl"
+        className="relative z-20 flex flex-col md:flex-row w-full max-w-5xl  my-auto h-[92vh] shrink-0 overflow-y-auto md:overflow-hidden rounded-3xl bg-white shadow-2xl"
       >
         {/* Coluna esquerda contendo os campos de preenchimento */}
         <div className="w-full md:w-1/2 p-8 md:p-10 bg-white flex flex-col justify-start space-y-4 order-2 md:order-1 overflow-y-auto max-h-[92vh]">
