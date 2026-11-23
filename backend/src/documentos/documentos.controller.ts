@@ -7,6 +7,7 @@ import {
   ParseUUIDPipe,
   PipeTransform,
   Post,
+  Put,
   Query,
   Req,
   UploadedFile,
@@ -28,6 +29,10 @@ import {
   CriarDocumentoSchema,
 } from './schemas/criar-documento.schema';
 import {
+  AtualizarDocumentoDto,
+  AtualizarDocumentoSchema,
+} from './schemas/atualizar-documento.schema';
+import {
   ListarDocumentosDto,
   ListarDocumentosSchema,
 } from './schemas/listar-documentos.schema';
@@ -35,6 +40,10 @@ import { DocumentosService } from './documentos.service';
 
 class NormalizarDataEmissaoVaziaPipe implements PipeTransform {
   transform(value: unknown, _metadata: ArgumentMetadata): unknown {
+    if (value === undefined || value === null) {
+      return {};
+    }
+
     if (
       typeof value !== 'object' ||
       value === null ||
@@ -93,6 +102,28 @@ export class DocumentosController {
   ) {
     return this.documentosService.criar(
       unidadeId,
+      documento,
+      anexo,
+      req.user.empresaId,
+    );
+  }
+
+  @Put('documentos/:id')
+  @Roles('colaborador')
+  @UseInterceptors(AnexoUploadInterceptor)
+  atualizar(
+    @Param('id', new ParseUUIDPipe()) id: string,
+    @Body(
+      new NormalizarDataEmissaoVaziaPipe(),
+      new ZodValidationPipe(AtualizarDocumentoSchema),
+    )
+    documento: AtualizarDocumentoDto,
+    @UploadedFile(new AnexoValidationPipe(false))
+    anexo: AnexoUploadFile | undefined,
+    @Req() req: AuthenticatedRequest,
+  ) {
+    return this.documentosService.atualizar(
+      id,
       documento,
       anexo,
       req.user.empresaId,

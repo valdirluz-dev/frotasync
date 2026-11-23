@@ -1,4 +1,5 @@
 import {
+  BadRequestException,
   ConflictException,
   Injectable,
   Logger,
@@ -9,6 +10,7 @@ import { calculatePagination } from '../common/utils/pagination.util';
 import { PrismaService } from '../prisma/prisma.service';
 import { StorageService } from '../storage/storage.service';
 import { AnexoUploadFile } from './pipes/anexo-validation.pipe';
+import { AtualizarDocumentoDto } from './schemas/atualizar-documento.schema';
 import { CriarDocumentoDto } from './schemas/criar-documento.schema';
 import { ListarDocumentosDto } from './schemas/listar-documentos.schema';
 
@@ -35,6 +37,28 @@ interface DocumentoListagemRow {
   created_at: Date;
   updated_at: Date;
 }
+
+const DOCUMENTO_SELECT_ATUALIZACAO = {
+  id: true,
+  unidade_id: true,
+  unidade: { select: { nome: true } },
+  nome: true,
+  tipo: true,
+  categoria: true,
+  data_emissao: true,
+  data_validade: true,
+  descricao: true,
+  anexo_nome: true,
+  anexo_url: true,
+  anexo_tamanho_bytes: true,
+  anexo_tipo: true,
+  created_at: true,
+  updated_at: true,
+} satisfies Prisma.documentoSelect;
+
+type DocumentoPersistido = Prisma.documentoGetPayload<{
+  select: typeof DOCUMENTO_SELECT_ATUALIZACAO;
+}>;
 
 @Injectable()
 export class DocumentosService {
@@ -144,6 +168,134 @@ export class DocumentosService {
     };
 
     return this.mapearDocumento(documentoCriado, this.obterPeriodoValidade());
+  }
+
+  async atualizar(
+    id: string,
+    documento: AtualizarDocumentoDto,
+    anexo: AnexoUploadFile | undefined,
+    empresaId: string,
+  ) {
+    const temCamposParaAtualizar = Object.values(documento).some(
+      (valor) => valor !== undefined,
+    );
+    if (!temCamposParaAtualizar && !anexo) {
+      throw new BadRequestException(
+        'Informe ao menos um campo ou um novo anexo para atualizar.',
+      );
+    }
+
+    const whereEmpresa = {
+      id,
+      unidade: { is: { empresa_id: empresaId } },
+    };
+    const atual = await this.prisma.documento.findFirst({
+      where: whereEmpresa,
+      select: DOCUMENTO_SELECT_ATUALIZACAO,
+    });
+
+    if (!atual) {
+      throw new NotFoundException({
+        message: 'Documento não encontrado.',
+        codigo: 'RECURSO_NAO_ENCONTRADO',
+      });
+    }
+
+    const dataEmissaoAtual = this.serializarDataNegocio(atual.data_emissao);
+    const dataValidadeAtual = this.serializarDataNegocio(atual.data_validade);
+    const dataEmissaoFinal = documento.dataEmissao ?? dataEmissaoAtual;
+    const dataValidadeFinal = documento.dataValidade ?? dataValidadeAtual;
+
+    this.validarDataNegocio(dataValidadeFinal);
+    if (dataEmissaoFinal) {
+      this.validarDataNegocio(dataEmissaoFinal);
+      if (dataEmissaoFinal > dataValidadeFinal) {
+        throw new BadRequestException(
+          'A data de emissão não pode ser posterior à data de validade.',
+        );
+      }
+    }
+
+    const dadosAtualizacao: Prisma.documentoUpdateInput = {};
+    if (documento.nome !== undefined) {
+      dadosAtualizacao.nome = documento.nome;
+    }
+    if (documento.tipo !== undefined) {
+      dadosAtualizacao.tipo = documento.tipo;
+    }
+    if (documento.categoria !== undefined) {
+      dadosAtualizacao.categoria = documento.categoria;
+    }
+    if (documento.dataEmissao !== undefined) {
+      dadosAtualizacao.data_emissao = this.converterDataNegocio(
+        documento.dataEmissao,
+      );
+    }
+    if (documento.dataValidade !== undefined) {
+      dadosAtualizacao.data_validade = this.converterDataNegocio(
+        documento.dataValidade,
+      );
+    }
+    if (documento.descricao !== undefined) {
+      dadosAtualizacao.descricao = documento.descricao;
+    }
+
+    const novaChaveStorage = anexo
+      ? await this.storage.save({
+          buffer: anexo.buffer,
+          mimeType: anexo.mimetype,
+        })
+      : undefined;
+
+    if (anexo && novaChaveStorage) {
+      dadosAtualizacao.anexo_nome = anexo.originalname;
+      dadosAtualizacao.anexo_url = novaChaveStorage;
+      dadosAtualizacao.anexo_tamanho_bytes = BigInt(anexo.buffer.byteLength);
+      dadosAtualizacao.anexo_tipo = anexo.mimetype;
+    }
+    dadosAtualizacao.updated_at = new Date();
+
+    let atualizado: DocumentoPersistido;
+    try {
+      atualizado = await this.prisma.documento.update({
+        where: whereEmpresa,
+        data: dadosAtualizacao,
+        select: DOCUMENTO_SELECT_ATUALIZACAO,
+      });
+    } catch (erroPersistencia) {
+      if (novaChaveStorage) {
+        try {
+          await this.storage.delete(novaChaveStorage);
+        } catch (erroCompensacao) {
+          this.logger.error(
+            `Falha ao remover novo anexo após erro de atualização do documento ${id}.`,
+            erroCompensacao instanceof Error
+              ? erroCompensacao.stack
+              : String(erroCompensacao),
+          );
+        }
+      }
+
+      throw erroPersistencia;
+    }
+
+    if (novaChaveStorage && atual.anexo_url !== novaChaveStorage) {
+      try {
+        await this.storage.delete(atual.anexo_url);
+      } catch (erroLimpeza) {
+        this.logger.error(
+          `Falha ao remover o anexo anterior do documento ${id}.`,
+          erroLimpeza instanceof Error
+            ? erroLimpeza.stack
+            : String(erroLimpeza),
+        );
+      }
+    }
+
+    return this.mapearDocumento(
+      this.converterDocumentoParaListagem(atualizado),
+      this.obterPeriodoValidade(),
+    );
   }
 
   listar(filtros: ListarDocumentosDto, empresaId: string) {
@@ -299,6 +451,53 @@ export class DocumentosService {
 
   private converterDataNegocio(data: string): Date {
     return new Date(`${data}T00:00:00.000Z`);
+  }
+
+  private validarDataNegocio(data: string): void {
+    const dataConvertida = new Date(`${data}T00:00:00.000Z`);
+    if (
+      !/^\d{4}-\d{2}-\d{2}$/.test(data) ||
+      !Number.isFinite(dataConvertida.getTime()) ||
+      dataConvertida.toISOString().slice(0, 10) !== data
+    ) {
+      throw new BadRequestException(
+        'Data inválida; utilize o formato YYYY-MM-DD.',
+      );
+    }
+  }
+
+  private serializarDataNegocio(data: Date): string;
+  private serializarDataNegocio(data: Date | null): string | null;
+  private serializarDataNegocio(data: Date | null): string | null {
+    if (!data) {
+      return null;
+    }
+
+    const ano = data.getUTCFullYear().toString().padStart(4, '0');
+    const mes = (data.getUTCMonth() + 1).toString().padStart(2, '0');
+    const dia = data.getUTCDate().toString().padStart(2, '0');
+    return `${ano}-${mes}-${dia}`;
+  }
+
+  private converterDocumentoParaListagem(
+    documento: DocumentoPersistido,
+  ): DocumentoListagemRow {
+    return {
+      id: documento.id,
+      unidade_id: documento.unidade_id,
+      unidade_nome: documento.unidade.nome,
+      nome: documento.nome,
+      tipo: documento.tipo,
+      categoria: documento.categoria,
+      data_emissao: this.serializarDataNegocio(documento.data_emissao),
+      data_validade: this.serializarDataNegocio(documento.data_validade),
+      descricao: documento.descricao,
+      anexo_nome: documento.anexo_nome,
+      anexo_tamanho_bytes: documento.anexo_tamanho_bytes,
+      anexo_tipo: documento.anexo_tipo,
+      created_at: documento.created_at,
+      updated_at: documento.updated_at,
+    };
   }
 
   private mapearDocumento(

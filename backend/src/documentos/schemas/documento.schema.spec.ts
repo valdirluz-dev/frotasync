@@ -34,7 +34,7 @@ describe('Schemas de documentos', () => {
   it('aceita os limites mínimo e máximo dos campos com restrição de tamanho', () => {
     expect(
       DocumentoBaseSchema.safeParse({
-        nome: 'a',
+        nome: 'aa',
         categoria: 'a',
         tipo: '',
         dataValidade: '2027-01-31',
@@ -52,6 +52,7 @@ describe('Schemas de documentos', () => {
 
   it.each([
     ['nome', { nome: '' }],
+    ['nome abaixo do mínimo', { nome: 'a' }],
     ['nome acima do máximo', { nome: 'n'.repeat(151) }],
     ['categoria', { categoria: '' }],
     ['categoria acima do máximo', { categoria: 'c'.repeat(41) }],
@@ -125,7 +126,7 @@ describe('Schemas de documentos', () => {
     ).toBe(true);
   });
 
-  it('rejeita atualização com payload vazio', () => {
-    expect(AtualizarDocumentoSchema.safeParse({}).success).toBe(false);
+  it('aceita payload vazio para permitir atualização somente do anexo', () => {
+    expect(AtualizarDocumentoSchema.safeParse({}).success).toBe(true);
   });
 });

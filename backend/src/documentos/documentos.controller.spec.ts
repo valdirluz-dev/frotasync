@@ -23,6 +23,7 @@ import {
   AnexoUploadFile,
   AnexoValidationPipe,
 } from './pipes/anexo-validation.pipe';
+import { AtualizarDocumentoDto } from './schemas/atualizar-documento.schema';
 import { CriarDocumentoDto } from './schemas/criar-documento.schema';
 import { ListarDocumentosDto } from './schemas/listar-documentos.schema';
 import { DocumentosController } from './documentos.controller';
@@ -61,6 +62,15 @@ const documentosService = {
         empresaId: string,
       ) => Promise<unknown>
     >(),
+  atualizar:
+    jest.fn<
+      (
+        id: string,
+        documento: AtualizarDocumentoDto,
+        anexo: AnexoUploadFile | undefined,
+        empresaId: string,
+      ) => Promise<unknown>
+    >(),
 };
 
 const req = {
@@ -83,7 +93,12 @@ const resposta: ServiceResponse = {
 const documentoCriar: CriarDocumentoDto = {
   nome: 'Licença Ambiental',
   categoria: 'Ambiental',
+  dataEmissao: undefined,
   dataValidade: '2026-06-30',
+};
+
+const documentoAtualizar: AtualizarDocumentoDto = {
+  nome: 'Licença revisada',
 };
 
 const anexo: AnexoUploadFile = {
@@ -202,6 +217,26 @@ describe('DocumentosController', () => {
     );
   });
 
+  it('deve delegar atualização parcial sem arquivo e com empresa autenticada', async () => {
+    const resultado = { id: 'documento-1' };
+    documentosService.atualizar.mockResolvedValue(resultado);
+
+    await expect(
+      controller.atualizar(
+        'a0cd295f-5787-493b-a3d0-c85029a75fc8',
+        documentoAtualizar,
+        undefined,
+        req,
+      ),
+    ).resolves.toBe(resultado);
+    expect(documentosService.atualizar).toHaveBeenCalledWith(
+      'a0cd295f-5787-493b-a3d0-c85029a75fc8',
+      documentoAtualizar,
+      undefined,
+      'empresa-123',
+    );
+  });
+
   it('deve validar as queries dos dois endpoints pelo ZodValidationPipe', () => {
     for (const metodo of ['listar', 'listarPorUnidade']) {
       const pipe = obterPipeDeQuery(metodo);
@@ -246,6 +281,39 @@ describe('DocumentosController', () => {
     ).toThrow(BadRequestException);
   });
 
+  it('deve validar body parcial, normalizar dataEmissao vazia e rejeitar campos desconhecidos', async () => {
+    const argumentos = Object.values(obterArgumentosDoMetodo('atualizar'));
+    const argumentoDoCorpo = argumentos.find((argumento) =>
+      argumento.pipes?.some((pipe) => pipe instanceof ZodValidationPipe),
+    );
+    const pipes = argumentoDoCorpo?.pipes ?? [];
+    const pipeUuid = argumentos
+      .flatMap((argumento) => argumento.pipes ?? [])
+      .find((pipe) => pipe instanceof ParseUUIDPipe);
+
+    expect(
+      aplicarPipes(pipes, { nome: '  Novo nome  ', dataEmissao: '' }),
+    ).toEqual({ nome: 'Novo nome', dataEmissao: undefined });
+    expect(aplicarPipes(pipes, {})).toEqual({});
+    expect(() => aplicarPipes(pipes, { statusValidade: 'valido' })).toThrow(
+      BadRequestException,
+    );
+    expect(() =>
+      aplicarPipes(pipes, {
+        unidadeId: 'd9428888-122b-4b42-9acc-2a83c47b3f6e',
+      }),
+    ).toThrow(BadRequestException);
+    expect(() => aplicarPipes(pipes, { campoExtra: true })).toThrow(
+      BadRequestException,
+    );
+    await expect(
+      (pipeUuid as ParseUUIDPipe).transform(
+        'nao-e-uuid',
+        {} as ArgumentMetadata,
+      ),
+    ).rejects.toThrow(BadRequestException);
+  });
+
   it('deve validar o UUID da unidade e exigir um anexo válido', async () => {
     const argumentos = Object.values(obterArgumentosDoMetodo('criar'));
     const pipeUuid = argumentos
@@ -275,6 +343,70 @@ describe('DocumentosController', () => {
         {} as ArgumentMetadata,
       ),
     ).toThrow(BadRequestException);
+  });
+
+  it('deve aceitar body vazio somente quando há anexo válido', async () => {
+    const resultado = { id: 'documento-1' };
+    documentosService.atualizar.mockResolvedValue(resultado);
+    const argumentos = Object.values(obterArgumentosDoMetodo('atualizar'));
+    const pipes = argumentos.flatMap((argumento) => argumento.pipes ?? []);
+    const pipeDoCorpo = pipes.filter(
+      (pipe) => pipe instanceof ZodValidationPipe,
+    );
+    const pipeDoAnexo = pipes.find(
+      (pipe) => pipe instanceof AnexoValidationPipe,
+    );
+    expect(pipeDoAnexo).toBeInstanceOf(AnexoValidationPipe);
+    expect(
+      (pipeDoAnexo as AnexoValidationPipe).transform(
+        undefined,
+        {} as ArgumentMetadata,
+      ),
+    ).toBeUndefined();
+    expect(
+      (pipeDoAnexo as AnexoValidationPipe).transform(
+        anexo,
+        {} as ArgumentMetadata,
+      ),
+    ).toBe(anexo);
+
+    const documento = aplicarPipes(pipeDoCorpo, {});
+    await expect(
+      controller.atualizar(
+        'a0cd295f-5787-493b-a3d0-c85029a75fc8',
+        documento as AtualizarDocumentoDto,
+        anexo,
+        req,
+      ),
+    ).resolves.toBe(resultado);
+    expect(documentosService.atualizar).toHaveBeenCalledWith(
+      'a0cd295f-5787-493b-a3d0-c85029a75fc8',
+      {},
+      anexo,
+      'empresa-123',
+    );
+  });
+
+  it('propaga a rejeição do service para body vazio sem arquivo', async () => {
+    const erro = new BadRequestException(
+      'Informe ao menos um campo ou um novo anexo para atualizar.',
+    );
+    documentosService.atualizar.mockRejectedValue(erro);
+
+    await expect(
+      controller.atualizar(
+        'a0cd295f-5787-493b-a3d0-c85029a75fc8',
+        {},
+        undefined,
+        req,
+      ),
+    ).rejects.toBe(erro);
+    expect(documentosService.atualizar).toHaveBeenCalledWith(
+      'a0cd295f-5787-493b-a3d0-c85029a75fc8',
+      {},
+      undefined,
+      'empresa-123',
+    );
   });
 
   it('deve aplicar os guards, perfis e rotas HTTP esperados', () => {
@@ -326,6 +458,27 @@ describe('DocumentosController', () => {
         DocumentosController.prototype.criar,
       ),
     ).toContain(AnexoUploadInterceptor);
+    expect(
+      Reflect.getMetadata(
+        PATH_METADATA,
+        DocumentosController.prototype.atualizar,
+      ),
+    ).toBe('documentos/:id');
+    expect(
+      Reflect.getMetadata(
+        METHOD_METADATA,
+        DocumentosController.prototype.atualizar,
+      ),
+    ).toBe(RequestMethod.PUT);
+    expect(
+      Reflect.getMetadata(ROLES_KEY, DocumentosController.prototype.atualizar),
+    ).toEqual(['colaborador']);
+    expect(
+      Reflect.getMetadata(
+        INTERCEPTORS_METADATA,
+        DocumentosController.prototype.atualizar,
+      ),
+    ).toContain(AnexoUploadInterceptor);
   });
 
   it('deve propagar erros do service sem alterá-los', async () => {
@@ -359,6 +512,20 @@ describe('DocumentosController', () => {
         'd9428888-122b-4b42-9acc-2a83c47b3f6e',
         documentoCriar,
         anexo,
+        req,
+      ),
+    ).rejects.toBe(erro);
+  });
+
+  it('deve propagar erros do service na atualização', async () => {
+    const erro = new BadRequestException('Atualização inválida');
+    documentosService.atualizar.mockRejectedValue(erro);
+
+    await expect(
+      controller.atualizar(
+        'a0cd295f-5787-493b-a3d0-c85029a75fc8',
+        documentoAtualizar,
+        undefined,
         req,
       ),
     ).rejects.toBe(erro);
