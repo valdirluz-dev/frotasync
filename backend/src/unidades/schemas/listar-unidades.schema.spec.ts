@@ -68,4 +68,19 @@ describe('ListarUnidadesSchema', () => {
       expect(resultado.data.q).toBe('Matriz');
     }
   });
+
+  it('deve converter busca vazia em ausência de filtro', () => {
+    const resultado = ListarUnidadesSchema.safeParse({ q: '   ' });
+
+    expect(resultado.success).toBe(true);
+    if (resultado.success) {
+      expect(resultado.data.q).toBeUndefined();
+    }
+  });
+
+  it('deve rejeitar busca maior que 150 caracteres', () => {
+    expect(
+      ListarUnidadesSchema.safeParse({ q: 'a'.repeat(151) }).success,
+    ).toBe(false);
+  });
 });

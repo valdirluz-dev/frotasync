@@ -1,18 +1,37 @@
-import { Test, TestingModule } from '@nestjs/testing';
+import { describe, expect, it, jest } from '@jest/globals';
 import { UnidadesController } from './unidades.controller';
+import { UnidadesService } from './unidades.service';
 
 describe('UnidadesController', () => {
-  let controller: UnidadesController;
+  const unidadesService = {
+    listar: jest.fn(),
+  };
 
-  beforeEach(async () => {
-    const module: TestingModule = await Test.createTestingModule({
-      controllers: [UnidadesController],
-    }).compile();
+  const controller = new UnidadesController(
+    unidadesService as unknown as UnidadesService,
+  );
 
-    controller = module.get<UnidadesController>(UnidadesController);
+  it('deve ser definido', () => {
+    expect(controller).toBeDefined();
   });
 
-  it('should be defined', () => {
-    expect(controller).toBeDefined();
+  it('deve repassar filtros e empresaId autenticado ao service', () => {
+    const filtros = {
+      page: 1,
+      pageSize: 20,
+    };
+
+    const req = {
+      user: {
+        empresaId: 'empresa-123',
+      },
+    };
+
+    controller.listar(filtros, req as any);
+
+    expect(unidadesService.listar).toHaveBeenCalledWith(
+      filtros,
+      'empresa-123',
+    );
   });
 });
