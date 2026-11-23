@@ -1,4 +1,4 @@
-import { randomUUID } from 'node:crypto';
+import { randomInt, randomUUID } from 'node:crypto';
 import { Test } from '@nestjs/testing';
 import { ConfigModule } from '@nestjs/config';
 import { afterAll, beforeAll, describe, expect, it } from '@jest/globals';
@@ -9,6 +9,9 @@ import { UnidadesService } from './unidades.service';
 
 describe('UnidadesService (integration)', () => {
   const sufixo = randomUUID().replaceAll('-', '').slice(0, 8).toUpperCase();
+  const empresasTeste = { a: randomUUID(), b: randomUUID() };
+  const idsEmpresasCriadas: string[] = [];
+  let databaseConnected = false;
   const criarCodigo = (prefixo: string) => `${prefixo}-${sufixo}`;
   const endereco = {
     cep: '50000000',
@@ -24,12 +27,33 @@ describe('UnidadesService (integration)', () => {
   let service: UnidadesService;
   let moduleRef: Awaited<ReturnType<typeof createTestingModule>>;
 
+  function gerarCnpjDeTeste(): string {
+    return Array.from({ length: 14 }, () => randomInt(0, 10)).join('');
+  }
+
+  async function criarEmpresa(id: string, nome: string): Promise<void> {
+    await prisma.empresa.create({
+      data: {
+        id,
+        nome_fantasia: nome,
+        razao_social: `${nome} LTDA`,
+        cnpj: gerarCnpjDeTeste(),
+        segmento: 'Transporte',
+        tipo_unidade: 'matriz',
+        cep: '50000000',
+        logradouro: 'Rua de Teste',
+        numero: '100',
+        bairro: 'Centro',
+        cidade: 'Recife',
+        uf: 'PE',
+      },
+    });
+    idsEmpresasCriadas.push(id);
+  }
+
   async function createTestingModule() {
     return Test.createTestingModule({
-      imports: [
-        ConfigModule.forRoot({ isGlobal: true }),
-        PrismaModule,
-      ],
+      imports: [ConfigModule.forRoot({ isGlobal: true }), PrismaModule],
       providers: [UnidadesService],
     }).compile();
   }
@@ -38,20 +62,60 @@ describe('UnidadesService (integration)', () => {
     moduleRef = await createTestingModule();
     prisma = moduleRef.get(PrismaService);
     service = moduleRef.get(UnidadesService);
+    const databaseUrl = new URL(process.env.DATABASE_URL ?? '');
+    if (
+      !['localhost', '127.0.0.1', '[::1]', '::1'].includes(
+        databaseUrl.hostname.toLowerCase(),
+      ) ||
+      databaseUrl.port !== '5433' ||
+      databaseUrl.pathname !== '/frotasync_test' ||
+      databaseUrl.search ||
+      databaseUrl.hash
+    ) {
+      throw new Error(
+        'Execução bloqueada: use exclusivamente localhost:5433/frotasync_test.',
+      );
+    }
+
     await prisma.$connect();
+
+    const [database] = await prisma.$queryRaw<
+      { database_name: string }[]
+    >`SELECT current_database() AS database_name`;
+
+    if (database?.database_name !== 'frotasync_test') {
+      throw new Error('Conexão recusada: banco não é frotasync_test.');
+    }
+
+    databaseConnected = true;
+
+    await criarEmpresa(empresasTeste.a, `Empresa Teste A ${sufixo}`);
+    await criarEmpresa(empresasTeste.b, `Empresa Teste B ${sufixo}`);
   });
 
   afterAll(async () => {
-    await moduleRef?.close();
+    try {
+      if (databaseConnected && idsEmpresasCriadas.length) {
+        await prisma.unidade.deleteMany({
+          where: { empresa_id: { in: idsEmpresasCriadas } },
+        });
+        await prisma.empresa.deleteMany({
+          where: { id: { in: idsEmpresasCriadas } },
+        });
+      }
+    } finally {
+      await moduleRef?.close();
+    }
   });
 
-  it('deve consultar empresas reais no PostgreSQL', async () => {
+  it('deve consultar as empresas de teste no PostgreSQL', async () => {
     const empresas = await prisma.empresa.findMany({
+      where: { id: { in: [empresasTeste.a, empresasTeste.b] } },
       select: { id: true, nome_fantasia: true },
-      take: 2,
+      orderBy: { id: 'asc' },
     });
 
-    expect(empresas.length).toBeGreaterThanOrEqual(2);
+    expect(empresas).toHaveLength(2);
     expect(empresas[0].id).toBeDefined();
     expect(empresas[1].id).toBeDefined();
   });
@@ -62,9 +126,7 @@ describe('UnidadesService (integration)', () => {
   });
 
   it('deve reverter unidade criada em transação de teste', async () => {
-    const empresa = await prisma.empresa.findFirst({
-      select: { id: true },
-    });
+    const empresa = { id: empresasTeste.a };
 
     expect(empresa).not.toBeNull();
 
@@ -112,13 +174,11 @@ describe('UnidadesService (integration)', () => {
 
   it('deve buscar nomes ignorando acentos', async () => {
     const sentinela = new Error('ROLLBACK_BUSCA');
-    let resultado: any;
+    let resultado: Awaited<ReturnType<UnidadesService['listar']>>;
 
     try {
       await prisma.$transaction(async (tx) => {
-        const empresa = await tx.empresa.findFirstOrThrow({
-          select: { id: true },
-        });
+        const empresa = { id: empresasTeste.a };
 
         await tx.unidade.createMany({
           data: [
@@ -162,10 +222,7 @@ describe('UnidadesService (integration)', () => {
 
     try {
       await prisma.$transaction(async (tx) => {
-        const empresas = await tx.empresa.findMany({
-          select: { id: true },
-          take: 2,
-        });
+        const empresas = [{ id: empresasTeste.a }, { id: empresasTeste.b }];
 
         expect(empresas).toHaveLength(2);
 
@@ -197,9 +254,9 @@ describe('UnidadesService (integration)', () => {
 
         totalEmpresaA = resultado.total;
 
-        expect(resultado.items.every(
-          (item) => item.nome.includes('Tenant A'),
-        )).toBe(true);
+        expect(
+          resultado.items.every((item) => item.nome.includes('Tenant A')),
+        ).toBe(true);
 
         expect(resultado.total).toBe(1);
 
@@ -222,13 +279,11 @@ describe('UnidadesService (integration)', () => {
 
   it('deve filtrar status e paginar no caminho ORM', async () => {
     const sentinela = new Error('ROLLBACK_ORM');
-    let resultado: any;
+    let resultado: Awaited<ReturnType<UnidadesService['listar']>>;
 
     try {
       await prisma.$transaction(async (tx) => {
-        const empresa = await tx.empresa.findFirstOrThrow({
-          select: { id: true },
-        });
+        const empresa = { id: empresasTeste.a };
 
         await tx.unidade.createMany({
           data: [
@@ -302,9 +357,9 @@ describe('UnidadesService (integration)', () => {
           empresa.id,
         );
 
-        expect(ativas.items.every(
-          (item) => item.status === 'ativa',
-        )).toBe(true);
+        expect(ativas.items.every((item) => item.status === 'ativa')).toBe(
+          true,
+        );
 
         throw sentinela;
       });
@@ -318,9 +373,7 @@ describe('UnidadesService (integration)', () => {
 
     try {
       await prisma.$transaction(async (tx) => {
-        const empresa = await tx.empresa.findFirstOrThrow({
-          select: { id: true },
-        });
+        const empresa = { id: empresasTeste.a };
 
         await tx.unidade.createMany({
           data: [
@@ -371,9 +424,7 @@ describe('UnidadesService (integration)', () => {
 
     try {
       await prisma.$transaction(async (tx) => {
-        const empresa = await tx.empresa.findFirstOrThrow({
-          select: { id: true },
-        });
+        const empresa = { id: empresasTeste.a };
 
         const codigo = criarCodigo('PERCENT%');
 
@@ -410,9 +461,7 @@ describe('UnidadesService (integration)', () => {
 
     try {
       await prisma.$transaction(async (tx) => {
-        const empresa = await tx.empresa.findFirstOrThrow({
-          select: { id: true },
-        });
+        const empresa = { id: empresasTeste.a };
 
         const codigo = criarCodigo('UNDER_SCORE');
 
@@ -449,9 +498,7 @@ describe('UnidadesService (integration)', () => {
 
     try {
       await prisma.$transaction(async (tx) => {
-        const empresa = await tx.empresa.findFirstOrThrow({
-          select: { id: true },
-        });
+        const empresa = { id: empresasTeste.a };
 
         const codigo = `${criarCodigo('BACKSLASH')}\\`;
 
@@ -483,184 +530,172 @@ describe('UnidadesService (integration)', () => {
     }
   });
 
-it('deve retornar contagem de documentos e tarefas no caminho ORM', async () => {
-  const empresa = await prisma.empresa.findFirstOrThrow({
-    select: { id: true },
-  });
-  const codigo = criarCodigo('CNT');
+  it('deve retornar contagem de documentos e tarefas no caminho ORM', async () => {
+    const empresa = { id: empresasTeste.a };
+    const codigo = criarCodigo('CNT');
 
-  try {
-    await prisma.$transaction(async (tx) => {
-      const unidade = await tx.unidade.create({
-        data: {
-          empresa_id: empresa.id,
-          nome: `Contagem ${sufixo}`,
-          codigo,
-          ...endereco,
-        },
-      });
+    try {
+      await prisma.$transaction(async (tx) => {
+        const unidade = await tx.unidade.create({
+          data: {
+            empresa_id: empresa.id,
+            nome: `Contagem ${sufixo}`,
+            codigo,
+            ...endereco,
+          },
+        });
 
-      await tx.documento.createMany({
-        data: [
-          {
+        await tx.documento.createMany({
+          data: [
+            {
+              unidade_id: unidade.id,
+              nome: 'Documento 1',
+              categoria: 'teste',
+              data_validade: new Date('2030-12-31'),
+              anexo_nome: 'teste.pdf',
+              anexo_url: 'https://example.com/teste.pdf',
+              anexo_tamanho_bytes: 100,
+              anexo_tipo: 'application/pdf',
+            },
+            {
+              unidade_id: unidade.id,
+              nome: 'Documento 2',
+              categoria: 'teste',
+              data_validade: new Date('2030-12-31'),
+              anexo_nome: 'teste2.pdf',
+              anexo_url: 'https://example.com/teste2.pdf',
+              anexo_tamanho_bytes: 200,
+              anexo_tipo: 'application/pdf',
+            },
+          ],
+        });
+
+        await tx.tarefa.create({
+          data: {
             unidade_id: unidade.id,
-            nome: 'Documento 1',
+            titulo: 'Tarefa de integração',
+            prazo: new Date('2030-12-31'),
+          },
+        });
+
+        const resultado = await new UnidadesService(
+          tx as unknown as PrismaService,
+        ).listar({ page: 1, pageSize: 20 }, empresa.id);
+
+        const item = resultado.items.find((i) => i.codigo === codigo);
+
+        expect(item).toBeDefined();
+        expect(item!.totalDocumentos).toBe(2);
+        expect(item!.totalTarefas).toBe(1);
+
+        throw new Error('ROLLBACK_INTEGRACAO');
+      });
+    } catch (erro) {
+      if (erro instanceof Error && erro.message === 'ROLLBACK_INTEGRACAO') {
+        return;
+      }
+      throw erro;
+    }
+  });
+
+  it('deve manter ordenação estável na paginação SQL raw', async () => {
+    const sentinela = new Error('ROLLBACK_RAW');
+    let idsOrdenados: { id: string }[] = [];
+
+    try {
+      await prisma.$transaction(async (tx) => {
+        const empresa = { id: empresasTeste.a };
+        const nome = `Raw Igual ${sufixo}`;
+
+        await tx.unidade.createMany({
+          data: ['RAW001', 'RAW002'].map((codigo) => ({
+            empresa_id: empresa.id,
+            nome,
+            codigo: criarCodigo(codigo),
+            ...endereco,
+          })),
+        });
+
+        idsOrdenados = await tx.unidade.findMany({
+          where: { empresa_id: empresa.id, nome },
+          orderBy: { id: 'asc' },
+          select: { id: true },
+        });
+
+        const service = new UnidadesService(tx as unknown as PrismaService);
+
+        const primeira = await service.listar(
+          { q: nome, page: 1, pageSize: 1 },
+          empresa.id,
+        );
+        const segunda = await service.listar(
+          { q: nome, page: 2, pageSize: 1 },
+          empresa.id,
+        );
+
+        expect(primeira.total).toBe(2);
+        expect(primeira.items[0].id).toBe(idsOrdenados[0].id);
+        expect(segunda.items[0].id).toBe(idsOrdenados[1].id);
+
+        throw sentinela;
+      });
+    } catch (error) {
+      if (error !== sentinela) throw error;
+    }
+  });
+
+  it('deve retornar contagem de documentos e tarefas na busca SQL raw', async () => {
+    const empresa = { id: empresasTeste.a };
+    const codigo = criarCodigo('RAW');
+
+    try {
+      await prisma.$transaction(async (tx) => {
+        const unidade = await tx.unidade.create({
+          data: {
+            empresa_id: empresa.id,
+            nome: `Raw ${sufixo}`,
+            codigo,
+            ...endereco,
+          },
+        });
+
+        await tx.documento.createMany({
+          data: Array.from({ length: 2 }, (_, i) => ({
+            unidade_id: unidade.id,
+            nome: `Documento ${i + 1}`,
             categoria: 'teste',
             data_validade: new Date('2030-12-31'),
             anexo_nome: 'teste.pdf',
             anexo_url: 'https://example.com/teste.pdf',
             anexo_tamanho_bytes: 100,
             anexo_tipo: 'application/pdf',
-          },
-          {
+          })),
+        });
+
+        await tx.tarefa.createMany({
+          data: Array.from({ length: 3 }, (_, i) => ({
             unidade_id: unidade.id,
-            nome: 'Documento 2',
-            categoria: 'teste',
-            data_validade: new Date('2030-12-31'),
-            anexo_nome: 'teste2.pdf',
-            anexo_url: 'https://example.com/teste2.pdf',
-            anexo_tamanho_bytes: 200,
-            anexo_tipo: 'application/pdf',
-          },
-        ],
+            titulo: `Tarefa ${i + 1}`,
+            prazo: new Date('2030-12-31'),
+          })),
+        });
+
+        const resultado = await new UnidadesService(
+          tx as unknown as PrismaService,
+        ).listar({ q: codigo, page: 1, pageSize: 20 }, empresa.id);
+
+        expect(resultado.total).toBe(1);
+        expect(resultado.items[0].codigo).toBe(codigo);
+        expect(resultado.items[0].totalDocumentos).toBe(2);
+        expect(resultado.items[0].totalTarefas).toBe(3);
+
+        throw new Error('ROLLBACK_INTEGRACAO');
       });
-
-      await tx.tarefa.create({
-        data: {
-          unidade_id: unidade.id,
-          titulo: 'Tarefa de integração',
-          prazo: new Date('2030-12-31'),
-        },
-      });
-
-      const resultado = await new UnidadesService(
-        tx as unknown as PrismaService,
-      ).listar({ page: 1, pageSize: 20 }, empresa.id);
-
-      const item = resultado.items.find((i) => i.codigo === codigo);
-
-      expect(item).toBeDefined();
-      expect(item!.totalDocumentos).toBe(2);
-      expect(item!.totalTarefas).toBe(1);
-
-      throw new Error('ROLLBACK_INTEGRACAO');
-    });
-  } catch (erro) {
-    if (
-      erro instanceof Error &&
-      erro.message === 'ROLLBACK_INTEGRACAO'
-    ) {
-      return;
+    } catch (erro) {
+      if (erro instanceof Error && erro.message === 'ROLLBACK_INTEGRACAO') {
+        return;
+      }
+      throw erro;
     }
-    throw erro;
-  }
-});
-
-it('deve manter ordenação estável na paginação SQL raw', async () => {
-  const sentinela = new Error('ROLLBACK_RAW');
-  let idsOrdenados: { id: string }[] = [];
-
-  try {
-    await prisma.$transaction(async (tx) => {
-      const empresa = await tx.empresa.findFirstOrThrow({
-        select: { id: true },
-      });
-      const nome = `Raw Igual ${sufixo}`;
-
-      await tx.unidade.createMany({
-        data: ['RAW001', 'RAW002'].map((codigo) => ({
-          empresa_id: empresa.id,
-          nome,
-          codigo: criarCodigo(codigo),
-          ...endereco,
-        })),
-      });
-
-      idsOrdenados = await tx.unidade.findMany({
-        where: { empresa_id: empresa.id, nome },
-        orderBy: { id: 'asc' },
-        select: { id: true },
-      });
-
-      const service = new UnidadesService(
-        tx as unknown as PrismaService,
-      );
-
-      const primeira = await service.listar(
-        { q: nome, page: 1, pageSize: 1 },
-        empresa.id,
-      );
-      const segunda = await service.listar(
-        { q: nome, page: 2, pageSize: 1 },
-        empresa.id,
-      );
-
-      expect(primeira.total).toBe(2);
-      expect(primeira.items[0].id).toBe(idsOrdenados[0].id);
-      expect(segunda.items[0].id).toBe(idsOrdenados[1].id);
-
-      throw sentinela;
-    });
-  } catch (error) {
-    if (error !== sentinela) throw error;
-  }
-});
-
-it('deve retornar contagem de documentos e tarefas na busca SQL raw', async () => {
-  const empresa = await prisma.empresa.findFirstOrThrow({
-    select: { id: true },
   });
-  const codigo = criarCodigo('RAW');
-
-  try {
-    await prisma.$transaction(async (tx) => {
-      const unidade = await tx.unidade.create({
-        data: {
-          empresa_id: empresa.id,
-          nome: `Raw ${sufixo}`,
-          codigo,
-          ...endereco,
-        },
-      });
-
-      await tx.documento.createMany({
-        data: Array.from({ length: 2 }, (_, i) => ({
-          unidade_id: unidade.id,
-          nome: `Documento ${i + 1}`,
-          categoria: 'teste',
-          data_validade: new Date('2030-12-31'),
-          anexo_nome: 'teste.pdf',
-          anexo_url: 'https://example.com/teste.pdf',
-          anexo_tamanho_bytes: 100,
-          anexo_tipo: 'application/pdf',
-        })),
-      });
-
-      await tx.tarefa.createMany({
-        data: Array.from({ length: 3 }, (_, i) => ({
-          unidade_id: unidade.id,
-          titulo: `Tarefa ${i + 1}`,
-          prazo: new Date('2030-12-31'),
-        })),
-      });
-
-      const resultado = await new UnidadesService(
-        tx as unknown as PrismaService,
-      ).listar({ q: codigo, page: 1, pageSize: 20 }, empresa.id);
-
-      expect(resultado.total).toBe(1);
-      expect(resultado.items[0].codigo).toBe(codigo);
-      expect(resultado.items[0].totalDocumentos).toBe(2);
-      expect(resultado.items[0].totalTarefas).toBe(3);
-
-      throw new Error('ROLLBACK_INTEGRACAO');
-    });
-  } catch (erro) {
-    if (erro instanceof Error && erro.message === 'ROLLBACK_INTEGRACAO') {
-      return;
-    }
-    throw erro;
-  }
-});
-
 });
