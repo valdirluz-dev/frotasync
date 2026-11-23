@@ -1,18 +1,24 @@
 import {
   ArgumentMetadata,
   BadRequestException,
+  ExecutionContext,
+  ForbiddenException,
+  HttpStatus,
   ParseUUIDPipe,
   PipeTransform,
   RequestMethod,
 } from '@nestjs/common';
 import {
   GUARDS_METADATA,
+  HTTP_CODE_METADATA,
   INTERCEPTORS_METADATA,
   METHOD_METADATA,
   PATH_METADATA,
   ROUTE_ARGS_METADATA,
 } from '@nestjs/common/constants';
 import { describe, expect, it, jest, beforeEach } from '@jest/globals';
+import type { Response } from 'express';
+import { Reflector } from '@nestjs/core';
 import { ROLES_KEY } from '../auth/decorators/roles.decorator';
 import { AuthenticatedRequest } from '../auth/interfaces/authenticated-request.interface';
 import { JwtAuthGuard } from '../auth/guards/jwt-auth.guard';
@@ -23,6 +29,7 @@ import {
   AnexoUploadFile,
   AnexoValidationPipe,
 } from './pipes/anexo-validation.pipe';
+import type { StorageReadResult } from '../storage/interfaces/storage.interface';
 import { AtualizarDocumentoDto } from './schemas/atualizar-documento.schema';
 import { CriarDocumentoDto } from './schemas/criar-documento.schema';
 import { ListarDocumentosDto } from './schemas/listar-documentos.schema';
@@ -53,6 +60,8 @@ const documentosService = {
         empresaId: string,
       ) => Promise<ServiceResponse>
     >(),
+  listarCategorias: jest.fn<(empresaId: string) => Promise<string[]>>(),
+  obter: jest.fn<(id: string, empresaId: string) => Promise<unknown>>(),
   criar:
     jest.fn<
       (
@@ -71,6 +80,14 @@ const documentosService = {
         empresaId: string,
       ) => Promise<unknown>
     >(),
+  baixarAnexo:
+    jest.fn<
+      (
+        id: string,
+        empresaId: string,
+      ) => Promise<StorageReadResult & { fileName: string }>
+    >(),
+  excluir: jest.fn<(id: string, empresaId: string) => Promise<void>>(),
 };
 
 const req = {
@@ -156,6 +173,19 @@ function aplicarPipes(pipes: unknown[], valor: unknown): unknown {
   }, valor);
 }
 
+function criarContextoComPapel(
+  handler: unknown,
+  papel: string,
+): ExecutionContext {
+  return {
+    getHandler: () => handler,
+    getClass: () => DocumentosController,
+    switchToHttp: () => ({
+      getRequest: () => ({ user: { papel } }),
+    }),
+  } as unknown as ExecutionContext;
+}
+
 describe('DocumentosController', () => {
   beforeEach(() => {
     jest.clearAllMocks();
@@ -193,6 +223,29 @@ describe('DocumentosController', () => {
     expect(documentosService.listarPorUnidade).toHaveBeenCalledWith(
       'unidade-123',
       filtros,
+      'empresa-123',
+    );
+  });
+
+  it('deve delegar a consulta individual com ID e empresa autenticada', async () => {
+    const resultado = { id: 'documento-1' };
+    documentosService.obter.mockResolvedValue(resultado);
+
+    await expect(
+      controller.obter('a0cd295f-5787-493b-a3d0-c85029a75fc8', req),
+    ).resolves.toBe(resultado);
+    expect(documentosService.obter).toHaveBeenCalledWith(
+      'a0cd295f-5787-493b-a3d0-c85029a75fc8',
+      'empresa-123',
+    );
+  });
+
+  it('deve delegar a listagem de categorias com a empresa autenticada', async () => {
+    const categorias = ['Ambiental', 'Legal'];
+    documentosService.listarCategorias.mockResolvedValue(categorias);
+
+    await expect(controller.listarCategorias(req)).resolves.toBe(categorias);
+    expect(documentosService.listarCategorias).toHaveBeenCalledWith(
       'empresa-123',
     );
   });
@@ -235,6 +288,74 @@ describe('DocumentosController', () => {
       undefined,
       'empresa-123',
     );
+  });
+
+  it('deve enviar o binário do anexo com MIME e cabeçalhos corretos', async () => {
+    const buffer = Buffer.from([0x00, 0xff, 0x25, 0x50, 0x44, 0x46]);
+    documentosService.baixarAnexo.mockResolvedValue({
+      buffer,
+      mimeType: 'application/pdf',
+      size: buffer.byteLength,
+      fileName: 'licença final.pdf',
+    });
+    const response = {
+      setHeader: jest.fn(),
+      status: jest.fn().mockReturnThis(),
+      send: jest.fn().mockReturnThis(),
+    };
+
+    await controller.baixarAnexo(
+      'a0cd295f-5787-493b-a3d0-c85029a75fc8',
+      req,
+      response as unknown as Response,
+    );
+
+    expect(documentosService.baixarAnexo).toHaveBeenCalledWith(
+      'a0cd295f-5787-493b-a3d0-c85029a75fc8',
+      'empresa-123',
+    );
+    expect(response.setHeader).toHaveBeenCalledWith(
+      'Content-Type',
+      'application/pdf',
+    );
+    expect(response.setHeader).toHaveBeenCalledWith(
+      'Content-Disposition',
+      `inline; filename="licen_a final.pdf"; filename*=UTF-8''licen%C3%A7a%20final.pdf`,
+    );
+    expect(response.setHeader).toHaveBeenCalledWith(
+      'Content-Length',
+      buffer.byteLength,
+    );
+    expect(response.status).toHaveBeenCalledWith(HttpStatus.OK);
+    expect(response.send).toHaveBeenCalledWith(buffer);
+  });
+
+  it('sanitiza o nome do anexo para impedir injeção de cabeçalhos', async () => {
+    documentosService.baixarAnexo.mockResolvedValue({
+      buffer: Buffer.from('%PDF-1.7'),
+      mimeType: 'application/pdf',
+      size: 8,
+      fileName: '../nome"\r\nX-Injection: yes.pdf',
+    });
+    const response = {
+      setHeader: jest.fn(),
+      status: jest.fn().mockReturnThis(),
+      send: jest.fn().mockReturnThis(),
+    };
+
+    await controller.baixarAnexo(
+      'a0cd295f-5787-493b-a3d0-c85029a75fc8',
+      req,
+      response as unknown as Response,
+    );
+
+    const disposition = response.setHeader.mock.calls.find(
+      ([header]) => header === 'Content-Disposition',
+    )?.[1] as string;
+    expect(disposition).toContain(
+      'inline; filename="nome___X-Injection: yes.pdf"',
+    );
+    expect(disposition).not.toMatch(/[\r\n]/);
   });
 
   it('deve validar as queries dos dois endpoints pelo ZodValidationPipe', () => {
@@ -441,6 +562,40 @@ describe('DocumentosController', () => {
       ),
     ).toBe(RequestMethod.GET);
     expect(
+      Reflect.getMetadata(
+        PATH_METADATA,
+        DocumentosController.prototype.listarCategorias,
+      ),
+    ).toBe('documentos/categorias');
+    expect(
+      Reflect.getMetadata(
+        METHOD_METADATA,
+        DocumentosController.prototype.listarCategorias,
+      ),
+    ).toBe(RequestMethod.GET);
+    expect(
+      Reflect.getMetadata(
+        ROLES_KEY,
+        DocumentosController.prototype.listarCategorias,
+      ),
+    ).toBeUndefined();
+    expect(
+      Reflect.getMetadata(PATH_METADATA, DocumentosController.prototype.obter),
+    ).toBe('documentos/:id');
+    expect(
+      Reflect.getMetadata(
+        METHOD_METADATA,
+        DocumentosController.prototype.obter,
+      ),
+    ).toBe(RequestMethod.GET);
+    const argumentosObter = Object.values(
+      obterArgumentosDoMetodo('obter'),
+    ).flatMap((argumento) => argumento.pipes ?? []);
+    expect(argumentosObter).toContainEqual(expect.any(ParseUUIDPipe));
+    expect(
+      Reflect.getMetadata(ROLES_KEY, DocumentosController.prototype.obter),
+    ).toBeUndefined();
+    expect(
       Reflect.getMetadata(PATH_METADATA, DocumentosController.prototype.criar),
     ).toBe('unidades/:unidadeId/documentos');
     expect(
@@ -479,6 +634,95 @@ describe('DocumentosController', () => {
         DocumentosController.prototype.atualizar,
       ),
     ).toContain(AnexoUploadInterceptor);
+    expect(
+      Reflect.getMetadata(
+        PATH_METADATA,
+        DocumentosController.prototype.baixarAnexo,
+      ),
+    ).toBe('documentos/:id/anexo');
+    expect(
+      Reflect.getMetadata(
+        METHOD_METADATA,
+        DocumentosController.prototype.baixarAnexo,
+      ),
+    ).toBe(RequestMethod.GET);
+    expect(
+      Reflect.getMetadata(
+        ROLES_KEY,
+        DocumentosController.prototype.baixarAnexo,
+      ),
+    ).toBeUndefined();
+    expect(
+      Reflect.getMetadata(
+        PATH_METADATA,
+        DocumentosController.prototype.excluir,
+      ),
+    ).toBe('documentos/:id');
+    expect(
+      Reflect.getMetadata(
+        METHOD_METADATA,
+        DocumentosController.prototype.excluir,
+      ),
+    ).toBe(RequestMethod.DELETE);
+    expect(
+      Reflect.getMetadata(ROLES_KEY, DocumentosController.prototype.excluir),
+    ).toEqual(['gestor']);
+    expect(
+      Reflect.getMetadata(
+        HTTP_CODE_METADATA,
+        DocumentosController.prototype.excluir,
+      ),
+    ).toBe(HttpStatus.NO_CONTENT);
+  });
+
+  it('permite download aos perfis autenticados e exclusão somente ao gestor', () => {
+    const guard = new RolesGuard(new Reflector());
+
+    for (const papel of ['colaborador', 'gestor', 'administrador']) {
+      expect(
+        guard.canActivate(
+          criarContextoComPapel(
+            DocumentosController.prototype.baixarAnexo,
+            papel,
+          ),
+        ),
+      ).toBe(true);
+      expect(
+        guard.canActivate(
+          criarContextoComPapel(DocumentosController.prototype.obter, papel),
+        ),
+      ).toBe(true);
+      expect(
+        guard.canActivate(
+          criarContextoComPapel(
+            DocumentosController.prototype.listarCategorias,
+            papel,
+          ),
+        ),
+      ).toBe(true);
+    }
+
+    expect(
+      guard.canActivate(
+        criarContextoComPapel(DocumentosController.prototype.excluir, 'gestor'),
+      ),
+    ).toBe(true);
+    expect(() =>
+      guard.canActivate(
+        criarContextoComPapel(
+          DocumentosController.prototype.excluir,
+          'colaborador',
+        ),
+      ),
+    ).toThrow(ForbiddenException);
+    expect(() =>
+      guard.canActivate(
+        criarContextoComPapel(
+          DocumentosController.prototype.excluir,
+          'administrador',
+        ),
+      ),
+    ).toThrow(ForbiddenException);
   });
 
   it('deve propagar erros do service sem alterá-los', async () => {
@@ -501,6 +745,22 @@ describe('DocumentosController', () => {
         req,
       ),
     ).rejects.toBe(erro);
+  });
+
+  it('deve propagar erro do service na consulta individual', async () => {
+    const erro = new BadRequestException('Consulta inválida');
+    documentosService.obter.mockRejectedValue(erro);
+
+    await expect(
+      controller.obter('a0cd295f-5787-493b-a3d0-c85029a75fc8', req),
+    ).rejects.toBe(erro);
+  });
+
+  it('deve propagar erro do service ao listar categorias', async () => {
+    const erro = new BadRequestException('Consulta inválida');
+    documentosService.listarCategorias.mockRejectedValue(erro);
+
+    await expect(controller.listarCategorias(req)).rejects.toBe(erro);
   });
 
   it('deve propagar erros do service na criação', async () => {
@@ -529,5 +789,40 @@ describe('DocumentosController', () => {
         req,
       ),
     ).rejects.toBe(erro);
+  });
+
+  it('deve delegar exclusão com ID e empresa autenticada', async () => {
+    documentosService.excluir.mockResolvedValue();
+
+    await expect(
+      controller.excluir('a0cd295f-5787-493b-a3d0-c85029a75fc8', req),
+    ).resolves.toBeUndefined();
+    expect(documentosService.excluir).toHaveBeenCalledWith(
+      'a0cd295f-5787-493b-a3d0-c85029a75fc8',
+      'empresa-123',
+    );
+  });
+
+  it('propaga erros do service ao baixar e excluir', async () => {
+    const erro = new BadRequestException('Storage indisponível');
+    documentosService.baixarAnexo.mockRejectedValue(erro);
+    documentosService.excluir.mockRejectedValue(erro);
+    const response = {
+      setHeader: jest.fn(),
+      status: jest.fn().mockReturnThis(),
+      send: jest.fn().mockReturnThis(),
+    };
+
+    await expect(
+      controller.baixarAnexo(
+        'a0cd295f-5787-493b-a3d0-c85029a75fc8',
+        req,
+        response as unknown as Response,
+      ),
+    ).rejects.toBe(erro);
+    await expect(
+      controller.excluir('a0cd295f-5787-493b-a3d0-c85029a75fc8', req),
+    ).rejects.toBe(erro);
+    expect(response.send).not.toHaveBeenCalled();
   });
 });

@@ -2,6 +2,7 @@ import {
   BadRequestException,
   Injectable,
   InternalServerErrorException,
+  Logger,
   NotFoundException,
 } from '@nestjs/common';
 import { ConfigService } from '@nestjs/config';
@@ -23,6 +24,7 @@ interface StoredMetadata {
 
 @Injectable()
 export class LocalStorageProvider implements Storage {
+  private readonly logger = new Logger(LocalStorageProvider.name);
   private readonly storagePath: string;
 
   constructor(configService: ConfigService) {
@@ -134,7 +136,7 @@ export class LocalStorageProvider implements Storage {
     const metadataPath = this.getMetadataPath(key);
 
     try {
-      await unlink(filePath);
+      await this.unlinkFile(filePath);
     } catch (error) {
       if (isErrnoError(error, 'ENOENT')) {
         throw new NotFoundException('Stored file not found.');
@@ -143,12 +145,20 @@ export class LocalStorageProvider implements Storage {
     }
 
     try {
-      await unlink(metadataPath);
+      await this.unlinkFile(metadataPath);
     } catch (error) {
       if (!isErrnoError(error, 'ENOENT')) {
-        throw error;
+        this.logger.warn(
+          `Failed to remove storage metadata for key ${key}: ${
+            error instanceof Error ? error.message : String(error)
+          }`,
+        );
       }
     }
+  }
+
+  protected unlinkFile(filePath: string): Promise<void> {
+    return unlink(filePath);
   }
 
   private getFilePath(key: string): string {

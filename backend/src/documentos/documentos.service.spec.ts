@@ -71,6 +71,8 @@ const prismaMock = {
       >(),
   },
   documento: {
+    groupBy:
+      jest.fn<(args: unknown) => Promise<Array<{ categoria: string }>>>(),
     create:
       jest.fn<
         (
@@ -80,6 +82,7 @@ const prismaMock = {
     findFirst:
       jest.fn<(args: unknown) => Promise<DocumentoPersistidoTeste | null>>(),
     update: jest.fn<(args: unknown) => Promise<DocumentoPersistidoTeste>>(),
+    delete: jest.fn<(args: unknown) => Promise<{ id: string }>>(),
   },
 };
 
@@ -189,7 +192,18 @@ function configurarAtualizacao(documento = criarDocumentoPersistido()): void {
     const data = (args as { data: Partial<DocumentoPersistidoTeste> }).data;
     return { ...documento, ...data };
   });
+  prismaMock.documento.create.mockResolvedValue({
+    id: documento.id,
+    created_at: documento.created_at,
+    updated_at: documento.updated_at,
+  });
+  prismaMock.documento.delete.mockResolvedValue({ id: documento.id });
   storageMock.save.mockResolvedValue('new-storage-key');
+  storageMock.read.mockResolvedValue({
+    buffer: Buffer.from('%PDF-1.7\nconteúdo original'),
+    mimeType: 'application/pdf',
+    size: Buffer.byteLength('%PDF-1.7\nconteúdo original'),
+  });
   storageMock.delete.mockResolvedValue();
 }
 
@@ -215,8 +229,10 @@ describe('DocumentosService', () => {
     prismaMock.$queryRaw.mockReset();
     prismaMock.unidade.findFirst.mockReset();
     prismaMock.documento.create.mockReset();
+    prismaMock.documento.groupBy.mockReset();
     prismaMock.documento.findFirst.mockReset();
     prismaMock.documento.update.mockReset();
+    prismaMock.documento.delete.mockReset();
     storageMock.save.mockReset();
     storageMock.read.mockReset();
     storageMock.delete.mockReset();
@@ -447,6 +463,112 @@ describe('DocumentosService', () => {
     });
     expect(consultarQuery(1).values).toContain(0);
   });
+
+  it('consulta documento no escopo da empresa e mapeia o DTO sem expor a chave storage', async () => {
+    const documento = criarDocumentoPersistido({
+      data_validade: new Date('2026-06-30T00:00:00.000Z'),
+      anexo_tamanho_bytes: 482311n,
+      anexo_url: 'chave-interna-de-storage',
+    });
+    prismaMock.documento.findFirst.mockResolvedValue(documento);
+
+    const resultado = await service.obter(documento.id, empresaId);
+
+    expect(prismaMock.documento.findFirst).toHaveBeenCalledWith({
+      where: {
+        id: documento.id,
+        unidade: { is: { empresa_id: empresaId } },
+      },
+      select: expect.objectContaining({
+        anexo_url: true,
+        anexo_tamanho_bytes: true,
+      }),
+    });
+    expect(resultado).toEqual({
+      id: documento.id,
+      unidadeId: unidadeId,
+      unidadeNome: 'Unidade Norte',
+      nome: 'Licença Ambiental',
+      tipo: 'Licença',
+      categoria: 'Ambiental',
+      dataEmissao: '2026-06-01',
+      dataValidade: '2026-06-30',
+      descricao: 'Licença anual',
+      statusValidade: 'proximo_vencimento',
+      anexo: {
+        nome: 'licenca.pdf',
+        tamanhoBytes: 482311,
+        tipo: 'application/pdf',
+        url: `/api/v1/documentos/${documento.id}/anexo`,
+      },
+      criadoEm: '2026-06-10T10:00:00.000Z',
+      atualizadoEm: '2026-06-11T11:00:00.000Z',
+    });
+    expect(resultado).not.toHaveProperty('anexo_url');
+    expect(storageMock.read).not.toHaveBeenCalled();
+  });
+
+  it('retorna categorias distintas em ordem alfabética entre unidades da empresa', async () => {
+    prismaMock.documento.groupBy.mockResolvedValue([
+      { categoria: 'Ambiental' },
+      { categoria: 'Legal' },
+    ]);
+
+    const categorias = await service.listarCategorias(empresaId);
+
+    expect(categorias).toEqual(['Ambiental', 'Legal']);
+    expect(prismaMock.documento.groupBy).toHaveBeenCalledWith({
+      by: ['categoria'],
+      where: {
+        unidade: { is: { empresa_id: empresaId } },
+      },
+      orderBy: { categoria: 'asc' },
+    });
+  });
+
+  it('remove categorias vazias ou compostas somente por espaços', async () => {
+    prismaMock.documento.groupBy.mockResolvedValue([
+      { categoria: '' },
+      { categoria: '   ' },
+      { categoria: '\t  ' },
+      { categoria: 'Segurança' },
+    ]);
+
+    await expect(service.listarCategorias(empresaId)).resolves.toEqual([
+      'Segurança',
+    ]);
+  });
+
+  it('retorna array vazio quando a empresa não possui documentos', async () => {
+    prismaMock.documento.groupBy.mockResolvedValue([]);
+
+    await expect(service.listarCategorias(empresaId)).resolves.toEqual([]);
+    expect(prismaMock.documento.groupBy).toHaveBeenCalledWith(
+      expect.objectContaining({
+        where: {
+          unidade: { is: { empresa_id: empresaId } },
+        },
+      }),
+    );
+  });
+
+  it.each(['documento inexistente', 'documento de outra empresa'])(
+    'retorna 404 para %s na consulta individual',
+    async () => {
+      prismaMock.documento.findFirst.mockResolvedValue(null);
+
+      await expect(
+        service.obter('a0cd295f-5787-493b-a3d0-c85029a75fc8', empresaId),
+      ).rejects.toMatchObject({
+        response: {
+          codigo: 'RECURSO_NAO_ENCONTRADO',
+          message: 'Documento não encontrado.',
+        },
+        status: 404,
+      });
+      expect(storageMock.read).not.toHaveBeenCalled();
+    },
+  );
 
   it('mapeia o documento e o anexo ao DTO sem expor a chave interna', async () => {
     configurarResultados(1, [
@@ -994,5 +1116,220 @@ describe('DocumentosService', () => {
       criadoEm: '2026-06-10T10:00:00.000Z',
       atualizadoEm: '2026-06-15T23:45:00.000Z',
     });
+  });
+
+  it('baixa o anexo por chave interna sem filtrar a unidade por status', async () => {
+    configurarAtualizacao();
+    const buffer = Buffer.from([0x25, 0x50, 0x44, 0x46, 0x00, 0xff]);
+    storageMock.read.mockResolvedValue({
+      buffer,
+      mimeType: 'application/pdf',
+      size: buffer.byteLength,
+    });
+
+    await expect(
+      service.baixarAnexo('a0cd295f-5787-493b-a3d0-c85029a75fc8', empresaId),
+    ).resolves.toEqual({
+      buffer,
+      mimeType: 'application/pdf',
+      size: buffer.byteLength,
+      fileName: 'licenca.pdf',
+    });
+
+    expect(prismaMock.documento.findFirst).toHaveBeenCalledWith({
+      where: {
+        id: 'a0cd295f-5787-493b-a3d0-c85029a75fc8',
+        unidade: { is: { empresa_id: empresaId } },
+      },
+      select: { anexo_url: true, anexo_nome: true },
+    });
+    expect(storageMock.read).toHaveBeenCalledWith('old-storage-key');
+  });
+
+  it.each(['documento inexistente', 'documento de outra empresa'])(
+    'não permite baixar %s',
+    async () => {
+      prismaMock.documento.findFirst.mockResolvedValue(null);
+
+      await expect(
+        service.baixarAnexo('a0cd295f-5787-493b-a3d0-c85029a75fc8', empresaId),
+      ).rejects.toBeInstanceOf(NotFoundException);
+
+      expect(storageMock.read).not.toHaveBeenCalled();
+    },
+  );
+
+  it('registra e propaga falha de leitura do armazenamento', async () => {
+    configurarAtualizacao();
+    const erro = new Error('Storage indisponível');
+    storageMock.read.mockRejectedValue(erro);
+    const loggerSpy = jest
+      .spyOn(Logger.prototype, 'error')
+      .mockImplementation(() => undefined);
+
+    await expect(
+      service.baixarAnexo('a0cd295f-5787-493b-a3d0-c85029a75fc8', empresaId),
+    ).rejects.toBe(erro);
+
+    expect(loggerSpy).toHaveBeenCalledWith(
+      expect.stringContaining('a0cd295f-5787-493b-a3d0-c85029a75fc8'),
+      expect.stringContaining('Storage indisponível'),
+    );
+  });
+
+  it('valida o anexo e exclui o registro antes do arquivo no escopo da empresa', async () => {
+    configurarAtualizacao();
+
+    await expect(
+      service.excluir('a0cd295f-5787-493b-a3d0-c85029a75fc8', empresaId),
+    ).resolves.toBeUndefined();
+
+    expect(prismaMock.documento.findFirst).toHaveBeenCalledWith(
+      expect.objectContaining({
+        where: {
+          id: 'a0cd295f-5787-493b-a3d0-c85029a75fc8',
+          unidade: { is: { empresa_id: empresaId } },
+        },
+      }),
+    );
+    expect(prismaMock.documento.delete).toHaveBeenCalledWith({
+      where: {
+        id: 'a0cd295f-5787-493b-a3d0-c85029a75fc8',
+        unidade: { is: { empresa_id: empresaId } },
+      },
+    });
+    expect(storageMock.read).toHaveBeenCalledWith('old-storage-key');
+    expect(storageMock.delete).toHaveBeenCalledWith('old-storage-key');
+    expect(
+      prismaMock.documento.delete.mock.invocationCallOrder[0],
+    ).toBeLessThan(storageMock.delete.mock.invocationCallOrder[0]);
+  });
+
+  it.each(['documento inexistente', 'documento de outra empresa'])(
+    'não exclui arquivo nem registro para %s',
+    async () => {
+      prismaMock.documento.findFirst.mockResolvedValue(null);
+
+      await expect(
+        service.excluir('a0cd295f-5787-493b-a3d0-c85029a75fc8', empresaId),
+      ).rejects.toBeInstanceOf(NotFoundException);
+
+      expect(prismaMock.documento.delete).not.toHaveBeenCalled();
+      expect(storageMock.read).not.toHaveBeenCalled();
+      expect(storageMock.delete).not.toHaveBeenCalled();
+    },
+  );
+
+  it('mantém o arquivo quando a exclusão do registro no Prisma falha', async () => {
+    configurarAtualizacao();
+    const erro = new Error('Falha ao excluir registro');
+    prismaMock.documento.delete.mockRejectedValue(erro);
+
+    await expect(
+      service.excluir('a0cd295f-5787-493b-a3d0-c85029a75fc8', empresaId),
+    ).rejects.toBe(erro);
+
+    expect(storageMock.read).toHaveBeenCalledWith('old-storage-key');
+    expect(storageMock.delete).not.toHaveBeenCalled();
+    expect(prismaMock.documento.create).not.toHaveBeenCalled();
+  });
+
+  it('não restaura o registro quando o anexo já está ausente no storage', async () => {
+    configurarAtualizacao();
+    storageMock.delete.mockRejectedValue(
+      new NotFoundException('Stored file not found.'),
+    );
+
+    await expect(
+      service.excluir('a0cd295f-5787-493b-a3d0-c85029a75fc8', empresaId),
+    ).resolves.toBeUndefined();
+
+    expect(storageMock.read).toHaveBeenCalledWith('old-storage-key');
+    expect(prismaMock.documento.delete).toHaveBeenCalled();
+    expect(prismaMock.documento.create).not.toHaveBeenCalled();
+  });
+
+  it('restaura os dados originais do registro se a exclusão do armazenamento falhar', async () => {
+    const documento = criarDocumentoPersistido();
+    configurarAtualizacao(documento);
+    let registroPresente = true;
+    prismaMock.documento.delete.mockImplementation(async () => {
+      registroPresente = false;
+      return { id: documento.id };
+    });
+    prismaMock.documento.create.mockImplementation(async () => {
+      registroPresente = true;
+      return {
+        id: documento.id,
+        created_at: documento.created_at,
+        updated_at: documento.updated_at,
+      };
+    });
+    const erroStorage = new Error('Falha ao remover arquivo');
+    storageMock.delete.mockRejectedValueOnce(erroStorage);
+
+    await expect(service.excluir(documento.id, empresaId)).rejects.toBe(
+      erroStorage,
+    );
+
+    expect(registroPresente).toBe(true);
+    expect(prismaMock.documento.create).toHaveBeenCalledWith({
+      data: {
+        id: documento.id,
+        unidade: { connect: { id: documento.unidade_id } },
+        nome: documento.nome,
+        tipo: documento.tipo,
+        categoria: documento.categoria,
+        data_emissao: documento.data_emissao,
+        data_validade: documento.data_validade,
+        descricao: documento.descricao,
+        anexo_nome: documento.anexo_nome,
+        anexo_url: documento.anexo_url,
+        anexo_tamanho_bytes: documento.anexo_tamanho_bytes,
+        anexo_tipo: documento.anexo_tipo,
+        created_at: documento.created_at,
+        updated_at: documento.updated_at,
+      },
+    });
+    expect(storageMock.read).toHaveBeenCalledWith(documento.anexo_url);
+    expect(storageMock.save).not.toHaveBeenCalled();
+    expect(storageMock.delete).toHaveBeenCalledTimes(1);
+    expect(storageMock.delete).toHaveBeenCalledWith(documento.anexo_url);
+  });
+
+  it('registra falha ao restaurar o registro sem mascarar a falha do storage', async () => {
+    const documento = criarDocumentoPersistido();
+    configurarAtualizacao(documento);
+    let registroPresente = true;
+    prismaMock.documento.delete.mockImplementation(async () => {
+      registroPresente = false;
+      return { id: documento.id };
+    });
+    const erroStorage = new Error('Falha ao remover arquivo');
+    const erroRestauracao = new Error('Falha ao restaurar registro no Prisma');
+    storageMock.delete.mockRejectedValue(erroStorage);
+    prismaMock.documento.create.mockRejectedValue(erroRestauracao);
+    const loggerSpy = jest
+      .spyOn(Logger.prototype, 'error')
+      .mockImplementation(() => undefined);
+
+    await expect(service.excluir(documento.id, empresaId)).rejects.toBe(
+      erroStorage,
+    );
+
+    expect(registroPresente).toBe(false);
+    expect(prismaMock.documento.create).toHaveBeenCalledWith(
+      expect.objectContaining({
+        data: expect.objectContaining({
+          id: documento.id,
+          anexo_url: documento.anexo_url,
+        }),
+      }),
+    );
+    expect(storageMock.save).not.toHaveBeenCalled();
+    expect(loggerSpy).toHaveBeenCalledWith(
+      expect.stringContaining(documento.id),
+      expect.stringContaining('Falha ao restaurar registro no Prisma'),
+    );
   });
 });

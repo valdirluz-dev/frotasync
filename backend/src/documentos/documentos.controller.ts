@@ -2,18 +2,23 @@ import {
   ArgumentMetadata,
   Body,
   Controller,
+  Delete,
   Get,
+  HttpCode,
+  HttpStatus,
   Param,
   ParseUUIDPipe,
   PipeTransform,
   Post,
   Put,
   Query,
+  Res,
   Req,
   UploadedFile,
   UseGuards,
   UseInterceptors,
 } from '@nestjs/common';
+import type { Response } from 'express';
 import { Roles } from '../auth/decorators/roles.decorator';
 import { AuthenticatedRequest } from '../auth/interfaces/authenticated-request.interface';
 import { JwtAuthGuard } from '../auth/guards/jwt-auth.guard';
@@ -37,6 +42,26 @@ import {
   ListarDocumentosSchema,
 } from './schemas/listar-documentos.schema';
 import { DocumentosService } from './documentos.service';
+
+function criarContentDispositionInline(nomeOriginal: string): string {
+  const nomeBase = nomeOriginal.replace(/\\/g, '/').split('/').pop() ?? '';
+  const nomeSeguro =
+    Array.from(nomeBase, (caractere) => {
+      const codigo = caractere.charCodeAt(0);
+      return codigo < 0x20 || (codigo >= 0x7f && codigo <= 0x9f)
+        ? '_'
+        : caractere;
+    }).join('') || 'anexo';
+  const nomeFallback = nomeSeguro
+    .replace(/[^\x20-\x7e]/g, '_')
+    .replace(/["\\]/g, '_');
+  const nomeCodificado = encodeURIComponent(nomeSeguro).replace(
+    /[!'()*]/g,
+    (caractere) => `%${caractere.charCodeAt(0).toString(16).toUpperCase()}`,
+  );
+
+  return `inline; filename="${nomeFallback}"; filename*=UTF-8''${nomeCodificado}`;
+}
 
 class NormalizarDataEmissaoVaziaPipe implements PipeTransform {
   transform(value: unknown, _metadata: ArgumentMetadata): unknown {
@@ -87,6 +112,40 @@ export class DocumentosController {
     );
   }
 
+  @Get('documentos/categorias')
+  listarCategorias(@Req() req: AuthenticatedRequest) {
+    return this.documentosService.listarCategorias(req.user.empresaId);
+  }
+
+  @Get('documentos/:id')
+  obter(
+    @Param('id', new ParseUUIDPipe()) id: string,
+    @Req() req: AuthenticatedRequest,
+  ) {
+    return this.documentosService.obter(id, req.user.empresaId);
+  }
+
+  @Get('documentos/:id/anexo')
+  async baixarAnexo(
+    @Param('id', new ParseUUIDPipe()) id: string,
+    @Req() req: AuthenticatedRequest,
+    @Res() response: Response,
+  ) {
+    const arquivo = await this.documentosService.baixarAnexo(
+      id,
+      req.user.empresaId,
+    );
+
+    response.setHeader('Content-Type', arquivo.mimeType);
+    response.setHeader(
+      'Content-Disposition',
+      criarContentDispositionInline(arquivo.fileName),
+    );
+    response.setHeader('Content-Length', arquivo.buffer.byteLength);
+
+    return response.status(HttpStatus.OK).send(arquivo.buffer);
+  }
+
   @Post('unidades/:unidadeId/documentos')
   @Roles('colaborador')
   @UseInterceptors(AnexoUploadInterceptor)
@@ -128,5 +187,15 @@ export class DocumentosController {
       anexo,
       req.user.empresaId,
     );
+  }
+
+  @Delete('documentos/:id')
+  @Roles('gestor')
+  @HttpCode(HttpStatus.NO_CONTENT)
+  async excluir(
+    @Param('id', new ParseUUIDPipe()) id: string,
+    @Req() req: AuthenticatedRequest,
+  ): Promise<void> {
+    await this.documentosService.excluir(id, req.user.empresaId);
   }
 }

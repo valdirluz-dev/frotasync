@@ -1,5 +1,5 @@
 import { jest } from '@jest/globals';
-import { BadRequestException, NotFoundException } from '@nestjs/common';
+import { BadRequestException, Logger, NotFoundException } from '@nestjs/common';
 import { ConfigService } from '@nestjs/config';
 import {
   mkdtemp,
@@ -68,6 +68,73 @@ describe('LocalStorageProvider', () => {
     await expect(
       readFile(join(temporaryDirectory, `${key}.json`)),
     ).rejects.toMatchObject({ code: 'ENOENT' });
+  });
+
+  it('preserves the main file and reports a failure when its deletion fails', async () => {
+    const key = await provider.save({
+      buffer: Buffer.from('content'),
+      mimeType: 'text/plain',
+    });
+    const error = new Error('Main file deletion failed');
+    jest
+      .spyOn(
+        provider as unknown as {
+          unlinkFile: (filePath: string) => Promise<void>;
+        },
+        'unlinkFile',
+      )
+      .mockRejectedValueOnce(error);
+
+    await expect(provider.delete(key)).rejects.toBe(error);
+
+    await expect(readFile(join(temporaryDirectory, key))).resolves.toEqual(
+      Buffer.from('content'),
+    );
+    await expect(
+      readFile(join(temporaryDirectory, `${key}.json`), 'utf8'),
+    ).resolves.toContain('text/plain');
+  });
+
+  it('does not report failure when metadata cleanup fails after file deletion', async () => {
+    const key = await provider.save({
+      buffer: Buffer.from('content'),
+      mimeType: 'text/plain',
+    });
+    const metadataPath = join(temporaryDirectory, `${key}.json`);
+    const metadataError = new Error('Metadata cleanup failed');
+    const unlinkFile = (
+      provider as unknown as {
+        unlinkFile: (filePath: string) => Promise<void>;
+      }
+    ).unlinkFile.bind(provider);
+    jest
+      .spyOn(
+        provider as unknown as {
+          unlinkFile: (filePath: string) => Promise<void>;
+        },
+        'unlinkFile',
+      )
+      .mockImplementation(async (filePath) => {
+        if (filePath === metadataPath) {
+          throw metadataError;
+        }
+        return unlinkFile(filePath);
+      });
+    const warningSpy = jest
+      .spyOn(Logger.prototype, 'warn')
+      .mockImplementation(() => undefined);
+
+    await expect(provider.delete(key)).resolves.toBeUndefined();
+
+    await expect(readFile(join(temporaryDirectory, key))).rejects.toMatchObject(
+      { code: 'ENOENT' },
+    );
+    await expect(readFile(metadataPath, 'utf8')).resolves.toContain(
+      'text/plain',
+    );
+    expect(warningSpy).toHaveBeenCalledWith(
+      expect.stringContaining('Metadata cleanup failed'),
+    );
   });
 
   it('throws NotFoundException for files that do not exist', async () => {
@@ -142,6 +209,13 @@ describe('LocalStorageProvider', () => {
 
     await expect(provider.read(key)).rejects.toMatchObject({
       status: 500,
+    });
+
+    await provider.delete(key);
+
+    await expect(readFile(outsidePath, 'utf8')).resolves.toBe('outside');
+    await expect(readFile(join(storagePath, key))).rejects.toMatchObject({
+      code: 'ENOENT',
     });
   });
 });

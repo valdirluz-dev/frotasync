@@ -9,6 +9,7 @@ import { Prisma } from '../../generated/prisma/client';
 import { calculatePagination } from '../common/utils/pagination.util';
 import { PrismaService } from '../prisma/prisma.service';
 import { StorageService } from '../storage/storage.service';
+import type { StorageReadResult } from '../storage/interfaces/storage.interface';
 import { AnexoUploadFile } from './pipes/anexo-validation.pipe';
 import { AtualizarDocumentoDto } from './schemas/atualizar-documento.schema';
 import { CriarDocumentoDto } from './schemas/criar-documento.schema';
@@ -298,6 +299,101 @@ export class DocumentosService {
     );
   }
 
+  async baixarAnexo(
+    id: string,
+    empresaId: string,
+  ): Promise<StorageReadResult & { fileName: string }> {
+    const documento = await this.prisma.documento.findFirst({
+      where: {
+        id,
+        unidade: { is: { empresa_id: empresaId } },
+      },
+      select: {
+        anexo_url: true,
+        anexo_nome: true,
+      },
+    });
+
+    if (!documento) {
+      throw new NotFoundException({
+        message: 'Documento não encontrado.',
+        codigo: 'RECURSO_NAO_ENCONTRADO',
+      });
+    }
+
+    try {
+      const arquivo = await this.storage.read(documento.anexo_url);
+      return { ...arquivo, fileName: documento.anexo_nome };
+    } catch (erroLeitura) {
+      this.logger.error(
+        `Falha ao ler o anexo do documento ${id}.`,
+        erroLeitura instanceof Error ? erroLeitura.stack : String(erroLeitura),
+      );
+      throw erroLeitura;
+    }
+  }
+
+  async excluir(id: string, empresaId: string): Promise<void> {
+    const whereEmpresa = {
+      id,
+      unidade: { is: { empresa_id: empresaId } },
+    };
+    const documento = await this.prisma.documento.findFirst({
+      where: whereEmpresa,
+      select: DOCUMENTO_SELECT_ATUALIZACAO,
+    });
+
+    if (!documento) {
+      throw new NotFoundException({
+        message: 'Documento não encontrado.',
+        codigo: 'RECURSO_NAO_ENCONTRADO',
+      });
+    }
+
+    // Validate availability before removing the row; the content is not a backup.
+    await this.storage.read(documento.anexo_url);
+
+    await this.prisma.documento.delete({ where: whereEmpresa });
+
+    try {
+      await this.storage.delete(documento.anexo_url);
+    } catch (erroExclusaoArquivo) {
+      if (erroExclusaoArquivo instanceof NotFoundException) {
+        return;
+      }
+
+      try {
+        await this.prisma.documento.create({
+          data: {
+            id: documento.id,
+            unidade: { connect: { id: documento.unidade_id } },
+            nome: documento.nome,
+            tipo: documento.tipo,
+            categoria: documento.categoria,
+            data_emissao: documento.data_emissao,
+            data_validade: documento.data_validade,
+            descricao: documento.descricao,
+            anexo_nome: documento.anexo_nome,
+            anexo_url: documento.anexo_url,
+            anexo_tamanho_bytes: documento.anexo_tamanho_bytes,
+            anexo_tipo: documento.anexo_tipo,
+            created_at: documento.created_at,
+            updated_at: documento.updated_at,
+          },
+        });
+      } catch (erroCompensacao) {
+        this.logger.error(
+          `Falha ao restaurar o documento ${id} após falha ao excluir seu anexo.`,
+          erroCompensacao instanceof Error
+            ? erroCompensacao.stack
+            : String(erroCompensacao),
+        );
+      }
+
+      throw erroExclusaoArquivo;
+    }
+  }
+
   listar(filtros: ListarDocumentosDto, empresaId: string) {
     return this.listarComFiltros(filtros, empresaId);
   }
@@ -308,6 +404,42 @@ export class DocumentosService {
     empresaId: string,
   ) {
     return this.listarComFiltros(filtros, empresaId, unidadeId);
+  }
+
+  async listarCategorias(empresaId: string): Promise<string[]> {
+    const categorias = await this.prisma.documento.groupBy({
+      by: ['categoria'],
+      where: {
+        unidade: { is: { empresa_id: empresaId } },
+      },
+      orderBy: { categoria: 'asc' },
+    });
+
+    return categorias
+      .filter(({ categoria }) => categoria.trim().length > 0)
+      .map(({ categoria }) => categoria);
+  }
+
+  async obter(id: string, empresaId: string) {
+    const documento = await this.prisma.documento.findFirst({
+      where: {
+        id,
+        unidade: { is: { empresa_id: empresaId } },
+      },
+      select: DOCUMENTO_SELECT_ATUALIZACAO,
+    });
+
+    if (!documento) {
+      throw new NotFoundException({
+        message: 'Documento não encontrado.',
+        codigo: 'RECURSO_NAO_ENCONTRADO',
+      });
+    }
+
+    return this.mapearDocumento(
+      this.converterDocumentoParaListagem(documento),
+      this.obterPeriodoValidade(),
+    );
   }
 
   private async listarComFiltros(
