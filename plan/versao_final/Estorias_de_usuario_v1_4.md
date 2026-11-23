@@ -1,6 +1,6 @@
 # FrotaSync — Sistema de Gestão de Unidades, Documentos e Tarefas
 
-**Versão do documento:** 1.3 | **Data:** 20/10/2026\
+**Versão do documento:** 1.4 | **Data:** 21/11/2026\
 **Documento:** Estórias de Usuário e Backlog\
 *Documento complementar à Análise de Requisitos (03) e a Personas & Jornadas (02). Contém a matriz de rastreabilidade mestre do projeto.*
 
@@ -23,6 +23,8 @@
 Este documento apresenta as estórias de usuário derivadas dos requisitos funcionais e não funcionais da Análise de Requisitos v1.3 (03) do FrotaSync, organizadas em épicos. Cada estória segue o formato *"Como \[persona\], quero \[ação\], para \[motivo\]"*, indica o requisito de origem e possui critérios de aceite no formato *Dado / Quando / Então* que definem quando ela pode ser considerada "pronta" (Definition of Done). Ao final, o backlog completo é apresentado já priorizado, pronto para ser distribuído em sprints (Scrum) ou em colunas de um quadro Kanban, acompanhado de uma **matriz de rastreabilidade única** que liga cada estória à tela, ao endpoint e ao teste correspondentes.
 
 Os IDs das estórias foram mantidos (a antiga "US 011" passa a "US-011"), assim como a numeração dos épicos 1 a 8 e 11 a 14, para preservar a rastreabilidade com as versões anteriores. As US-085 e US-087 aparecem como *Won't have* (descartada e substituída na v1.3).
+
+**Alterações da v1.4** (alinhamento ao Design de API v1.6, à Modelagem de Dados v1.6 e ao frontend): a US-013 passa a citar os limites de tamanho dos campos; a US-115 usa página iniciada em 1; a US-121 deixa de citar CORS (mesma origem); a US-122 inclui o logout com o accessToken expirado; a US-124 usa `token` no lugar de `resetToken`; a US-082 sobe de *Could have* para *Should have* e inclui o histórico global; a matriz de rastreabilidade ganha `GET /historico`, `GET /notificacoes`, `GET /auth/me`, `GET /health` e `GET /documentos/categorias`.
 
 ---
 
@@ -86,7 +88,7 @@ Equivalência com a prioridade dos requisitos no 03:
 - **Dor/oportunidade da jornada (02):** a definir (Pendência 1)
 - **Critérios de aceite (Definition of Done):**
   - **Dado** o cadastro em 3 etapas com indicador de progresso (Dados Pessoais, Dados da Empresa e Dados de Login), **quando** preencho uma etapa com dados válidos e clico em "Avançar", **então** passo à etapa seguinte.
-  - **Dado** CPF ou CNPJ com dígitos verificadores inválidos, telefone sem DDD ou senha com menos de 8 caracteres ou confirmação diferente, **quando** tento avançar, **então** o Zod exibe o erro no campo e a etapa não avança.
+  - **Dado** CPF ou CNPJ com dígitos verificadores inválidos, telefone sem DDD, nome com menos de 3 caracteres, cargo com menos de 2, campo acima do limite de tamanho, senha com menos de 8 ou mais de 72 caracteres ou confirmação diferente, **quando** tento avançar, **então** o Zod exibe o erro no campo e a etapa não avança.
   - **Dado** que não aceitei os Termos de Uso e a Política de Privacidade, **quando** clico em "Finalizar Cadastro", **então** o cadastro é bloqueado.
   - **Dado** todos os dados válidos e o aceite, **quando** finalizo, **então** a empresa e o usuário administrador são criados e sou levado ao login com mensagem de sucesso.
   - **Dado** e-mail, CPF ou CNPJ já cadastrados, **quando** finalizo, **então** o erro aparece junto ao campo correspondente.
@@ -445,7 +447,8 @@ Equivalência com a prioridade dos requisitos no 03:
 - **Critérios de aceite (Definition of Done):**
   - **Dado** uma alteração confirmada em unidade, documento ou tarefa, **quando** ela é gravada, **então** um registro com usuário, ação e data e hora é criado.
   - **Dado** o detalhamento da unidade, **quando** consulto o histórico, **então** vejo os eventos paginados, do mais recente ao mais antigo.
-- **Prioridade:** Could have
+  - **Dado** a tela `/historico`, **quando** pesquiso ou filtro por unidade e por entidade (Unidade, Documento ou Tarefa), **então** a lista paginada, do mais recente ao mais antigo, é atualizada.
+- **Prioridade:** Should have (elevada na v1.4: o frontend usa o histórico por unidade e o global)
 
 #### US-083 — Como colaborador(a), quero alternar entre tema claro e escuro, para usar o sistema com maior conforto visual.
 
@@ -535,7 +538,7 @@ Equivalência com a prioridade dos requisitos no 03:
 - **Dor/oportunidade da jornada (02):** a definir (Pendência 1)
 - **Critérios de aceite (Definition of Done):**
   - **Dado** o esquema, **quando** o inspeciono, **então** há índices por empresa e por unidade, pela validade do documento e pelo status e prazo da tarefa.
-  - **Dado** as listagens, **quando** uso busca, filtros, ordenação e paginação (página iniciada em 0), **então** as consultas respondem corretamente.
+  - **Dado** as listagens, **quando** uso busca, filtros, ordenação e paginação (página iniciada em 1), **então** as consultas respondem corretamente.
   - **Dado** os indicadores, **quando** peço o recálculo por uma data de referência anterior, **então** a consulta agregada funciona (RF-024).
 - **Prioridade:** Should have
 
@@ -570,7 +573,7 @@ Equivalência com a prioridade dos requisitos no 03:
   - **Dado** o projeto, **quando** o inspeciono, **então** usa NestJS com TypeScript, prefixo `/api/v1` e módulos, controllers e serviços.
   - **Dado** variáveis de ambiente ausentes ou inválidas, **quando** a API inicia, **então** a inicialização falha com mensagem clara.
   - **Dado** uma requisição com corpo inválido, **quando** ela chega, **então** o DTO é validado por schema Zod e o filtro global devolve o erro no formato padronizado (`ApiErrorResponse`).
-  - **Dado** a API no ar, **quando** acesso a documentação, **então** CORS e Swagger/OpenAPI estão configurados.
+  - **Dado** a API no ar, **quando** acesso a documentação, **então** o Swagger/OpenAPI está configurado; não há CORS, pois o frontend e a API ficam na mesma origem, atrás do Caddy.
 - **Prioridade:** Must have
 
 #### US-122 — Como usuário do sistema, quero me cadastrar com minha empresa, entrar e sair com uma sessão segura, para acessar os dados da minha empresa com segurança.
@@ -581,7 +584,7 @@ Equivalência com a prioridade dos requisitos no 03:
   - **Dado** dados válidos, **quando** chamo `POST /auth/cadastro`, **então** a empresa e o administrador são criados na mesma transação e o aceite dos termos é gravado com data e hora.
   - **Dado** e-mail, CPF ou CNPJ já cadastrados, **quando** chamo o cadastro, **então** a API responde 409 indicando o campo.
   - **Dado** credenciais válidas, **quando** chamo `POST /auth/login`, **então** a senha é validada com bcrypt e recebo accessToken (15 minutos) e refreshToken (7 dias, ou 30 com "Lembre-me").
-  - **Dado** um refreshToken válido, **quando** chamo `POST /auth/refresh`, **então** recebo um novo accessToken; **quando** chamo `POST /auth/logout`, **então** o refreshToken é invalidado.
+  - **Dado** um refreshToken válido, **quando** chamo `POST /auth/refresh`, **então** recebo um novo accessToken; **quando** chamo `POST /auth/logout`, **então** o refreshToken é invalidado, inclusive com o accessToken já expirado.
   - **Dado** o funcionamento da API, **quando** examino os logs, **então** senhas e tokens nunca aparecem.
 - **Prioridade:** Must have
 
@@ -603,7 +606,7 @@ Equivalência com a prioridade dos requisitos no 03:
 - **Critérios de aceite (Definition of Done):**
   - **Dado** qualquer e-mail, existente ou não, **quando** chamo `POST /auth/recuperar-senha`, **então** a API responde sempre 202 com a mesma mensagem.
   - **Dado** o código de 5 dígitos, **quando** ele é gerado, **então** expira (10 minutos), tem limite de tentativas (5) e só pode ser usado uma vez; excedido o limite, a API responde 429.
-  - **Dado** o código correto, **quando** chamo `POST /auth/verificar-codigo`, **então** recebo um `resetToken` de uso único; com ele, `POST /auth/redefinir-senha` grava a nova senha (mínimo de 8 caracteres) e responde 204.
+  - **Dado** o código correto, **quando** chamo `POST /auth/verificar-codigo`, **então** recebo um `token` de uso único; com ele, `POST /auth/redefinir-senha` grava a nova senha (mínimo de 8 caracteres) e responde 204.
   - **Dado** o ambiente, **quando** o código é enviado, **então** o e-mail é registrado no console em desenvolvimento e enviado pelo Amazon SES no ambiente publicado.
 - **Prioridade:** Should have
 
@@ -904,10 +907,10 @@ A tabela abaixo consolida todas as estórias já priorizadas pelo critério MoSC
 | **US-055** | Edição de tarefa | P-01 | RF-023 | Should have |
 | **US-078** | Validação e máscaras de campos | P-04 | RNF-020 | Should have |
 | **US-079** | Proteção de dados pessoais e aceite de termos | P-04 | RNF-021 | Should have |
+| **US-082** | Histórico de alterações (unidade e global) | P-02 | RF-017 | Should have |
 | **US-115** | Índices e consultas para listagens e indicadores | P-05 | RNF-022, RNF-005, RF-002, RF-004, RF-008, RF-013, RF-024 | Should have |
 | **US-124** | Recuperação de senha na API | P-04 | RF-020 | Should have |
 | **US-081** | Bloqueio de exclusão de unidade com pendências | P-03 | RF-016 | Could have |
-| **US-082** | Histórico de alterações da unidade | P-02 | RF-017 | Could have |
 | **US-083** | Tema claro/escuro | P-01 | RF-018 | Could have |
 | **US-084** | Adaptabilidade a diferentes empresas | P-05 | RNF-016 | Could have |
 | **US-086** | Testes automatizados do frontend | P-05 | RNF-018 | Could have |
@@ -940,17 +943,17 @@ Toda estória *Must have* deve ter todas as colunas preenchidas antes do deploy 
 | **US-021** | RF-002 | `/dashboard` | GET /dashboard/indicadores | — |
 | **US-022** | RF-003 | `/dashboard` | GET /dashboard/indicadores (invalidação de cache após escritas) | — |
 | **US-023** | RF-024 | `/documentos`, `/tarefas`, `/unidades/[id]` | GET /dashboard/indicadores, GET /unidades/{id}/indicadores | — |
-| **US-024** | RF-025 | layout das telas autenticadas | — | — |
+| **US-024** | RF-025 | layout das telas autenticadas | GET /auth/me, GET /notificacoes | — |
 | **US-031** | RF-004 | `/unidades` | GET /unidades | — |
 | **US-032** | RF-006 | `/unidades/[id]` | GET /unidades/{id}, GET /unidades/{id}/indicadores | — |
 | **US-033** | RF-007, RNF-024 | `/unidades/[id]`, formulários de documento e tarefa | POST/PUT em documentos e tarefas (409 em unidade inativa), PATCH /tarefas/{id}/status | — |
 | **US-034** | RF-005 | `/unidades/nova`, `/unidades/[id]/editar` | POST /unidades, PUT /unidades/{id}, GET /enderecos/cep/{cep} | — |
 | **US-035** | RF-021 | `/unidades/[id]` | PATCH /unidades/{id}/status | — |
-| **US-041** | RF-008 | `/documentos` | GET /documentos | — |
+| **US-041** | RF-008 | `/documentos` | GET /documentos, GET /documentos/categorias | — |
 | **US-042** | RF-010 | `/unidades/[id]` (aba Documentos) | GET /unidades/{unidadeId}/documentos | — |
 | **US-043** | RF-011, RNF-007, RNF-024 | listas de documentos | GET /documentos, GET /documentos/{id} | — |
-| **US-044** | RF-009 | `/documentos/novo`, `/unidades/[id]/documentos/novo` | POST /unidades/{unidadeId}/documentos | — |
-| **US-045** | RF-022 | `/documentos/[id]/editar`, `/unidades/[id]/documentos/[docId]/editar` | PUT /documentos/{id} | — |
+| **US-044** | RF-009 | `/documentos/novo`, `/unidades/[id]/documentos/novo` | POST /unidades/{unidadeId}/documentos, GET /documentos/categorias | — |
+| **US-045** | RF-022 | `/documentos/[id]/editar`, `/unidades/[id]/documentos/[docId]/editar` | PUT /documentos/{id}, GET /documentos/categorias | — |
 | **US-051** | RF-012 | `/unidades/[id]` (aba Tarefas) | GET /unidades/{unidadeId}/tarefas | — |
 | **US-052** | RF-015 | `/tarefas`, `/unidades/[id]` | PATCH /tarefas/{id}/status | — |
 | **US-053** | RF-013 | `/tarefas` | GET /tarefas | — |
@@ -967,7 +970,7 @@ Toda estória *Must have* deve ter todas as colunas preenchidas antes do deploy 
 | **US-078** | RNF-020 | `/cadastro`, `/unidades/nova` | POST /auth/cadastro, POST /unidades (validação) | — |
 | **US-079** | RNF-021 | `/cadastro` | POST /auth/cadastro | — |
 | **US-081** | RF-016 | `/unidades/[id]` | DELETE /unidades/{id} | — |
-| **US-082** | RF-017 | `/unidades/[id]` | GET /unidades/{id}/historico | — |
+| **US-082** | RF-017 | `/unidades/[id]/historico`, `/historico` | GET /unidades/{id}/historico, GET /historico | — |
 | **US-083** | RF-018 | seletor de tema | — | — |
 | **US-084** | RNF-016 | — | — | — |
 | **US-085** | RNF 017 (descartado) | — | — | — |
@@ -985,7 +988,7 @@ Toda estória *Must have* deve ter todas as colunas preenchidas antes do deploy 
 | **US-123** | RNF-004, RNF-025 | — | todos os endpoints protegidos (401, 403, 404) | — |
 | **US-124** | RF-020 | `/recuperar-senha` | POST /auth/recuperar-senha, POST /auth/verificar-codigo, POST /auth/redefinir-senha | — |
 | **US-125** | RF-004, RF-005, RF-006, RF-007, RF-021, RNF-024 | `/unidades`, `/unidades/nova`, `/unidades/[id]` | GET /unidades, GET /unidades/{id}, POST /unidades, PUT /unidades/{id}, PATCH /unidades/{id}/status, GET /enderecos/cep/{cep} | — |
-| **US-126** | RF-008, RF-009, RF-010, RF-011, RF-022, RF-026, RNF-026 | `/documentos`, formulários de documento | GET /documentos, GET /unidades/{unidadeId}/documentos, GET /documentos/{id}, GET /documentos/{id}/anexo, POST /unidades/{unidadeId}/documentos, PUT /documentos/{id}, DELETE /documentos/{id} | — |
+| **US-126** | RF-008, RF-009, RF-010, RF-011, RF-022, RF-026, RNF-026 | `/documentos`, formulários de documento | GET /documentos, GET /unidades/{unidadeId}/documentos, GET /documentos/{id}, GET /documentos/{id}/anexo, POST /unidades/{unidadeId}/documentos, PUT /documentos/{id}, DELETE /documentos/{id}, GET /documentos/categorias | — |
 | **US-127** | RF-012, RF-013, RF-014, RF-015, RF-023, RNF-024 | `/tarefas`, formulários de tarefa | GET /tarefas, GET /unidades/{unidadeId}/tarefas, GET /tarefas/{id}, POST /unidades/{unidadeId}/tarefas, PUT /tarefas/{id}, PATCH /tarefas/{id}/status, DELETE /tarefas/{id} | — |
 | **US-128** | RF-002, RF-003, RF-024, RNF-024 | `/dashboard`, `/unidades/[id]` | GET /dashboard/indicadores, GET /unidades/{id}/indicadores | — |
 | **US-129** | RNF-033, RNF-003 | — | — | — |
@@ -1004,7 +1007,7 @@ Toda estória *Must have* deve ter todas as colunas preenchidas antes do deploy 
 | **US-146** | RNF-030 | — | — | — |
 | **US-147** | RNF-031 | — | — | — |
 | **US-148** | RNF-031 | — | — | — |
-| **US-149** | RNF-032, RNF-029 | — | — | — |
+| **US-149** | RNF-032, RNF-029 | — | GET /health | — |
 
 ---
 

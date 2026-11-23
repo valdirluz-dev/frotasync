@@ -2,8 +2,8 @@
 
 **FrotaSync — Sistema de Gestão de Unidades, Documentos e Tarefas**
 
-- **Versão do documento:** 1.5 | **Data:** 20/11/2026
-- Documento complementar à Análise de Requisitos (v1.3), às Estórias de Usuário e Backlog (v1.3), à Modelagem de Dados (v1.5) e ao Planejamento de Infraestrutura (v1.4)
+- **Versão do documento:** 1.6 | **Data:** 21/11/2026
+- Documento complementar à Análise de Requisitos (v1.4), às Estórias de Usuário e Backlog (v1.4), à Modelagem de Dados (v1.6) e ao Planejamento de Infraestrutura (v1.5)
 
 | Papel | Nome |
 |---|---|
@@ -38,6 +38,18 @@
 - **Não** são usados Prisma Migrate (`prisma migrate dev`, `prisma migrate deploy`), `prisma db push` nem sincronização automática do ORM.
 
 Essa decisão é interna ao backend: **nenhum endpoint, DTO, schema Zod, regra de autenticação ou autorização, formato de resposta ou código de erro deste contrato foi alterado.**
+
+### O que mudou na versão 1.6
+
+Resultado da conferência com os tipos, schemas e services do frontend. Nenhum endpoint foi criado ou removido.
+
+- **Limites de campos:** corrigida a afirmação de que a API era mais permissiva que o frontend. No cadastro a API é mais estrita (nome de 3 a 150, cargo de 2 a 100 e máximos nos campos da empresa). **Decisão: os limites da API prevalecem e o frontend os replica nos schemas Zod** (seção 6, item 11).
+- **Mapeamento de requisições (seção 6):** incluídos `UnidadesFilters.size` → `pageSize`, `search` → `q`, `entidade` (rótulo → valor) e o filtro `entidade: "Todas"`.
+- **Recuperação de senha:** definido que a verificação com o limite de tentativas já atingido responde 429; antes, a seção 2 dizia 400 e a tabela de códigos HTTP dizia 429.
+- **Logout:** `POST /auth/logout` passa a ser público (usa o cookie `frotasync_refresh`), para revogar a sessão mesmo com o accessToken expirado.
+- **Identificador duplicado:** a unicidade `lower(codigo)` não existe no modelo Prisma; o service confere antes de gravar e converte o erro 23505 do PostgreSQL em 409, sem depender do `P2002` (seção 4.1).
+- **Tamanho do anexo:** o `bigint` do banco chega como `BigInt` no Prisma e é convertido para `number` no DTO (seção 5).
+- **Ponto em aberto:** semântica da variação dos indicadores (seção 6, "Pontos em aberto").
 
 ### O que mudou na versão 1.5
 
@@ -106,9 +118,9 @@ JWT emitido pela API e validado a cada requisição (stateless para o accessToke
 | `frotasync_session` | expiração da sessão (epoch em segundos); só indica sessão ao `proxy.ts` do Next, sem valor de segurança | `HttpOnly; Secure; SameSite=Lax; Path=/` | igual ao refreshToken |
 
 - O navegador envia o accessToken automaticamente. Os tokens só viajam em cookies (o corpo do login não os devolve); testes automatizados e o Swagger reaproveitam o `Set-Cookie` do login.
-- **CSRF:** toda requisição `POST`, `PUT`, `PATCH` e `DELETE` autenticada por cookie deve enviar o cabeçalho `X-FrotaSync-Client: web`; sem ele, 403. Isso, somado ao `SameSite=Lax`, bloqueia requisições entre sites.
+- **CSRF:** toda requisição `POST`, `PUT`, `PATCH` e `DELETE` autenticada por cookie (inclusive `/auth/refresh` e `/auth/logout`) deve enviar o cabeçalho `X-FrotaSync-Client: web`; sem ele, 403. Isso, somado ao `SameSite=Lax`, bloqueia requisições entre sites.
 - **Renovação:** em 401, o cliente chama `POST /auth/refresh` uma vez (o refreshToken vai por cookie) e repete a requisição; se falhar, redireciona para `/login`. O refreshToken é rotacionado a cada uso (o anterior é revogado).
-- **Logout:** revoga o refreshToken e apaga os três cookies.
+- **Logout:** revoga o refreshToken do cookie e apaga os três cookies. A rota é pública e usa o cookie `frotasync_refresh`, para funcionar mesmo com o accessToken expirado; sem o cookie, responde 204 do mesmo jeito.
 - **Redefinição de senha:** revoga todos os refreshTokens do usuário.
 
 ### Fluxo de autenticação
@@ -168,7 +180,7 @@ Credenciais inválidas: 401 com a mensagem "E-mail ou senha incorretos." (a mesm
 ### Fluxo de recuperação de senha (RF-020)
 
 1. `POST /auth/recuperar-senha` com o e-mail: se o usuário existir, gera um código de 5 dígitos, guarda o hash (validade de 10 minutos), invalida os códigos anteriores não usados e envia por e-mail. Resposta sempre 202 com a mesma mensagem. Nova solicitação em menos de 60 s para o mesmo e-mail: 429 ("Aguarde um minuto antes de solicitar outro código.").
-2. `POST /auth/verificar-codigo` com `email` e `code`: confere hash, validade e tentativas (limite 5; ao atingir, o código é invalidado). Sucesso: 200 com `token` de uso único (validade de 10 minutos, guardado como hash). Falha: 400 "Código inválido ou expirado. Solicite um novo código.".
+2. `POST /auth/verificar-codigo` com `email` e `code`: confere hash, validade e tentativas (limite 5; ao atingir, o código é invalidado). Sucesso: 200 com `token` de uso único (validade de 10 minutos, guardado como hash). Falha: 400 "Código inválido ou expirado. Solicite um novo código.". Ao atingir o limite de 5 tentativas, o código fica invalidado e novas verificações respondem 429 ("Muitas tentativas. Solicite um novo código.").
 3. `POST /auth/redefinir-senha` com `token`, `senha` e `confirmarSenha`: atualiza `senha_hash`, marca o código como usado, revoga os refreshTokens e responde 204. Token inválido ou expirado: 400.
 
 ---
@@ -183,14 +195,14 @@ Prefixo `/api/v1`. Coluna "Autenticação": "Público" não exige sessão; "Aute
 |---|---|---|---|
 | POST | `/auth/login` | Autentica por e-mail e senha (`lembreMe`) e define os cookies. | Público |
 | POST | `/auth/refresh` | Renova o accessToken a partir do refreshToken do cookie (rotaciona). | Público* |
-| POST | `/auth/logout` | Revoga o refreshToken atual e apaga os cookies. | Autenticado |
+| POST | `/auth/logout` | Revoga o refreshToken do cookie e apaga os cookies; funciona com o accessToken expirado e responde 204 mesmo sem cookie. | Público* |
 | GET | `/auth/me` | Dados do usuário e da empresa (tela Meu Perfil e barra superior). | Autenticado |
 | POST | `/auth/cadastro` | Cria empresa e usuário administrador. | Público |
 | POST | `/auth/recuperar-senha` | Solicita ou reenvia o código; sempre 202. | Público |
 | POST | `/auth/verificar-codigo` | Valida o código e devolve o `token` de redefinição. | Público |
 | POST | `/auth/redefinir-senha` | Define a nova senha com o `token`. | Público |
 
-\* Exige o cookie `frotasync_refresh` válido.
+\* `/auth/refresh` exige o cookie `frotasync_refresh` válido; `/auth/logout` usa o cookie quando existe.
 
 ### Operação
 
@@ -265,7 +277,7 @@ Não há escrita: cada operação confirmada grava automaticamente um registro c
 
 ## 4. Parâmetros — DTOs e Validação (Zod 4)
 
-Nenhuma entidade de persistência é exposta: toda entrada e saída usa DTOs validados por Zod. A API é mais permissiva que o frontend nos limites (o frontend aplica regras de interface mais estreitas) e rejeita campos desconhecidos.
+Nenhuma entidade de persistência é exposta: toda entrada e saída usa DTOs validados por Zod. Os limites desta seção são a fonte da verdade: o frontend os replica nos seus schemas Zod (seção 6, item 11), e a API rejeita campos desconhecidos.
 
 ### 4.1 POST /unidades e PUT /unidades/{id}
 
@@ -306,7 +318,7 @@ export const CriarUnidadeSchema = z.strictObject({
 // o status não é aceito: a unidade nasce "ativa" e muda pelo PATCH (RF-021)
 ```
 
-Identificador repetido na empresa: 409 com `codigo: "IDENTIFICADOR_DUPLICADO"` ("Já existe uma unidade com este identificador"). O frontend envia o campo do formulário `identificador` como `codigo`.
+Identificador repetido na empresa: 409 com `codigo: "IDENTIFICADOR_DUPLICADO"` ("Já existe uma unidade com este identificador"). O frontend envia o campo do formulário `identificador` como `codigo`. A unicidade `(empresa_id, lower(codigo))` é um índice por expressão que não existe no modelo Prisma; por isso o service confere a duplicidade antes de gravar e, para a corrida entre duas requisições, converte o erro 23505 do PostgreSQL (índice `uq_unidade_empresa_codigo_ci`) em 409, sem depender do erro `P2002` do Prisma.
 
 ### 4.2 PATCH /unidades/{id}/status
 
@@ -493,6 +505,8 @@ export const CadastroSchema = z.strictObject({
 
 O campo `website` do honeypot do frontend não é enviado: o frontend descarta o envio antes da chamada. O limite de 72 caracteres respeita o bcrypt. E-mail, CPF ou CNPJ repetidos: 409 com `codigo` `EMAIL_DUPLICADO`, `CPF_DUPLICADO` ou `CNPJ_DUPLICADO` (e o campo em `erros`; o frontend exibe "Este e-mail corporativo já está em uso.").
 
+Os limites desta tabela valem também nos schemas Zod do frontend, para que o erro apareça no campo e na etapa certos e não só no envio final (seção 6, item 11).
+
 ### 4.8 POST /auth/login
 
 ```ts
@@ -649,7 +663,7 @@ O resumo exibido nos cards ("Av. Norte, 1200 - Recife/PE") é composto no fronte
 }
 ```
 
-`statusValidade` nunca é persistido nem aceito em escrita; é calculado a cada leitura (RF-011): **expirado** se a validade já passou; **proximo_vencimento** se faltam de 0 a 15 dias; **valido** acima de 15 dias (dias contados em UTC, como no frontend). O `url` do anexo exige a sessão e funciona dentro de `<iframe>` e `<img>` do visualizador.
+`statusValidade` nunca é persistido nem aceito em escrita; é calculado a cada leitura (RF-011): **expirado** se a validade já passou; **proximo_vencimento** se faltam de 0 a 15 dias; **valido** acima de 15 dias (dias contados em UTC, como no frontend). O `url` do anexo exige a sessão e funciona dentro de `<iframe>` e `<img>` do visualizador. `anexo_tamanho_bytes` é `bigint` no banco e o Prisma o devolve como `BigInt`, que o JSON não serializa; o DTO o converte para `number` em `tamanhoBytes` (o limite de 10 MB cabe com folga).
 
 ### Tarefa — `GET /tarefas/{id}` → 200
 
@@ -844,9 +858,11 @@ Responde 503 se o banco estiver indisponível.
 
 | Frontend | API |
 |---|---|
-| `page` (≥ 1), `pageSize` | iguais |
-| `unidadeId: "todas"`, `categoria: "todas"`, `status: "Todos"` | omitir o parâmetro |
+| `page` (≥ 1), `pageSize` | iguais; `UnidadesFilters.size` → `pageSize` |
+| `search` (`DocumentFilters`, `TaskFilters`, `HistoricoFilters`) | `q` |
+| `unidadeId: "todas"`, `categoria: "todas"`, `status: "Todos"`, `entidade: "Todas"` | omitir o parâmetro |
 | `DocumentFilters.status` (rótulo) | `statusValidade` (valor) |
+| `HistoricoFilters.entidade` (rótulo: Unidade, Documento, Tarefa) | `entidade` (valor: `unidade`, `documento`, `tarefa`) |
 | formulário de unidade `identificador` | `codigo` |
 | formulário de cadastro `estado` | `uf` |
 | `UnidadeFormValues.cep` (já normalizado) | `endereco.cep` |
@@ -867,6 +883,27 @@ Responde 503 se o banco estiver indisponível.
 8. **Permissões na interface:** ocultar ou desabilitar "Nova unidade" e "Editar unidade" para quem não é administrador (hoje só o status é checado); a API é a autoridade (403).
 9. **Totais de cabeçalho** de `/documentos`, `/tarefas` e da unidade vêm de `/dashboard/indicadores` e `/unidades/{id}/indicadores`.
 10. **Exclusões:** o frontend não tem fluxo de exclusão; os `DELETE` ficam disponíveis na API, sem uso por enquanto.
+11. **Limites nos schemas Zod do frontend:** hoje os schemas de cadastro validam apenas "não vazio" e o de login não valida o formato do e-mail. Passam a replicar os limites da seção 4, mesmo onde a tela usa seletor:
+
+| Schema do frontend | Regra a acrescentar |
+|---|---|
+| `cadastroPessoal.nome` | 3 a 150 caracteres |
+| `cadastroPessoal.cargo` | 2 a 100 caracteres |
+| `cadastroPessoal.telefone` | 10 ou 11 dígitos, depois de remover a máscara e o `+55` (hoje só há mínimo de 10) |
+| `cadastroEmpresa.nomeEmpresa` / `razaoSocial` / `segmento` | até 150 / 200 / 100 caracteres |
+| `cadastroEmpresa.tipoUnidade` | Matriz ou Filial (enviado como `matriz` ou `filial`) |
+| `cadastroEmpresa.cep` | 8 dígitos |
+| `cadastroEmpresa.estado` | UF válida (enviada como `uf`) |
+| `cadastroEmpresa.logradouro` / `numero` / `bairro` / `cidade` | até 150 / 10 / 100 / 100 caracteres |
+| `cadastroAcesso.email` | e-mail válido, até 180 caracteres |
+| `senhaForte` (cadastro e redefinição) | no máximo 72 caracteres, o limite do bcrypt |
+| `loginSchema.email` | formato de e-mail válido (US-011); sem isso a API responde 400, e não 401 |
+
+Os schemas de unidade, documento e tarefa do frontend já coincidem com a seção 4.
+
+### Pontos em aberto
+
+- **Semântica da variação dos indicadores (RF-024):** o frontend compara documentos "a vencer" pelo mês de `dataValidade` e tarefas concluídas pelo mês de `dataConclusao`. Esta API recalcula o status e a contagem na data de referência do mês anterior (seção 5). Os números tendem a diferir dos exibidos hoje com os mocks. Decidir qual regra vale antes da integração do Dashboard (US-136) e ajustar este contrato ou o cálculo do frontend.
 
 ---
 
@@ -879,3 +916,4 @@ Responde 503 se o banco estiver indisponível.
 | 05/10/2026 | 1.2 | Cadastro, recuperação de senha, indicadores da unidade, CEP, anexo; novos códigos HTTP. | Equipe do projeto |
 | 20/11/2026 | 1.4 | Conferência com o frontend completo: paginação e nomes de campos do frontend; sessão por cookies httpOnly com CSRF; recuperação de senha com os nomes do frontend e intervalo de 60 s; `GET /auth/me`, `GET /historico`, `GET /notificacoes`, `GET /health`, `GET /documentos/categorias`; `codigo` nos erros; regras de formulário adotadas; seção de integração com o frontend. Documento deixa de se declarar "100% frontend" e passa a descrever a API real. | Equipe do projeto |
 | 20/11/2026 | 1.5 | Atualização da arquitetura de persistência: adoção do Prisma ORM para acesso aos dados pelo NestJS, mantendo o Flyway como ferramenta exclusiva de versionamento e execução das migrações SQL do PostgreSQL. Nenhuma alteração nos contratos da API ou na modelagem de dados. | Equipe do projeto |
+| 21/11/2026 | 1.6 | Conferência com o frontend: limites de campos replicados nos schemas Zod do frontend (a API prevalece); mapeamentos `size`, `search` e `entidade`; 429 na verificação de código com tentativas esgotadas; logout público por cookie de refresh; tratamento do identificador duplicado sem depender do `P2002`; conversão do `BigInt` do tamanho do anexo; ponto em aberto sobre a variação dos indicadores. Nenhum endpoint criado ou removido. | Equipe do projeto |

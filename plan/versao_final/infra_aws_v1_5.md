@@ -1,6 +1,6 @@
 # FrotaSync — Sistema de Gestão de Unidades, Documentos e Tarefas
 
-**Versão do documento:** 1.4 | **Data:** 20/11/2026\
+**Versão do documento:** 1.5 | **Data:** 20/11/2026\
 **Documento:** Planejamento de Infraestrutura, Deploy & Observabilidade\
 *Documento complementar à Análise de Requisitos (03) e às Estórias (04). Suas decisões alimentam Dados (06), API (07), Arquitetura (08\_3) e Provisionamento/CI/CD (10).*
 
@@ -17,6 +17,18 @@
 - **Desenvolvedor(a):** Silas
 
 ---
+
+## O que mudou na versão 1.5
+
+Resultado da adoção do Prisma ORM como camada de acesso aos dados do NestJS (Design de API v1.6 e Modelagem de Dados v1.6). **Não há mudança na topologia de implantação, na rede, no custo estimado nem no contrato da API.** O Flyway continua sendo a única ferramenta que cria e altera o esquema (ADR-010).
+
+- **Pool de conexões:** deixa de ser o do driver `pg` e passa a ser o do Prisma Client, configurado por `connection_limit` e `pool_timeout` na `DATABASE_URL`, com uma única instância por processo (ADR-005, ADR-011).
+- **Imagem da API:** deixa de ser "Node puro". O Prisma Client é gerado no build (`prisma generate`) a partir do `schema.prisma` versionado, com binary target para linux musl arm64. A imagem final leva o cliente gerado e não leva a CLI do Prisma (ADR-011, seção 3).
+- **Novo ADR-011:** Prisma como camada de acesso, com o fluxo Flyway → `prisma db pull` → `prisma generate`, a proibição de `prisma migrate` e `prisma db push` e as regras de pool, logs e consultas SQL cruas.
+- **ADR-008:** a `DATABASE_URL` do Prisma é montada no boot a partir do SSM; a senha do banco é gerada sem caracteres especiais.
+- **ADR-009:** o Prisma não registra consultas (parâmetros podem conter dados pessoais); o health check usa o Prisma.
+- **CI/CD (seção 3):** o job da API passa a verificar a sincronia entre o `schema.prisma` e as migrações Flyway e a ausência de comandos de migração do Prisma.
+- **Pontos a validar:** versão do Prisma e tipo de motor, e memória do contêiner `api` (seção 5).
 
 ## O que mudou na versão 1.4
 
@@ -41,7 +53,8 @@ A linguagem, o framework e o banco vêm da Análise de Requisitos v1.3 (Tecnolog
 - **Containers / hospedagem:** Docker + 1 instância EC2 t4g.small com Docker Compose (sem Kubernetes nem ECS) — ADR-002
 - **Hospedagem do front-end:** mesmo host da API, em contêiner Next.js standalone atrás do Caddy (não é estático) — ADR-003
 - **IaC:** Terraform, em duas pilhas (permanente e efêmera) — ADR-007
-- **Migrações:** Flyway em contêiner de execução única — ADR-010
+- **Migrações:** Flyway em contêiner de execução única, única ferramenta que altera o esquema — ADR-010
+- **Acesso a dados:** Prisma ORM (Prisma Client) no NestJS, sobre o esquema criado pelo Flyway — ADR-011
 - **CI/CD:** Git + GitHub Actions (execução no 10; Git Flow no 08\_3)
 - **Qualidade:** SonarQube Cloud (ex-SonarCloud), plano gratuito; definição final no 08\_3
 - **Observabilidade:** somente CloudWatch e AWS Budgets — ADR-009
@@ -57,12 +70,12 @@ Linhas marcadas *(proposta)* não existem na Análise de Requisitos e ficam adot
 | Requisito (ID no 03) | Meta (do 03) | Impacto na infra |
 | --- | --- | --- |
 | Segurança (RNF-004) | HTTPS obrigatório em produção; 401/403 em 100% dos endpoints protegidos; accessToken 15 min, refreshToken 7 ou 30 dias | TLS no Caddy (Let's Encrypt); só as portas 80 e 443 expostas; sem SSH (acesso por SSM Session Manager); JWT emitido pela API em cookies httpOnly (ADR-006); CSP e cabeçalhos de segurança no Caddy |
-| Desempenho (RNF-005) | p95 < 500 ms com até 10 mil registros por empresa *(sugerida)* | Front e API na mesma VM (sem salto de rede); RDS na mesma região; índices da Modelagem; processo Node com `--max-old-space-size=400`; pool `pg` com no máximo 10 conexões |
+| Desempenho (RNF-005) | p95 < 500 ms com até 10 mil registros por empresa *(sugerida)* | Front e API na mesma VM (sem salto de rede); RDS na mesma região; índices da Modelagem; processo Node com `--max-old-space-size=400`; pool do Prisma Client com no máximo 10 conexões (`connection_limit=10`) |
 | Disponibilidade *(proposta de RNF; sem RNF no 03)* | Melhor esforço, sem SLA | 1 VM em 1 AZ; `restart: unless-stopped`, healthchecks e alarme de status da VM. Multi-AZ dobraria o custo do RDS e não há requisito que o justifique |
 | Escalabilidade *(proposta de RNF; sem RNF no 03)* | Até ~50 usuários simultâneos | Escala vertical (tipo da VM e do RDS por variável Terraform); sem autoscaling |
 | Orçamento *(proposta de RNF-034)* | ≤ US$ 1 por demonstração de até 1 h; ≤ US$ 40/mês se ficar 24×7 | Sem ALB, sem NAT Gateway, sem WAF; ambiente efêmero (ADR-007); alertas no Budgets (seção 6) |
 | LGPD (RNF-021) | Senhas só como hash; 0 senhas em logs; dados fictícios em mocks e seed | Só dados fictícios no ambiente de demonstração; logs sem payloads, cookies ou cabeçalhos de autorização; EBS, RDS e S3 criptografados |
-| Persistência (RNF-022) | PostgreSQL; esquema criado só por migrations versionadas | RDS PostgreSQL; migrações Flyway V1 a V14 executadas por contêiner dedicado antes da API (ADR-010) |
+| Persistência (RNF-022) | PostgreSQL; esquema criado só por migrations versionadas | RDS PostgreSQL; migrações Flyway V1 a V14 executadas por contêiner dedicado antes da API (ADR-010); o Prisma só lê e grava dados, sem migrar o esquema (ADR-011) |
 | Anexos (RNF-026) | Bucket privado e criptografado; PDF, JPG e PNG até 10 MB; 0 anexos públicos | S3 com Block Public Access e SSE-S3; acesso só pela role da VM; download pela API (RF-026); limite de 10 MB também no Caddy (`request_body max_size`) |
 | Contêineres (RNF-028) | Dockerfile multi-stage; compose com healthchecks; ambiente com um comando | Mesmo `docker-compose.yml` no local e na VM (muda só o arquivo de variáveis) |
 | IaC e AWS (RNF-029) | `terraform apply` recria o ambiente; `fmt` e `validate` sem erro; 0 segredos versionados | VPC, RDS privado, S3, ECR e IAM por Terraform (ADR-007) |
@@ -137,13 +150,13 @@ Não há ALB, NAT Gateway nem endpoints de interface: são os itens que mais pes
 - **Status:** Aceito
 - **Origem:** RNF-028, RNF-029; Pendência 6 do 03; US-145
 - **Contexto:** A Pendência 6 pedia escolher entre ECS Fargate e EC2 com Compose, considerando que balanceador, NAT e Fargate ficam fora do nível gratuito.
-- **Decisão:** 1 instância EC2 t4g.small (ARM, Amazon Linux 2023) em sub-rede pública com Elastic IP, executando `caddy`, `web`, `api` e, em execução única, `migrate`, por Docker Compose, com imagens do ECR, healthchecks e `restart: unless-stopped`. Créditos de CPU em modo `standard` para não gerar cobrança de burst. Limites de memória: `api` 700 MB, `web` 450 MB, `caddy` 64 MB, `migrate` 384 MB (só durante a subida).
+- **Decisão:** 1 instância EC2 t4g.small (ARM, Amazon Linux 2023) em sub-rede pública com Elastic IP, executando `caddy`, `web`, `api` e, em execução única, `migrate`, por Docker Compose, com imagens do ECR, healthchecks e `restart: unless-stopped`. Créditos de CPU em modo `standard` para não gerar cobrança de burst. Limites de memória: `api` 700 MB, `web` 450 MB, `caddy` 64 MB, `migrate` 384 MB (só durante a subida). O motor de consultas do Prisma roda fora do heap do V8 e conta no limite do contêiner `api` (ver seção 5).
 - **Alternativas consideradas:**
   - ECS Fargate + ALB — ≈ US$ 72/mês, mais de 2× a opção escolhida
   - EKS — só o plano de controle custa US$ 0,10/h (≈ US$ 73/mês)
   - EC2 Spot — economizaria ≈ US$ 8/mês, mas pode ser interrompida durante a apresentação
   - App Runner — precisa de VPC connector para alcançar o RDS privado
-- **Consequências:** Menor custo e nenhuma peça cara. Em contrapartida há ponto único de falha, sem autoscaling e com reinício curto a cada deploy. As imagens precisam ser linux/arm64 (imagens base `node:22-alpine` e `flyway/flyway` têm variante arm64) e o patch do SO fica com o squad.
+- **Consequências:** Menor custo e nenhuma peça cara. Em contrapartida há ponto único de falha, sem autoscaling e com reinício curto a cada deploy. As imagens precisam ser linux/arm64 (imagens base `node:22-alpine` e `flyway/flyway` têm variante arm64, e o Prisma Client é gerado com binary target `linux-musl-arm64-openssl-3.0.x`, ADR-011) e o patch do SO fica com o squad.
 
 #### ADR-003: Front-end Next.js em contêiner, não estático
 
@@ -173,12 +186,12 @@ Não há ALB, NAT Gateway nem endpoints de interface: são os itens que mais pes
 - **Status:** Aceito
 - **Origem:** RNF-022, RNF-029, RNF-032
 - **Contexto:** O 03 exige PostgreSQL gerenciado, privado e com backup; o ambiente é de demonstração.
-- **Decisão:** RDS for PostgreSQL db.t4g.micro (2 vCPU, 1 GiB), 20 GiB gp3, Single-AZ, `publicly_accessible = false`, security group que aceita 5432 apenas do SG da VM, criptografia em repouso e backup automático com retenção de 7 dias. A extensão `pgcrypto` e a `unaccent` (migrações V1 e V10) já vêm na lista de extensões permitidas do RDS. No ambiente efêmero: `deletion_protection = false` e `skip_final_snapshot = true`. O subnet group usa 2 sub-redes privadas em AZs diferentes (exigência do RDS, sem custo).
+- **Decisão:** RDS for PostgreSQL db.t4g.micro (2 vCPU, 1 GiB), 20 GiB gp3, Single-AZ, `publicly_accessible = false`, security group que aceita 5432 apenas do SG da VM, criptografia em repouso e backup automático com retenção de 7 dias. A extensão `pgcrypto` e a `unaccent` (migrações V1 e V10) já vêm na lista de extensões permitidas do RDS; a `unaccent` é usada pelo Prisma Client em consultas `$queryRaw` (ADR-011). No ambiente efêmero: `deletion_protection = false` e `skip_final_snapshot = true`. O subnet group usa 2 sub-redes privadas em AZs diferentes (exigência do RDS, sem custo).
 - **Alternativas consideradas:**
   - PostgreSQL em contêiner na própria VM — custo zero de instância, mas contraria o RNF-029 e perde o backup gerenciado
   - Multi-AZ — dobraria o custo do RDS sem requisito de disponibilidade
   - Aurora — custo base maior para um volume pequeno
-- **Consequências:** Atende ao RNF e entrega backup gerenciado. 1 GiB de RAM pede pool de conexões pequeno (driver `pg`, máximo de 10 conexões). A criação do RDS é o gargalo do `apply` (tipicamente 5 a 10 min). O banco tem dois usuários: `frotasync_migrator` (DDL, usado só pelo `migrate`) e `frotasync_app` (DML, usado pela API), ambos com senha no SSM.
+- **Consequências:** Atende ao RNF e entrega backup gerenciado. 1 GiB de RAM pede pool de conexões pequeno: o pool é o do Prisma Client, com `connection_limit=10` e `pool_timeout=20` na `DATABASE_URL` (sem o parâmetro, o padrão é `num_cpus * 2 + 1`, ou 5 conexões nos 2 vCPUs da VM). Só pode haver uma instância do Prisma Client por processo, porque cada instância abre o próprio pool. A criação do RDS é o gargalo do `apply` (tipicamente 5 a 10 min). O banco tem dois usuários: `frotasync_migrator` (DDL, usado só pelo `migrate`) e `frotasync_app` (DML, usado pela API e pelo Prisma Client em execução), ambos com senha no SSM.
 
 #### ADR-006: Autenticação com JWT próprio (NestJS + Passport) em cookies httpOnly
 
@@ -208,7 +221,7 @@ Não há ALB, NAT Gateway nem endpoints de interface: são os itens que mais pes
 - **Status:** Aceito
 - **Origem:** RNF-030, RNF-021
 - **Contexto:** O RNF-030 aceita Secrets Manager ou SSM Parameter Store; Secrets Manager cobra por segredo ao mês (≈ US$ 0,40).
-- **Decisão:** Parâmetros SecureString (chave gerenciada pela AWS) em `/frotasync/production/*`: `db_migrator_password` e `db_app_password` (geradas por `random_password`), `jwt_secret` e `ses_from_address`. A role da VM os lê no boot e grava um arquivo de ambiente com permissão 600 consumido pelo compose; nada vai em imagem, repositório ou log. Não há segredo de sessão do frontend (removido na v1.4).
+- **Decisão:** Parâmetros SecureString (chave gerenciada pela AWS) em `/frotasync/production/*`: `db_migrator_password` e `db_app_password` (geradas por `random_password`), `jwt_secret` e `ses_from_address`. A role da VM os lê no boot e grava um arquivo de ambiente com permissão 600 consumido pelo compose; nada vai em imagem, repositório ou log. O arquivo inclui a `DATABASE_URL` do Prisma, montada no boot a partir de `db_app_password`, com `?connection_limit=10&pool_timeout=20`. A senha é gerada pelo `random_password` com `special = false`, para não exigir codificação de URL; o Flyway usa a URL JDBC própria, com `db_migrator_password`. Não há segredo de sessão do frontend (removido na v1.4).
 - **Alternativas consideradas:**
   - Secrets Manager — custo por segredo sem ganho para este porte
   - Variáveis fixas no compose — viola o RNF-030
@@ -219,7 +232,7 @@ Não há ALB, NAT Gateway nem endpoints de interface: são os itens que mais pes
 - **Status:** Aceito
 - **Origem:** RNF-032; decisão da squad
 - **Contexto:** A squad definiu que a única observabilidade será a nativa da AWS.
-- **Decisão:** Logs pelo driver `awslogs`, métricas padrão, alarmes e 1 dashboard no CloudWatch; custos acompanhados pelo AWS Budgets. Sem X-Ray, Prometheus, Grafana nem APM externo. A API registra logs estruturados em JSON, sem corpo de requisição, cookies nem cabeçalhos de autorização (RNF-021). O alarme de indisponibilidade usa o status da VM e a verificação de `GET /api/v1/health`.
+- **Decisão:** Logs pelo driver `awslogs`, métricas padrão, alarmes e 1 dashboard no CloudWatch; custos acompanhados pelo AWS Budgets. Sem X-Ray, Prometheus, Grafana nem APM externo. A API registra logs estruturados em JSON, sem corpo de requisição, cookies nem cabeçalhos de autorização (RNF-021). O Prisma Client registra só os níveis `warn` e `error`: o log de consultas (`query`) fica desligado, pois incluiria parâmetros com dados pessoais. O alarme de indisponibilidade usa o status da VM e a verificação de `GET /api/v1/health`, que checa o banco com um `SELECT 1` pelo Prisma.
 - **Alternativas consideradas:**
   - Prometheus e Grafana — consumiriam memória da VM e exigiriam mais peças
   - X-Ray ou OpenTelemetry — esforço e custo sem requisito
@@ -233,9 +246,28 @@ Não há ALB, NAT Gateway nem endpoints de interface: são os itens que mais pes
 - **Decisão:** Serviço `migrate` no compose, com a imagem oficial `flyway/flyway` (arm64) e a pasta `db/migration/` copiada para dentro da imagem de migração `frotasync-migrate`, publicada no ECR junto com as outras duas. A API só inicia (`depends_on: migrate: condition: service_completed_successfully`). O `migrate` usa o usuário `frotasync_migrator`; a API usa `frotasync_app`, sem direito de DDL. No ambiente local, o mesmo serviço roda contra o PostgreSQL do compose. Falha de migração impede a subida da API e do `web` e aparece no CloudWatch.
 - **Alternativas consideradas:**
   - Flyway dentro do contêiner da API — exigiria JRE na imagem Node
-  - Migrações por ORM (TypeORM, Prisma) — contraria a premissa de Flyway como única ferramenta
+  - Migrações por ORM (Prisma Migrate, TypeORM) — contraria a premissa de Flyway como única ferramenta; o Prisma entra só como camada de acesso (ADR-011)
   - Passo manual no deploy — viola o RNF-031
-- **Consequências:** Uma terceira imagem no ECR (cabe no lifecycle de 5 imagens por repositório) e uma ordem de subida explícita. O deploy fica mais lento em alguns segundos.
+- **Consequências:** Uma terceira imagem no ECR (cabe no lifecycle de 5 imagens por repositório) e uma ordem de subida explícita. O deploy fica mais lento em alguns segundos. A imagem `migrate` não contém Prisma; o `schema.prisma` da API apenas reflete o esquema que ela aplica (ADR-011).
+
+#### ADR-011: Prisma ORM como camada de acesso aos dados (novo na v1.5)
+
+- **Status:** Aceito
+- **Origem:** RNF-022, RNF-023, RNF-028, RNF-030; Design de API v1.6; Modelagem de Dados v1.6
+- **Contexto:** A v1.4 descrevia a API como Node puro, com driver `pg` e pool próprio. A squad adotou o Prisma ORM para consultas tipadas, relacionamentos e transações nos módulos NestJS. O Flyway segue como dono do esquema (ADR-010); a adoção muda o pool, o build da imagem e o CI, não a topologia.
+- **Decisão:**
+  - **Fluxo do esquema:** o Flyway aplica V1 a V14; em desenvolvimento e no CI, `prisma db pull` reflete o esquema no `schema.prisma` versionado e `prisma generate` gera o cliente. No build da imagem roda apenas `prisma generate`, que não precisa de banco. `db pull` nunca roda na subida nem em produção.
+  - **Proibido:** `prisma migrate dev`, `prisma migrate deploy` e `prisma db push`. O CI falha se aparecerem esses comandos em scripts, Dockerfiles ou workflows, ou uma pasta `prisma/migrations`.
+  - **Imagem `api`:** no estágio de build, `npm ci`, `prisma generate` e compilação do NestJS. O estágio final (`node:22-alpine`, usuário não-root) leva as dependências de produção e o cliente gerado copiado do build, sem a CLI do Prisma. O `generator` declara `binaryTargets = ["native", "linux-musl-arm64-openssl-3.0.x"]` (desenvolvimento x64 e produção arm64). Se a versão adotada usar o motor Rust, a imagem instala `openssl` (`apk add --no-cache openssl`).
+  - **Pool:** `connection_limit=10` e `pool_timeout=20` na `DATABASE_URL`, com uma única instância do Prisma Client por processo (serviço singleton do NestJS que conecta na inicialização e desconecta no encerramento, com shutdown hooks). Sem RDS Proxy nem PgBouncer, pois o volume não os justifica.
+  - **Permissões:** o Prisma Client em execução usa `frotasync_app` (DML, sem DDL). Quem tem DDL continua sendo só `frotasync_migrator`.
+  - **SQL cru:** consultas com `unaccent` usam `$queryRaw` parametrizado; `$queryRawUnsafe` não é usado com entrada do usuário.
+  - **Logs:** só `warn` e `error` (ADR-009).
+- **Alternativas consideradas:**
+  - Driver `pg` direto ou query builder — menos tipagem e mais SQL manual, sem requisito que o justifique
+  - Prisma Migrate — contraria o ADR-010 e o RNF-022
+  - TypeORM ou outro ORM — fora da escolha da squad
+- **Consequências:** Tipagem de ponta a ponta e menos SQL manual. Constraints CHECK e o índice único `lower(codigo)` não aparecem no `schema.prisma` e continuam garantidos só pelo PostgreSQL. Há risco de deriva entre `schema.prisma` e migrações, tratado no CI (seção 3). A imagem fica maior e o motor do Prisma consome memória da VM (seção 5). Uma instância extra do Prisma Client por engano multiplica o pool e pode esgotar as conexões do `db.t4g.micro`.
 
 ---
 
@@ -245,16 +277,16 @@ Aqui ficam as **decisões** (o quê e por quê). A **implementação** (Dockerfi
 
 | Tema | Decisão | Origem |
 | --- | --- | --- |
-| Imagem de container | Dockerfile multi-stage e usuário não-root para `web` (Node, Next standalone), `api` (Node 22 LTS, NestJS compilado) e `migrate` (Flyway + migrações); imagens linux/arm64 no ECR com tag imutável por commit (`sha`) e, em releases, `vX.Y.Z`; lifecycle mantém as 5 mais recentes | ADR-002, ADR-010 |
+| Imagem de container | Dockerfile multi-stage e usuário não-root para `web` (Node, Next standalone), `api` (Node 22 LTS, NestJS compilado, com o Prisma Client gerado no build por `prisma generate` e sem a CLI do Prisma na imagem final) e `migrate` (Flyway + migrações); imagens linux/arm64 no ECR com tag imutável por commit (`sha`) e, em releases, `vX.Y.Z`; lifecycle mantém as 5 mais recentes | ADR-002, ADR-010 |
 | Orquestração | Docker Compose na VM (`caddy`, `web`, `api` e `migrate` de execução única) com `restart: unless-stopped`, healthchecks e limites de memória. Sem manifestos Kubernetes | ADR-002 |
 | IaC | Terraform ≥ 1.10; módulos: rede, banco, compute, registry, iam, storage, monitoring; estado remoto em S3 com `use_lockfile`, um por pilha; `plan` no pull request, `apply` só após merge e aprovação; `destroy` só na pilha efêmera | ADR-007 |
-| Banco de dados | RDS PostgreSQL db.t4g.micro, 20 GiB gp3, Single-AZ, sub-rede privada; backup de 7 dias; migrações Flyway V1 a V14 executadas pelo `migrate` na subida | ADR-005, ADR-010 |
-| Segredos | SSM Parameter Store (SecureString) em `/frotasync/production/*`; nunca credenciais no repositório; `.env.example` sem valores reais | ADR-008 |
+| Banco de dados | RDS PostgreSQL db.t4g.micro, 20 GiB gp3, Single-AZ, sub-rede privada; backup de 7 dias; migrações Flyway V1 a V14 executadas pelo `migrate` na subida; a API acessa os dados pelo Prisma Client, com pool de 10 conexões | ADR-005, ADR-010, ADR-011 |
+| Segredos | SSM Parameter Store (SecureString) em `/frotasync/production/*`; nunca credenciais no repositório; `.env.example` sem valores reais; a `DATABASE_URL` do Prisma é montada no boot a partir do SSM | ADR-008 |
 | Front-end | Contêiner Next.js standalone na mesma VM (`output: "standalone"`); Caddy roteia `/api/v1/*` para a API e o restante para o front | ADR-003 |
 | Sessão | Cookies httpOnly emitidos pela API; `proxy.ts` do Next só verifica o cookie indicador de sessão | ADR-006 |
 | HTTPS | Caddy + Let's Encrypt; hostname `<ip>.sslip.io` na demonstração; cabeçalhos de segurança e CSP no Caddy | ADR-004 |
 | Anexos | Bucket S3 privado, SSE-S3 e Block Public Access; acesso só pela role da VM | RNF-026 |
-| CI/CD | O workflow atual (`.github/workflows/ci.yml`) só roda lint, teste e build do frontend com Node 20. Falta: job da API (lint, build, testes com PostgreSQL de serviço), build das 3 imagens `linux/arm64` (QEMU + buildx ou runner `ubuntu-24.04-arm`), `terraform fmt/validate/plan`, deploy por OIDC + SSM Run Command com aprovação manual e rollback documentado | RNF-031 |
+| CI/CD | O workflow atual (`.github/workflows/ci.yml`) só roda lint, teste e build do frontend com Node 20. Falta: job da API (lint, build, testes com PostgreSQL de serviço e verificação do Prisma: aplicar as migrações Flyway no serviço, rodar `prisma db pull` e `prisma generate` e falhar se o `schema.prisma` versionado divergir ou se houver `prisma migrate` ou `db push`), build das 3 imagens `linux/arm64` (QEMU + buildx ou runner `ubuntu-24.04-arm`), `terraform fmt/validate/plan`, deploy por OIDC + SSM Run Command com aprovação manual e rollback documentado | RNF-031, ADR-011 |
 
 ---
 
@@ -264,7 +296,7 @@ Nomes padronizados em todo o projeto: `local`, `staging`, `production`.
 
 | Ambiente | Finalidade | Deploy | Dados |
 | --- | --- | --- | --- |
-| local | Desenvolvimento | `docker-compose up` (web, api, migrate e PostgreSQL; disco ou MinIO para anexos); o `web` encaminha `/api/v1/*` à API por `rewrites`; `COOKIE_SECURE=false` e código de recuperação no console | Fictícios (seed de desenvolvimento) |
+| local | Desenvolvimento | `docker-compose up` (web, api, migrate e PostgreSQL; disco ou MinIO para anexos); o `web` encaminha `/api/v1/*` à API por `rewrites`; `COOKIE_SECURE=false` e código de recuperação no console; `DATABASE_URL` no `.env` e, após uma nova migração, `prisma db pull` e `prisma generate` para atualizar o cliente | Fictícios (seed de desenvolvimento) |
 | staging | Validação antes de produção | **Não provisionado** (custo). A validação ocorre no `local` e nos testes do pull request, com PostgreSQL de serviço no GitHub Actions | — |
 | production | Demonstração e, se houver decisão futura, usuários reais | Pilha efêmera `infra/envs/production`; deploy após merge na `main` com CI verde e **aprovação manual** (GitHub Environment `production` com revisores) | Fictícios (seed `demo`) |
 
@@ -283,6 +315,14 @@ Nomes padronizados em todo o projeto: `local`, `staging`, `production`.
 | Local de execução das migrações | Contêiner `migrate` dedicado (ADR-010). |
 | Origem da sessão do frontend | Cookies emitidos pela API (ADR-006). |
 
+### Pontos a validar na v1.5
+
+| Ponto | O que fazer |
+| --- | --- |
+| Versão do Prisma e tipo de motor | Confirmar a versão adotada. Com o motor Rust, vale o descrito no ADR-011. Em versões que usam driver adapter (`@prisma/adapter-pg`), o pool passa a ser configurado no adapter (`max: 10`), e não por `connection_limit` na URL; nesse caso, ajustar o ADR-005 e o ADR-011. |
+| Memória do contêiner `api` | O motor do Prisma soma-se ao heap de 400 MB dentro do limite de 700 MB. Medir no teste de fumaça (US-149) e, se preciso, rebalancear os limites do compose (`web` 450 MB, `caddy` 64 MB) dentro dos 2 GiB da VM. |
+| Tamanho da imagem `api` | Conferir o tamanho após incluir o cliente gerado, dentro do lifecycle de 5 imagens do ECR. |
+
 ---
 
 ## Histórico de Alterações
@@ -291,3 +331,4 @@ Nomes padronizados em todo o projeto: `local`, `staging`, `production`.
 | --- | --- | --- | --- |
 | 20/11/2026 | 1.3 | Planejamento de infraestrutura na AWS (EC2 + Compose, RDS, Terraform em duas pilhas, SSM, CloudWatch). | Equipe do projeto |
 | 20/11/2026 | 1.4 | Conferência com o frontend e a Análise de Requisitos: backend NestJS no lugar de Spring Boot; `output: "standalone"`, healthcheck e rewrites do frontend; sessão por cookies da API (ADR-006) e remoção de `FROTASYNC_SESSION_SECRET`; migrações em contêiner dedicado (ADR-010) com usuários de banco separados; CSP e limite de corpo no Caddy; metas de disponibilidade e escalabilidade; lacunas do CI/CD; pendências 1, 3, 4 e 6 resolvidas. | Equipe do projeto |
+| 20/11/2026 | 1.5 | Adoção do Prisma ORM como camada de acesso aos dados da API: pool de conexões do Prisma Client no lugar do driver `pg` (ADR-005), imagem da API com `prisma generate` no build e sem CLI na imagem final, novo ADR-011, `DATABASE_URL` montada no boot (ADR-008), logs do Prisma (ADR-009), verificação de sincronia do `schema.prisma` e proibição de `prisma migrate` e `db push` no CI, e pontos a validar. Sem mudança de topologia, custo ou contrato da API. | Equipe do projeto |

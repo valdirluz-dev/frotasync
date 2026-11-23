@@ -1,6 +1,6 @@
 # FrotaSync — Sistema de Gestão de Unidades, Documentos e Tarefas
 
-**Versão do documento:** 1.3 | **Data:** 20/10/2026\
+**Versão do documento:** 1.4 | **Data:** 21/11/2026\
 **Documento:** Análise de Requisitos\
 *Documento complementar ao Brief (01) e a Personas & Jornadas (02). Base para Estórias (04), Infra (05), Dados (06) e API (07).*
 
@@ -10,7 +10,7 @@
 
 - **Desenvolvedor(a):** Valdir
 - **Desenvolvedor(a):** Filipe
-- **Desenvolvedor(a):** Gabriely
+- **Desenvolvedor(a):** Gabrieli
 - **Desenvolvedor(a):** Lucas Vinícius
 - **Desenvolvedor(a):** Murilo
 - **Desenvolvedor(a):** Niedson
@@ -23,10 +23,10 @@
 Esta seção é a **fonte única da stack**: os demais documentos apenas a referenciam.
 
 - **Linguagem de programação (back-end):** TypeScript (Node.js)
-- **Framework (back-end):** NestJS (API REST), Zod, Passport/JWT, bcrypt
+- **Framework (back-end):** NestJS (API REST), Zod, Passport/JWT, bcrypt; acesso aos dados com Prisma ORM (Prisma Client)
 - **Front-end:** Next.js, React, Tailwind CSS, React Hook Form, Zod, TanStack Query e TanStack Table
 - **Tipo de sistema:** aplicação fullstack (frontend web responsivo, também utilizável como aplicativo mobile, API REST e banco de dados), executada em contêineres na nuvem AWS
-- **Banco de dados:** PostgreSQL, com versionamento de esquema via Flyway (RNF-022). Os dados mockados (RNF-008) permanecem apenas como camada de transição até a integração com a API e como base do seed de desenvolvimento
+- **Banco de dados:** PostgreSQL, com versionamento de esquema exclusivamente via Flyway (RNF-022); o Prisma ORM apenas acessa os dados e não altera o esquema. Os dados mockados (RNF-008) permanecem apenas como camada de transição até a integração com a API e como base do seed de desenvolvimento
 - **IDE utilizada no dpreencha o esenvolvimento:** Visual Studio Code (VSCode)
 - **Documentação da API:** Swagger/OpenAPI (gerada pela API NestJS), schemas Zod como contrato dos dados e documento Design de API
 - **Protótipo de interface:** Figma (arquivo SystemDesign)
@@ -213,11 +213,11 @@ O campo **Origem** indica a persona (P-NN), a estória de usuário correspondent
 
 ### RF-017 — Histórico de alterações (auditoria simples)
 
-- **Origem:** P-02; US 082; alterado na v1.3; novo na v1.1
-- **Descrição:** Registra quem alterou o quê e quando (unidade, documento, tarefa) na tabela `historico_alteracao` (migration V7) e exibe o histórico no detalhamento da unidade (`GET /unidades/{id}/historico`).
+- **Origem:** P-02; US 082; alterado na v1.4 e na v1.3; novo na v1.1
+- **Descrição:** Registra quem alterou o quê e quando (unidade, documento, tarefa) na tabela `historico_alteracao` (migration V7) e exibe o histórico no detalhamento da unidade (`GET /unidades/{id}/historico`) e na tela global `/historico` (`GET /historico`, com pesquisa e filtros por unidade e entidade).
 - **Entradas e pré-condições:** Alterações confirmadas por usuário autenticado.
-- **Saídas e pós-condições:** Lista paginada de eventos (usuário, ação, data/hora).
-- **Prioridade:** Opcional
+- **Saídas e pós-condições:** Lista paginada de eventos (usuário, ação, data/hora). Passou a necessário na v1.4, pois o frontend usa as duas telas.
+- **Prioridade:** Necessário
 
 ### RF-018 — Alternância de tema claro/escuro
 
@@ -322,9 +322,9 @@ Cada RNF traz uma **meta mensurável** e a sua origem (persona, estória ou vers
 - **RNF-015 — Versionamento e entrega:** repositório público, com código organizado, estrutura de pastas clara e histórico de commits com mensagens claras; aplicação funcional, executável localmente ou publicada online. **Meta:** ambiente completo executável com um único comando de subida (RNF-028). *Origem: P-05; US 077; v1.1.* **Prioridade:** Obrigatório.
 - **RNF-016 — Adaptabilidade a diferentes empresas:** nome da empresa, vocabulário e tipos de documento definidos em arquivo de configuração, sem alterar a lógica. **Meta:** trocar de ramo alterando apenas o arquivo de configuração. *Origem: P-05; US 084; v1.1.* **Prioridade:** Opcional.
 - **RNF-018 — Testes automatizados do frontend:** testes unitários do cálculo de status do documento exibido e dos bloqueios de unidade inativa na interface (os testes da API estão no RNF-033). **Meta *(sugerida)*:** cobertura mínima de 80% nessas regras. *Origem: P-05; US 086; alterado na v1.3.* **Prioridade:** Opcional.
-- **RNF-020 — Validação e máscaras de campos brasileiros:** CPF e CNPJ com dígitos verificadores válidos, telefone com DDD (10 ou 11 dígitos), CEP com 8 dígitos e UF com 2 letras, com máscara de digitação; valores normalizados (somente dígitos) antes de enviar ou armazenar; senha com no mínimo 8 e no máximo 72 caracteres, com confirmação igual. **Meta:** 0 registros com CPF, CNPJ, telefone, CEP ou UF fora do formato (garantido por Zod e por CHECK no banco). *Origem: P-04; US 078; v1.2.* **Prioridade:** Necessário.
+- **RNF-020 — Validação e máscaras de campos brasileiros:** CPF e CNPJ com dígitos verificadores válidos, telefone com DDD (10 ou 11 dígitos), CEP com 8 dígitos e UF com 2 letras, com máscara de digitação; valores normalizados (somente dígitos) antes de enviar ou armazenar; senha com no mínimo 8 e no máximo 72 caracteres, com confirmação igual. Os limites de tamanho de cada campo são os do Design de API (seção 4) e valem igualmente nos schemas Zod do frontend. **Meta:** 0 registros com CPF, CNPJ, telefone, CEP ou UF fora do formato (garantido por Zod e por CHECK no banco). *Origem: P-04; US 078; v1.2.* **Prioridade:** Necessário.
 - **RNF-021 — Proteção de dados pessoais e LGPD:** dados pessoais (CPF, telefone, e-mail) coletados apenas para o cadastro; aceite dos Termos de Uso e da Política de Privacidade obrigatório e registrado com data e hora; senhas e códigos de recuperação guardados apenas como hash; senhas e tokens nunca em logs; apenas dados fictícios em mocks e seed. **Meta:** 0 senhas em texto plano no banco ou nos logs; 100% dos cadastros com aceite registrado. *Origem: P-04; US 079; alterado na v1.3; novo na v1.2.* **Prioridade:** Necessário.
-- **RNF-022 — Persistência em PostgreSQL com migrations versionadas:** dados persistidos conforme a Modelagem de Dados (empresa, usuário, unidade, documento, tarefa, código de verificação e, se o RF-017 for entregue, histórico de alteração). O esquema é criado exclusivamente por migrations Flyway (V1 a V8), sem SQL manual; UNIQUE, FOREIGN KEY e CHECK são aplicados pelo banco; há índices para listagens e indicadores. **Meta:** banco vazio criado do zero apenas pelas migrations; testes confirmam que o banco rejeita dados inválidos sem passar pela API. *Origem: P-05; US 111 a 117; novo na v1.3.* **Prioridade:** Obrigatório.
+- **RNF-022 — Persistência em PostgreSQL com migrations versionadas:** dados persistidos conforme a Modelagem de Dados (empresa, usuário, unidade, documento, tarefa, código de verificação, refresh token e histórico de alteração). O esquema é criado exclusivamente por migrations Flyway (V1 a V14), sem SQL manual; UNIQUE, FOREIGN KEY e CHECK são aplicados pelo banco; há índices para listagens e indicadores. **Meta:** banco vazio criado do zero apenas pelas migrations; testes confirmam que o banco rejeita dados inválidos sem passar pela API. *Origem: P-05; US 111 a 117; novo na v1.3.* **Prioridade:** Obrigatório.
 - **RNF-023 — API REST (NestJS):** API em NestJS com prefixo `/api/v1`, organizada em módulos, controllers e serviços; DTOs validados com Zod; respostas de sucesso e de erro no formato padronizado do Design de API, com filtro global de exceções; configuração por variáveis de ambiente validadas na inicialização. **Meta:** 100% das respostas de erro no formato `ApiErrorResponse`; API não inicia com configuração inválida. *Origem: P-05; US 121; novo na v1.3.* **Prioridade:** Obrigatório.
 - **RNF-024 — Regras de negócio aplicadas no servidor:** status do documento, bloqueios de unidade inativa (RF-007), transições de status e data de conclusão da tarefa, total de pendências e variação dos indicadores são calculados e aplicados no backend; o cliente nunca envia valores derivados. **Meta:** 100% dessas regras cobertas por testes unitários da API. *Origem: P-01, P-02, P-03; US 125 a 128; novo na v1.3.* **Prioridade:** Obrigatório.
 - **RNF-025 — Isolamento de dados por empresa:** toda consulta e escrita em recursos protegidos é filtrada pela empresa do token; recurso de outra empresa responde 404. **Meta:** 0 vazamentos entre empresas, verificado por testes de integração em todos os recursos. *Origem: P-03; US 123; novo na v1.3.* **Prioridade:** Obrigatório.
@@ -372,6 +372,7 @@ A lista-mestre de stakeholders e o poder de decisão ficam no Brief (01 §3). Aq
 | 05/10/2026 | 1.2 | Incorporação do protótipo de telas (SystemDesign): novos RF 019 a RF 025 e RNF 020 e RNF 021; alteração de RFs e RNFs existentes; IDs mantidos. | Equipe do projeto |
 | 20/10/2026 | 1.3 | Evolução de frontend com mocks para aplicação fullstack na nuvem: novos RF 026 e RF 027 e RNF 022 a RNF 033; RNF 017 descartado e RNF 019 substituído; rotas dedicadas `/documentos` e `/tarefas`. | Equipe do projeto |
 | 20/10/2026 | 1.3 | Conteúdo migrado para o modelo 03 (formato RF-NNN e RNF-NNN, origem por persona e estória, metas mensuráveis nos RNFs, seções Pendências e Premissas assumidas). Sem alteração de escopo. | Equipe do projeto |
+| 21/11/2026 | 1.4 | Alinhamento ao Design de API v1.6 e à Modelagem v1.6: RF-017 passa a Necessário e inclui o histórico global; RNF-022 atualizado (V1 a V14, refresh token e histórico); Prisma ORM como camada de acesso; limites de campos valem também no frontend (RNF-020); correção do nome "Gabrieli"; nova pendência 13 (variação). | Equipe do projeto |
 
 ---
 
@@ -391,6 +392,7 @@ Pontos em aberto, a validar com a squad (vindos do Apêndice B da versão anteri
 10. **Tipo de unidade (Matriz ou Filial):** guardado na empresa; decidir se o cadastro gera uma unidade automaticamente ou se o formulário de unidade ganha um campo de tipo.
 11. **Dashboard:** onde exibir o total de pendências no layout e se haverá atalho ou resumo das listas, agora em rotas dedicadas; atualizar o protótipo.
 12. **Textos do protótipo a corrigir:** "Voltar para documentos" em Cadastrar Unidade (deveria ser "Voltar para unidades"); placeholder "Digite o nome da tarefa..." nos formulários de unidade e de documento; modal "Deseja cadastrando o documento?"; legenda de Documentos com "Vigente" duplicado e rótulos diferentes dos status do RF-011; rótulo "à vencer" para "a vencer". Números do protótipo (128 documentos, 400 unidades, 55 a vencer) são ilustrativos.
+13. **Semântica da variação (RF-024):** o frontend compara documentos "a vencer" pelo mês de `dataValidade` e tarefas concluídas pelo mês de `dataConclusao`; o Design de API recalcula a contagem na data de referência do mês anterior. Decidir qual regra vale antes da integração do Dashboard (US-136).
 
 ## Premissas assumidas
 
@@ -402,6 +404,6 @@ Pontos em aberto, a validar com a squad (vindos do Apêndice B da versão anteri
 - **Código de recuperação de senha:** validade de 10 minutos e limite de 5 tentativas, pois tem apenas 5 dígitos (RF-020).
 - **Anexos:** PDF, JPG e PNG de até 10 MB (RNF-026).
 - **E-mail de recuperação:** registrado no console em desenvolvimento e enviado pelo Amazon SES no ambiente publicado.
-- **Migrations:** Flyway é a única ferramenta de alteração do esquema, sem migrations gerenciadas por ORM (RNF-022).
+- **Migrations:** Flyway é a única ferramenta de alteração do esquema, sem migrations gerenciadas por ORM; o Prisma ORM é usado só para acessar os dados (RNF-022).
 - **Itens descartados na v1.3:** RNF 017 (camada de API simulada, substituída pela API real) e RNF 019 (deploy com Vercel, substituído pelos RNF-029 e RNF-031). O controle de documentos por veículo e por motorista segue fora do escopo.
 - **Mapa de telas e rotas (antigo Apêndice A):** não consta neste modelo; permanece na versão anterior da Análise de Requisitos e nas Estórias de Usuário.

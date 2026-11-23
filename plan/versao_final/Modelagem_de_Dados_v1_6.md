@@ -2,9 +2,9 @@
 
 **FrotaSync — Sistema de Gestão de Unidades, Documentos e Tarefas**
 
-- **Versão do documento:** 1.5
-- **Data:** 20/11/2026
-- Documento complementar à Análise de Requisitos (v1.3), às Estórias de Usuário e Backlog (v1.3), ao Design de API (v1.5) e ao Planejamento de Infraestrutura (v1.4)
+- **Versão do documento:** 1.6
+- **Data:** 21/11/2026
+- Documento complementar à Análise de Requisitos (v1.4), às Estórias de Usuário e Backlog (v1.4), ao Design de API (v1.6) e ao Planejamento de Infraestrutura (v1.5)
 
 ## Equipe de desenvolvimento
 
@@ -24,7 +24,7 @@
 - Banco de dados: PostgreSQL, implementado conforme esta modelagem (RNF-022)
 - Controle de versão do esquema de banco: Flyway (única ferramenta que cria, altera e versiona o esquema)
 - Acesso aos dados pelo backend: Prisma ORM (Prisma Client), sem papel na evolução do esquema
-- Contrato de dados: schemas Zod e Swagger/OpenAPI (ver Design de API v1.5)
+- Contrato de dados: schemas Zod e Swagger/OpenAPI (ver Design de API v1.6)
 - Armazenamento de anexos: Amazon S3 privado em produção; o banco guarda apenas os metadados
 
 > **Nota de contexto:** o banco PostgreSQL real é criado pelas migrações Flyway da seção 7 e acessado pela API NestJS. O frontend (Next.js) já está completo e usa uma camada de dados mockada (`frontend/mocks` e `frontend/services`); esta modelagem foi **conferida contra os tipos, schemas e telas desse frontend** (`types/domain.ts`, `schemas/*`, `services/*`) e ajustada onde havia divergência. Os mocks permanecem apenas como camada de transição e base do seed de desenvolvimento (US 116).
@@ -38,11 +38,16 @@
 - **Prisma ORM** é usado pelo backend NestJS como camada de acesso aos dados: os módulos, repositories e services utilizam o Prisma Client para operações CRUD, consultas tipadas, relacionamentos e transações.
 - **Sincronização:** o modelo Prisma (`schema.prisma`) apenas **reflete** o esquema físico criado pelo Flyway. Ele é atualizado por introspecção do banco (`prisma db pull`), seguida da geração do cliente (`prisma generate`), depois que as migrações são aplicadas.
 - **Restrição obrigatória:** não utilizar Prisma Migrate, `prisma migrate dev`, `prisma migrate deploy` nem `prisma db push` para modificar o esquema, nem qualquer mecanismo de sincronização automática do ORM. O Flyway é a única fonte de verdade para a evolução do esquema (RNF-022).
-- **Observação sobre a introspecção:** constraints CHECK e o índice único por expressão `lower(codigo)` (V10) existem apenas no banco e não são representados no modelo Prisma; continuam garantidos pelo PostgreSQL. As consultas que usam `unaccent` (pesquisa `q`) são executadas pelo Prisma Client como consulta SQL parametrizada (`$queryRaw`).
+- **Observação sobre a introspecção:** constraints CHECK e o índice único por expressão `lower(codigo)` (V10) existem apenas no banco e não são representados no modelo Prisma; continuam garantidos pelo PostgreSQL. As consultas que usam `unaccent` (pesquisa `q`) são executadas pelo Prisma Client como consulta SQL parametrizada (`$queryRaw`). Duas consequências para a API: (1) a violação do índice `uq_unidade_empresa_codigo_ci` não chega como `P2002` com o nome do campo, então o service pré-checa a duplicidade e converte o erro 23505 do PostgreSQL em 409 (`IDENTIFICADOR_DUPLICADO`); (2) colunas `bigint` (`anexo_tamanho_bytes`) chegam como `BigInt`, que o JSON não serializa, e são convertidas para `number` no DTO.
 
 Esta divisão não altera o modelo conceitual, lógico ou físico descrito neste documento.
 
 Este documento apresenta a modelagem em três níveis (conceitual, lógico e físico), o diagrama entidade-relacionamento, o dicionário de dados, as regras de integridade, os scripts Flyway e o mapeamento entre banco, API e frontend.
+
+### O que mudou na versão 1.6
+
+- **Nenhuma alteração no modelo:** tabelas, atributos, constraints, índices e scripts V1 a V14 permanecem idênticos à v1.5.
+- **Esclarecimentos sobre o acesso pelo Prisma:** o índice `lower(codigo)` não existe no modelo Prisma, então a duplicidade do identificador é conferida pelo service e o erro 23505 do PostgreSQL é convertido em 409; o `bigint` do tamanho do anexo chega como `BigInt` e é convertido para `number` na API.
 
 ### O que mudou na versão 1.5
 
@@ -464,7 +469,7 @@ Table historico_alteracao {
 | descricao | text | Sim | Descrição (a API limita a 500 caracteres). |
 | anexo_nome | varchar(255) | Não | Nome original do arquivo. |
 | anexo_url | varchar(500) | Não | Chave do objeto no armazenamento (não é URL pública). |
-| anexo_tamanho_bytes | bigint | Não | Tamanho em bytes (até 10 MB). |
+| anexo_tamanho_bytes | bigint | Não | Tamanho em bytes (até 10 MB). O Prisma o lê como `BigInt`; a API o devolve como `number` (`tamanhoBytes`). |
 | anexo_tipo | varchar(100) | Não | Tipo de mídia: application/pdf, image/jpeg ou image/png. |
 | created_at, updated_at | timestamptz | Não | Auditoria. |
 
@@ -562,6 +567,7 @@ Table historico_alteracao {
 - Documentos e tarefas só são criados, editados ou têm o status alterado se a unidade estiver ativa (RF-007).
 - A API valida CPF e CNPJ (dígitos verificadores) e o identificador da unidade (`^[\p{L}0-9-]+$`, até 10 caracteres).
 - Ao editar uma tarefa, o novo prazo não pode ser anterior a hoje (regra já presente no frontend).
+- A unicidade do identificador (`lower(codigo)`) é conferida pelo service antes da gravação; em caso de corrida, o erro 23505 do PostgreSQL é convertido em 409.
 - Todo acesso a unidades, documentos e tarefas é filtrado pela empresa do usuário (RNF-025).
 - O seed de desenvolvimento (US 116) nunca é executado em produção.
 
@@ -872,6 +878,7 @@ CREATE UNIQUE INDEX uq_codigo_reset_token
 | Telefone | 10 ou 11 dígitos com DDD | pode exibir `+55 (81) 98765-4321`; remover não dígitos e o prefixo 55 antes de enviar |
 | Datas de negócio | `YYYY-MM-DD` | igual |
 | Timestamps | ISO-8601 com fuso | igual |
+| Tamanho do anexo | `bigint` em bytes; `number` em `tamanhoBytes` | exibe em KB ou MB |
 
 ---
 
@@ -885,3 +892,4 @@ CREATE UNIQUE INDEX uq_codigo_reset_token
 | 20/10/2026 | 1.3 | Banco real via Flyway; anexos em S3 privado; seed. | Equipe do projeto |
 | 20/11/2026 | 1.4 | Conferência com o frontend completo: endereço estruturado da empresa (V9), identificador da unidade sem diferenciar caixa e `unaccent` (V10), metadados do anexo (V11), nome da entidade no histórico (V12), tabela `refresh_token` (V13), token de redefinição de senha (V14), notificações derivadas, seção de mapeamento banco ↔ API ↔ frontend. | Equipe do projeto |
 | 20/11/2026 | 1.5 | Atualização da arquitetura de persistência: adoção do Prisma ORM para acesso aos dados pelo NestJS, mantendo o Flyway como ferramenta exclusiva de versionamento e execução das migrações SQL do PostgreSQL. Nenhuma alteração nos contratos da API ou na modelagem de dados. | Equipe do projeto |
+| 21/11/2026 | 1.6 | Esclarecimentos sobre o acesso pelo Prisma: duplicidade do identificador (índice `lower(codigo)` fora do modelo Prisma, erro 23505 convertido em 409) e conversão do `BigInt` do tamanho do anexo. Nenhuma alteração no modelo, nas constraints ou nos scripts. | Equipe do projeto |
