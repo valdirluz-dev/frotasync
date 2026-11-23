@@ -1,7 +1,15 @@
-import { Injectable } from '@nestjs/common';
+import {
+  ConflictException,
+  Injectable,
+  Logger,
+  NotFoundException,
+} from '@nestjs/common';
 import { Prisma } from '../../generated/prisma/client';
 import { calculatePagination } from '../common/utils/pagination.util';
 import { PrismaService } from '../prisma/prisma.service';
+import { StorageService } from '../storage/storage.service';
+import { AnexoUploadFile } from './pipes/anexo-validation.pipe';
+import { CriarDocumentoDto } from './schemas/criar-documento.schema';
 import { ListarDocumentosDto } from './schemas/listar-documentos.schema';
 
 type StatusValidade = 'valido' | 'proximo_vencimento' | 'expirado';
@@ -30,7 +38,113 @@ interface DocumentoListagemRow {
 
 @Injectable()
 export class DocumentosService {
-  constructor(private readonly prisma: PrismaService) {}
+  private readonly logger = new Logger(DocumentosService.name);
+
+  constructor(
+    private readonly prisma: PrismaService,
+    private readonly storage: StorageService,
+  ) {}
+
+  async criar(
+    unidadeId: string,
+    documento: CriarDocumentoDto,
+    anexo: AnexoUploadFile,
+    empresaId: string,
+  ) {
+    const unidade = await this.prisma.unidade.findFirst({
+      where: {
+        id: unidadeId,
+        empresa_id: empresaId,
+      },
+      select: {
+        id: true,
+        nome: true,
+        status: true,
+      },
+    });
+
+    if (!unidade) {
+      throw new NotFoundException({
+        message: 'Unidade não encontrada.',
+        codigo: 'RECURSO_NAO_ENCONTRADO',
+      });
+    }
+
+    if (unidade.status !== 'ativa') {
+      throw new ConflictException({
+        message: 'Não é possível cadastrar documentos em uma unidade inativa.',
+        codigo: 'UNIDADE_INATIVA',
+      });
+    }
+
+    const storageKey = await this.storage.save({
+      buffer: anexo.buffer,
+      mimeType: anexo.mimetype,
+    });
+
+    let documentoPersistido: {
+      id: string;
+      created_at: Date;
+      updated_at: Date;
+    };
+
+    try {
+      documentoPersistido = await this.prisma.documento.create({
+        data: {
+          unidade_id: unidade.id,
+          nome: documento.nome,
+          tipo: documento.tipo ?? null,
+          categoria: documento.categoria,
+          data_emissao: documento.dataEmissao
+            ? this.converterDataNegocio(documento.dataEmissao)
+            : null,
+          data_validade: this.converterDataNegocio(documento.dataValidade),
+          descricao: documento.descricao ?? null,
+          anexo_nome: anexo.originalname,
+          anexo_url: storageKey,
+          anexo_tamanho_bytes: BigInt(anexo.buffer.byteLength),
+          anexo_tipo: anexo.mimetype,
+        },
+        select: {
+          id: true,
+          created_at: true,
+          updated_at: true,
+        },
+      });
+    } catch (erroPersistencia) {
+      try {
+        await this.storage.delete(storageKey);
+      } catch (erroCompensacao) {
+        this.logger.error(
+          `Falha ao remover anexo após erro de persistência para a unidade ${unidadeId}.`,
+          erroCompensacao instanceof Error
+            ? erroCompensacao.stack
+            : String(erroCompensacao),
+        );
+      }
+
+      throw erroPersistencia;
+    }
+
+    const documentoCriado: DocumentoListagemRow = {
+      id: documentoPersistido.id,
+      unidade_id: unidade.id,
+      unidade_nome: unidade.nome,
+      nome: documento.nome,
+      tipo: documento.tipo ?? null,
+      categoria: documento.categoria,
+      data_emissao: documento.dataEmissao ?? null,
+      data_validade: documento.dataValidade,
+      descricao: documento.descricao ?? null,
+      anexo_nome: anexo.originalname,
+      anexo_tamanho_bytes: BigInt(anexo.buffer.byteLength),
+      anexo_tipo: anexo.mimetype,
+      created_at: documentoPersistido.created_at,
+      updated_at: documentoPersistido.updated_at,
+    };
+
+    return this.mapearDocumento(documentoCriado, this.obterPeriodoValidade());
+  }
 
   listar(filtros: ListarDocumentosDto, empresaId: string) {
     return this.listarComFiltros(filtros, empresaId);
@@ -181,6 +295,10 @@ export class DocumentosService {
         .toISOString()
         .slice(0, 10),
     };
+  }
+
+  private converterDataNegocio(data: string): Date {
+    return new Date(`${data}T00:00:00.000Z`);
   }
 
   private mapearDocumento(

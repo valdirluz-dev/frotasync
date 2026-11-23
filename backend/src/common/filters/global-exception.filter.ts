@@ -26,6 +26,14 @@ function isRecord(value: unknown): value is Record<string, unknown> {
   return typeof value === 'object' && value !== null && !Array.isArray(value);
 }
 
+function isMulterFileSizeError(exception: unknown): boolean {
+  return (
+    isRecord(exception) &&
+    exception.name === 'MulterError' &&
+    exception.code === 'LIMIT_FILE_SIZE'
+  );
+}
+
 function normalizeValidationError(value: unknown): CampoInvalido | null {
   if (!isRecord(value)) {
     return null;
@@ -50,10 +58,13 @@ export class GlobalExceptionFilter implements ExceptionFilter {
     const response = ctx.getResponse<Response>();
     const request = ctx.getRequest<Request>();
 
+    const isMulterSizeError = isMulterFileSizeError(exception);
     const status =
       exception instanceof HttpException
         ? exception.getStatus()
-        : HttpStatus.INTERNAL_SERVER_ERROR;
+        : isMulterSizeError
+          ? HttpStatus.PAYLOAD_TOO_LARGE
+          : HttpStatus.INTERNAL_SERVER_ERROR;
 
     const exceptionResponse =
       exception instanceof HttpException ? exception.getResponse() : null;
@@ -62,8 +73,9 @@ export class GlobalExceptionFilter implements ExceptionFilter {
 
     const isInternalError = status >= 500;
 
-    const message =
-      status === HttpStatus.SERVICE_UNAVAILABLE
+    const message = isMulterSizeError
+      ? 'O arquivo excede o tamanho máximo permitido'
+      : status === HttpStatus.SERVICE_UNAVAILABLE
         ? 'Serviço indisponível'
         : isInternalError
           ? 'Erro interno do servidor'

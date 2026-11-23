@@ -93,6 +93,26 @@ describe('GlobalExceptionFilter', () => {
     );
   });
 
+  it('should preserve the 413 status for Multer file size errors', () => {
+    const exception = Object.assign(new Error('File too large'), {
+      name: 'MulterError',
+      code: 'LIMIT_FILE_SIZE',
+    });
+
+    filter.catch(exception, mockHost);
+
+    expect(mockResponse.status).toHaveBeenCalledWith(413);
+    expect(mockResponse.json).toHaveBeenCalledWith(
+      expect.objectContaining({
+        status: 413,
+        error: 'PAYLOAD_TOO_LARGE',
+        message: 'O arquivo excede o tamanho máximo permitido',
+        path: '/api/v1/empresas',
+        erros: [],
+      }),
+    );
+  });
+
   it('should handle 409 conflict errors with business code', () => {
     const exception = new ConflictException({
       message: 'CNPJ já cadastrado',
