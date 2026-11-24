@@ -1,22 +1,32 @@
 import {
+  BadRequestException,
   ConflictException,
   Injectable,
+  HttpException,
+  HttpStatus,
   InternalServerErrorException,
   UnauthorizedException,
 } from '@nestjs/common';
 import { JwtService } from '@nestjs/jwt';
 import bcrypt from 'bcrypt';
-import { createHash, randomBytes } from 'crypto';
+import { createHash, randomBytes, randomInt } from 'crypto';
 import { Prisma } from '../../generated/prisma/client';
 import { PrismaService } from '../prisma/prisma.service';
 import { CadastroDto } from './schemas/cadastro.schema';
 import { LoginDto } from './schemas/login.schema';
+import { MailService } from '../mail/mail.service';
+import {
+  RedefinirSenhaDto,
+  SolicitarRecuperacaoSenhaDto,
+  VerificarCodigoRecuperacaoDto,
+} from './schemas/recuperacao-senha.schema';
 
 @Injectable()
 export class AuthService {
   constructor(
     private readonly prisma: PrismaService,
     private readonly jwtService: JwtService,
+    private readonly mailService: MailService,
   ) {}
 
   private hashRefreshToken(token: string): string {
@@ -387,4 +397,212 @@ export class AuthService {
 
     return cadastro;
   }
+
+  async solicitarRecuperacaoSenha(dados: SolicitarRecuperacaoSenhaDto) {
+    const email = dados.email.trim().toLowerCase();
+    const resposta = {
+      mensagem: 'Se o e-mail estiver cadastrado, você receberá um código de recuperação.',
+    };
+
+    const usuario = await this.prisma.usuario.findUnique({
+      where: { email },
+      select: { id: true, email: true },
+    });
+
+    if (!usuario) {
+      return resposta;
+    }
+
+    const agora = new Date();
+    const ultimaSolicitacao = await this.prisma.codigo_verificacao.findFirst({
+      where: { usuario_id: usuario.id },
+      orderBy: { created_at: 'desc' },
+      select: { created_at: true },
+    });
+
+    if (
+      ultimaSolicitacao &&
+      agora.getTime() - ultimaSolicitacao.created_at.getTime() < 60_000
+    ) {
+      throw new HttpException(
+        'Aguarde 60 segundos antes de solicitar outro código.',
+        HttpStatus.TOO_MANY_REQUESTS,
+      );
+    }
+
+    const codigo = randomInt(0, 100_000).toString().padStart(5, '0');
+    const codigoHash = await bcrypt.hash(codigo, 10);
+    const registro = await this.prisma.codigo_verificacao.create({
+      data: {
+        usuario_id: usuario.id,
+        codigo_hash: codigoHash,
+        expira_em: new Date(agora.getTime() + 10 * 60_000),
+      },
+    });
+
+    await this.prisma.codigo_verificacao.updateMany({
+      where: {
+        usuario_id: usuario.id,
+        usado_em: null,
+        id: { not: registro.id },
+      },
+      data: { usado_em: agora },
+    });
+
+    try {
+      await this.mailService.enviarCodigoRecuperacao(usuario.email, codigo);
+    } catch (error) {
+      await this.prisma.codigo_verificacao.update({
+        where: { id: registro.id },
+        data: { usado_em: new Date() },
+      });
+      throw error;
+    }
+
+    return resposta;
+  }
+
+
+  async verificarCodigoRecuperacao(dados: VerificarCodigoRecuperacaoDto) {
+    const email = dados.email.trim().toLowerCase();
+    const usuario = await this.prisma.usuario.findUnique({
+      where: { email },
+      select: { id: true },
+    });
+
+    if (!usuario) {
+      throw new BadRequestException('Código inválido ou expirado.');
+    }
+
+    const agora = new Date();
+    const registro = await this.prisma.codigo_verificacao.findFirst({
+      where: {
+        usuario_id: usuario.id,
+        usado_em: null,
+        expira_em: { gt: agora },
+      },
+      orderBy: { created_at: 'desc' },
+    });
+
+    if (!registro) {
+      throw new BadRequestException('Código inválido ou expirado.');
+    }
+
+    if (registro.tentativas >= 5) {
+      throw new HttpException(
+        'Limite de tentativas excedido. Solicite um novo código.',
+        HttpStatus.TOO_MANY_REQUESTS,
+      );
+    }
+
+    const incremento = await this.prisma.codigo_verificacao.updateMany({
+      where: {
+        id: registro.id,
+        tentativas: registro.tentativas,
+        usado_em: null,
+        expira_em: { gt: agora },
+      },
+      data: { tentativas: { increment: 1 } },
+    });
+
+    if (incremento.count !== 1) {
+      throw new BadRequestException('Código inválido ou expirado.');
+    }
+
+    const tentativasAtualizadas = registro.tentativas + 1;
+    const codigoCorreto = await bcrypt.compare(
+      dados.codigo,
+      registro.codigo_hash,
+    );
+
+    if (!codigoCorreto) {
+      if (tentativasAtualizadas >= 5) {
+        throw new HttpException(
+          'Limite de tentativas excedido. Solicite um novo código.',
+          HttpStatus.TOO_MANY_REQUESTS,
+        );
+      }
+
+      throw new BadRequestException('Código inválido ou expirado.');
+    }
+
+    const token = randomBytes(32).toString('base64url');
+    const tokenHash = this.hashRefreshToken(token);
+    const expiracaoToken = new Date(agora.getTime() + 10 * 60_000);
+
+    const atualizado = await this.prisma.codigo_verificacao.updateMany({
+      where: {
+        id: registro.id,
+        tentativas: tentativasAtualizadas,
+        usado_em: null,
+        expira_em: { gt: new Date() },
+      },
+      data: {
+        usado_em: new Date(),
+        reset_token_hash: tokenHash,
+        reset_expira_em: expiracaoToken,
+      },
+    });
+
+    if (atualizado.count !== 1) {
+      throw new BadRequestException('Código inválido ou expirado.');
+    }
+
+    return { token };
+  }
+
+
+  async redefinirSenha(dados: RedefinirSenhaDto): Promise<void> {
+    const agora = new Date();
+    const tokenHash = this.hashRefreshToken(dados.token);
+
+    const registro = await this.prisma.codigo_verificacao.findFirst({
+      where: {
+        reset_token_hash: tokenHash,
+        reset_expira_em: { gt: agora },
+      },
+      select: {
+        id: true,
+        usuario_id: true,
+      },
+    });
+
+    if (!registro) {
+      throw new BadRequestException('Token inválido ou expirado.');
+    }
+
+    const senhaHash = await bcrypt.hash(dados.senha, 10);
+
+    await this.prisma.$transaction(async (tx) => {
+      const consumo = await tx.codigo_verificacao.updateMany({
+        where: {
+          id: registro.id,
+          reset_token_hash: tokenHash,
+          reset_expira_em: { gt: new Date() },
+        },
+        data: {
+          reset_token_hash: null,
+          reset_expira_em: null,
+        },
+      });
+
+      if (consumo.count !== 1) {
+        throw new BadRequestException('Token inválido ou expirado.');
+      }
+
+      await tx.usuario.update({
+        where: { id: registro.usuario_id },
+        data: { senha_hash: senhaHash },
+      });
+
+      await tx.refresh_token.updateMany({
+        where: {
+          usuario_id: registro.usuario_id,
+          revogado_em: null,
+        },
+        data: { revogado_em: new Date() },
+      });
+    });
+  }
+
 }

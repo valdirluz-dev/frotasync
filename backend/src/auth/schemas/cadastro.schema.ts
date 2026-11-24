@@ -1,5 +1,6 @@
 import { z } from 'zod';
 import { cpfValido, cnpjValido } from './validadores';
+import { senhaForte } from './senha.schema';
 
 const UFs = [
   'AC',
@@ -30,15 +31,6 @@ const UFs = [
   'SE',
   'TO',
 ] as const;
-
-const senhaForte = z
-  .string()
-  .min(8, 'A senha deve ter no mínimo 8 caracteres')
-  .max(72, 'A senha deve ter no máximo 72 caracteres')
-  .regex(
-    /^(?=.*[a-z])(?=.*[A-Z])(?=.*\d)(?=.*[!@#$%^&*(),.?":{}|<>_])/,
-    'A senha deve ter maiúscula, minúscula, número e símbolo',
-  );
 
 export const CadastroSchema = z.strictObject({
   pessoais: z.strictObject({

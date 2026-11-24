@@ -12,12 +12,19 @@ describe('AuthController - proteção CSRF', () => {
     ).toBeUndefined();
   });
 
-  it('exige CSRF em refresh e logout', () => {
-    expect(
-      Reflect.getMetadata(GUARDS_METADATA, AuthController.prototype.refresh),
-    ).toEqual([CsrfGuard]);
-    expect(
-      Reflect.getMetadata(GUARDS_METADATA, AuthController.prototype.logout),
-    ).toEqual([CsrfGuard]);
+  it('exige CSRF em refresh, logout e recuperação de senha', () => {
+    const endpoints = [
+      'refresh',
+      'logout',
+      'solicitarRecuperacaoSenha',
+      'verificarCodigoRecuperacao',
+      'redefinirSenha',
+    ] as const;
+
+    for (const endpoint of endpoints) {
+      expect(
+        Reflect.getMetadata(GUARDS_METADATA, AuthController.prototype[endpoint]),
+      ).toEqual([CsrfGuard]);
+    }
   });
 });

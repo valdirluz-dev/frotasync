@@ -1,5 +1,8 @@
 import {
+  BadRequestException,
   ConflictException,
+  HttpException,
+  HttpStatus,
   InternalServerErrorException,
   UnauthorizedException,
 } from '@nestjs/common';
@@ -17,6 +20,7 @@ import { PrismaService } from '../prisma/prisma.service';
 import { AuthService } from './auth.service';
 import { JwtService } from '@nestjs/jwt';
 import { CadastroDto } from './schemas/cadastro.schema';
+import { MailService } from '../mail/mail.service';
 
 type FindUniqueArgs = {
   where: { email: string } | { cpf: string } | { cnpj: string };
@@ -58,6 +62,12 @@ type TransactionMock = {
         email: string;
         papel: string;
       }>
+    >;
+    update: jest.Mock<(args: unknown) => Promise<unknown>>;
+  };
+  codigo_verificacao: {
+    updateMany: jest.Mock<
+      (args: unknown) => Promise<{ count: number }>
     >;
   };
 };
@@ -132,6 +142,14 @@ function createPrismaMock() {
           email: 'pessoa@example.com',
           papel: 'administrador',
         }),
+      update: jest
+        .fn<(args: unknown) => Promise<unknown>>()
+        .mockResolvedValue({}),
+    },
+    codigo_verificacao: {
+      updateMany: jest
+        .fn<(args: unknown) => Promise<{ count: number }>>()
+        .mockResolvedValue({ count: 1 }),
     },
   };
 
@@ -151,6 +169,14 @@ function createPrismaMock() {
           ) => Promise<UsuarioLoginMock | { id: string } | null>
         >()
         .mockResolvedValue(null),
+    },
+    codigo_verificacao: {
+      findFirst: jest.fn<(args: unknown) => Promise<any>>(),
+      create: jest.fn<(args: unknown) => Promise<any>>(),
+      update: jest.fn<(args: unknown) => Promise<any>>(),
+      updateMany: jest
+        .fn<(args: unknown) => Promise<{ count: number }>>()
+        .mockResolvedValue({ count: 1 }),
     },
 
     empresa: {
@@ -218,7 +244,9 @@ describe('AuthService.cadastrar', () => {
       signAsync: jest
         .fn<() => Promise<string>>()
         .mockResolvedValue('mock-access-token'),
-    } as unknown as JwtService);
+    } as unknown as JwtService, {
+      enviarCodigoRecuperacao: jest.fn<() => Promise<void>>().mockResolvedValue(undefined),
+    } as unknown as MailService);
 
     tx = setup.tx;
     mocks = setup.mocks;
@@ -453,7 +481,9 @@ describe('AuthService.login', () => {
 
     service = new AuthService(setup.prisma, {
       signAsync: signAsyncMock,
-    } as unknown as JwtService);
+    } as unknown as JwtService, {
+      enviarCodigoRecuperacao: jest.fn<() => Promise<void>>().mockResolvedValue(undefined),
+    } as unknown as MailService);
 
     comparePasswordMock = jest.spyOn(
       bcrypt,
@@ -592,7 +622,9 @@ describe('AuthService refresh e logout', () => {
       .mockResolvedValue('novo-access-token');
     service = new AuthService(setup.prisma, {
       signAsync: signAsyncMock,
-    } as unknown as JwtService);
+    } as unknown as JwtService, {
+      enviarCodigoRecuperacao: jest.fn<() => Promise<void>>().mockResolvedValue(undefined),
+    } as unknown as MailService);
   });
 
   it('rotaciona um refresh válido e emitindo novo access token', async () => {
@@ -649,5 +681,131 @@ describe('AuthService refresh e logout', () => {
   it('logout revoga o refresh existente', async () => {
     await service.logout('refresh-opaco');
     expect(setup.mocks.refresh_token.updateMany).toHaveBeenCalled();
+  });
+});
+
+
+describe('AuthService recuperação de senha', () => {
+  let setup: ReturnType<typeof createPrismaMock>;
+  let service: AuthService;
+  let enviarEmail: jest.Mock<(email: string, codigo: string) => Promise<void>>;
+
+  beforeEach(() => {
+    setup = createPrismaMock();
+
+    enviarEmail = jest
+      .fn<(email: string, codigo: string) => Promise<void>>()
+      .mockResolvedValue(undefined);
+
+    service = new AuthService(
+      setup.prisma,
+      { signAsync: jest.fn<() => Promise<string>>().mockResolvedValue('token') } as unknown as JwtService,
+      { enviarCodigoRecuperacao: enviarEmail } as unknown as MailService,
+    );
+
+    setup.mocks.usuario.findUnique.mockResolvedValue(usuarioLoginMock);
+    setup.mocks.codigo_verificacao.findFirst.mockResolvedValue(null);
+    setup.mocks.codigo_verificacao.create.mockResolvedValue({ id: 'codigo-1' });
+    setup.mocks.codigo_verificacao.update.mockResolvedValue({});
+    jest.spyOn(bcrypt, 'hash').mockResolvedValue('hash-gerado' as never);
+  });
+
+  afterEach(() => {
+    jest.restoreAllMocks();
+  });
+
+  it('responde genericamente quando o e-mail não está cadastrado', async () => {
+    setup.mocks.usuario.findUnique.mockResolvedValue(null);
+
+    const resultado = await service.solicitarRecuperacaoSenha({
+      email: 'desconhecido@example.com',
+    });
+
+    expect(resultado.mensagem).toContain('Se o e-mail estiver cadastrado');
+    expect(setup.mocks.codigo_verificacao.create).not.toHaveBeenCalled();
+    expect(enviarEmail).not.toHaveBeenCalled();
+  });
+
+  it('cria código e envia e-mail para usuário cadastrado', async () => {
+    const resultado = await service.solicitarRecuperacaoSenha({
+      email: ' PESSOA@EXAMPLE.COM ',
+    });
+
+    expect(resultado.mensagem).toContain('Se o e-mail estiver cadastrado');
+    expect(setup.mocks.codigo_verificacao.create).toHaveBeenCalled();
+    expect(setup.mocks.codigo_verificacao.updateMany).toHaveBeenCalled();
+    expect(enviarEmail).toHaveBeenCalledTimes(1);
+    expect(enviarEmail.mock.calls[0][0]).toBe('pessoa@example.com');
+    expect(enviarEmail.mock.calls[0][1]).toMatch(/^\d{5}$/);
+  });
+
+  it('bloqueia nova solicitação antes de 60 segundos', async () => {
+    setup.mocks.codigo_verificacao.findFirst.mockResolvedValue({
+      created_at: new Date(),
+    });
+
+    await expect(
+      service.solicitarRecuperacaoSenha({ email: 'pessoa@example.com' }),
+    ).rejects.toMatchObject({ status: HttpStatus.TOO_MANY_REQUESTS });
+
+    expect(enviarEmail).not.toHaveBeenCalled();
+  });
+
+  it('valida código correto e retorna token temporário', async () => {
+    setup.mocks.codigo_verificacao.findFirst.mockResolvedValue({
+      id: 'codigo-1',
+      tentativas: 0,
+      codigo_hash: 'hash-codigo',
+    });
+    jest.spyOn(bcrypt, 'compare').mockResolvedValue(true);
+
+    const resultado = await service.verificarCodigoRecuperacao({
+      email: 'pessoa@example.com',
+      codigo: '01234',
+    });
+
+    expect(resultado.token).toEqual(expect.any(String));
+    expect(resultado.token.length).toBeGreaterThan(20);
+    expect(setup.mocks.codigo_verificacao.updateMany).toHaveBeenCalledTimes(2);
+  });
+
+  it('rejeita código incorreto', async () => {
+    setup.mocks.codigo_verificacao.findFirst.mockResolvedValue({
+      id: 'codigo-1',
+      tentativas: 0,
+      codigo_hash: 'hash-codigo',
+    });
+    jest.spyOn(bcrypt, 'compare').mockResolvedValue(false);
+
+    await expect(
+      service.verificarCodigoRecuperacao({
+        email: 'pessoa@example.com',
+        codigo: '99999',
+      }),
+    ).rejects.toBeInstanceOf(BadRequestException);
+
+    expect(setup.mocks.codigo_verificacao.updateMany).toHaveBeenCalledTimes(1);
+  });
+
+  it('redefine senha, consome token e revoga sessões ativas', async () => {
+    setup.mocks.codigo_verificacao.findFirst.mockResolvedValue({
+      id: 'codigo-1',
+      usuario_id: 'usuario-1',
+    });
+
+    await expect(
+      service.redefinirSenha({
+        token: 'token-temporario',
+        senha: 'NovaSenhaForte1!',
+        confirmarSenha: 'NovaSenhaForte1!',
+      }),
+    ).resolves.toBeUndefined();
+
+    expect(setup.tx.codigo_verificacao.updateMany).toHaveBeenCalled();
+    expect(setup.tx.usuario.update).toHaveBeenCalledWith({
+      where: { id: 'usuario-1' },
+      data: { senha_hash: 'hash-gerado' },
+    });
+    expect(setup.tx.refresh_token.updateMany).toHaveBeenCalled();
   });
 });

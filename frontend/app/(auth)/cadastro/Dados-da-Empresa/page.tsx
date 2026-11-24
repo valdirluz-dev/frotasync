@@ -6,28 +6,16 @@ import { useRouter } from "next/navigation";
 
 import { AuthInput } from "@/components/ui/Authinput";
 import { Button } from "@/components/ui";
-import { mockValidarDadosEmpresa } from "@/mocks/dadosEmpresa";
 import { cadastroEmpresaSchema } from "@/schemas/cadastroEmpresa";
+import { useCadastro } from "@/components/auth/CadastroProvider";
 import { formatCep, formatCnpj } from "@/utils/formatters";
 import { zodErrorsByField } from "@/utils/zodErrors";
 
 export default function DadosEmpresa() {
   const router = useRouter();
+  const { empresa, setEmpresa } = useCadastro();
 
-  // Estado inicial do formulário limpo, sem carregar dados de teste (mocks)
-  const [formData, setFormData] = useState({
-    nomeEmpresa: "",
-    razaoSocial: "",
-    cnpj: "",
-    segmento: "",
-    tipoUnidade: "",
-    cep: "",
-    estado: "",
-    cidade: "",
-    bairro: "",
-    logradouro: "",
-    numero: "",
-  });
+  const [formData, setFormData] = useState(empresa);
 
   // Estado para armazenar os erros de validação de cada campo
   const [errors, setErrors] = useState<{ [key: string]: string }>({});
@@ -84,13 +72,8 @@ export default function DadosEmpresa() {
     }
 
     setErrors({});
-    const resposta = await mockValidarDadosEmpresa(result.data);
-
-    if (resposta.success) {
-      router.push("/cadastro/Dados-de-Login");
-    } else {
-      alert(resposta.message);
-    }
+    setEmpresa(result.data);
+    router.push("/cadastro/Dados-de-Login");
   };
 
   return (

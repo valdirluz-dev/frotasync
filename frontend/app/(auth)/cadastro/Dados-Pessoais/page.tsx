@@ -5,21 +5,16 @@ import Image from "next/image";
 import { useRouter } from "next/navigation";
 import { AuthInput } from "@/components/ui/Authinput";
 import { Button } from "@/components/ui";
-import { simularEnvioDadosPessoais } from "@/mocks/dadosPessoais";
 import { cadastroPessoalSchema } from "@/schemas/cadastroPessoal";
+import { useCadastro } from "@/components/auth/CadastroProvider";
 import { formatCpf, formatPhone } from "@/utils/formatters";
 import { zodErrorsByField } from "@/utils/zodErrors";
 
 export default function DadosPessoais() {
   const router = useRouter();
+  const { pessoais, setPessoais } = useCadastro();
 
-  // Estado inicial do formulário limpo, sem carregar dados de teste (mocks)
-  const [formData, setFormData] = useState({
-    nome: "",
-    cpf: "",
-    telefone: "",
-    cargo: "",
-  });
+  const [formData, setFormData] = useState(pessoais);
 
   // Estado para armazenar e gerir as mensagens de erro de validação por campo
   const [errors, setErrors] = useState<{ [key: string]: string }>({});
@@ -49,16 +44,8 @@ export default function DadosPessoais() {
     }
 
     setErrors({});
-    const resposta = await simularEnvioDadosPessoais({
-      id: "perfil-001",
-      ...result.data,
-    });
-
-    if (resposta.success) {
-      router.push("/cadastro/Dados-da-Empresa");
-    } else {
-      alert(resposta.message);
-    }
+    setPessoais(result.data);
+    router.push("/cadastro/Dados-da-Empresa");
   };
 
   return (

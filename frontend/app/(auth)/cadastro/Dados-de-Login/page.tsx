@@ -7,13 +7,15 @@ import { Icon } from "@/components/ui/Icons";
 import { AuthInput } from "@/components/ui/Authinput";
 import { Button } from "@/components/ui";
 import HoneyPotField from "@/components/security/HoneypotField";
-import { mockValidarDadosLogin } from "@/mocks/dadosLogin";
 import { CookieModal } from "@/components/cookie/CookieModal"; 
 import { cadastroAcessoSchema } from "@/schemas/acesso";
+import { useCadastro } from "@/components/auth/CadastroProvider";
+import { ApiError, http } from "@/lib/http";
 import { zodErrorsByField } from "@/utils/zodErrors";
 
 export default function DadosLogin() {
   const router = useRouter();
+  const { pessoais, empresa, limparCadastro } = useCadastro();
 
   // Estado inicial do formulário para recolha de dados de acesso e termos
   const [formData, setFormData] = useState({
@@ -70,23 +72,86 @@ export default function DadosLogin() {
 
     setErrors({});
     setLoading(true);
+
+    const telefoneDigitos = pessoais.telefone.replace(/\D/g, "");
+    const telefone = telefoneDigitos.startsWith("55") &&
+      [12, 13].includes(telefoneDigitos.length)
+      ? telefoneDigitos.slice(2)
+      : telefoneDigitos;
+
     try {
-      const resposta = await mockValidarDadosLogin({
-        email: result.data.email,
-        senha: result.data.senha,
-        confirmarSenha: result.data.confirmarSenha,
-        aceiteTermos: result.data.aceiteTermos,
-        website: formData.website,
+      await http("/auth/cadastro", {
+        method: "POST",
+        body: {
+          pessoais: {
+            nome: pessoais.nome.trim(),
+            cpf: pessoais.cpf.replace(/\D/g, ""),
+            telefone,
+            cargo: pessoais.cargo.trim(),
+          },
+          empresa: {
+            nomeEmpresa: empresa.nomeEmpresa.trim(),
+            razaoSocial: empresa.razaoSocial.trim(),
+            cnpj: empresa.cnpj.replace(/\D/g, ""),
+            segmento: empresa.segmento.trim(),
+            tipoUnidade: empresa.tipoUnidade.trim().toLowerCase(),
+            cep: empresa.cep.replace(/\D/g, ""),
+            uf: empresa.estado.trim().toUpperCase(),
+            cidade: empresa.cidade.trim(),
+            bairro: empresa.bairro.trim(),
+            logradouro: empresa.logradouro.trim(),
+            numero: empresa.numero.trim(),
+          },
+          login: {
+            email: result.data.email.trim().toLowerCase(),
+            senha: result.data.senha,
+            confirmarSenha: result.data.confirmarSenha,
+            aceiteTermos: result.data.aceiteTermos,
+          },
+        },
       });
 
-      if (resposta.success) {
-        router.push("/cadastro/Sucesso");
-      } else {
-        alert(resposta.message);
-      }
+      limparCadastro();
+      router.push("/cadastro/Sucesso");
     } catch (error) {
-      console.error("Erro ao validar login:", error);
-      alert("Não foi possível concluir o cadastro. Tente novamente.");
+      if (error instanceof ApiError) {
+        const fieldMap: Record<string, string> = {
+          "pessoais.nome": "nome",
+          "pessoais.cpf": "cpf",
+          "pessoais.telefone": "telefone",
+          "pessoais.cargo": "cargo",
+          "empresa.nomeEmpresa": "nomeEmpresa",
+          "empresa.razaoSocial": "razaoSocial",
+          "empresa.cnpj": "cnpj",
+          "empresa.segmento": "segmento",
+          "empresa.tipoUnidade": "tipoUnidade",
+          "empresa.cep": "cep",
+          "empresa.uf": "estado",
+          "empresa.cidade": "cidade",
+          "empresa.bairro": "bairro",
+          "empresa.logradouro": "logradouro",
+          "empresa.numero": "numero",
+          "login.email": "email",
+          "login.senha": "senha",
+          "login.confirmarSenha": "confirmarSenha",
+          "login.aceiteTermos": "aceiteTermos",
+        };
+
+        const fieldErrors: Record<string, string> = {};
+        for (const item of error.response.erros ?? []) {
+          const field = fieldMap[item.campo];
+          if (field) fieldErrors[field] = item.mensagem;
+        }
+
+        if (Object.keys(fieldErrors).length > 0) {
+          setErrors(fieldErrors);
+        } else {
+          alert(error.message || "Não foi possível concluir o cadastro.");
+        }
+      } else {
+        console.error("Erro ao concluir cadastro:", error);
+        alert("Não foi possível concluir o cadastro. Tente novamente.");
+      }
     } finally {
       setLoading(false);
     }
@@ -200,7 +265,7 @@ export default function DadosLogin() {
           {/* Botão de finalizar cadastro visível apenas em dispositivos móveis */}
           <div className="pt-6 block md:hidden flex justify-center w-full">
             <Button type="submit" variant="primary" className="!w-55 !text-2xl" disabled={loading}>
-              {loading ? "A guardar..." : "Finalizar Cadastro"}
+              {loading ? "Concluindo..." : "Finalizar Cadastro"}
             </Button>
           </div>
         </div>
@@ -240,7 +305,7 @@ export default function DadosLogin() {
             {/* Botão de finalizar cadastro principal para ecrãs de computador */}
             <div className="pt-2 hidden md:block flex justify-center">
               <Button type="submit" variant="primary" className="!w-55 !text-2xl" disabled={loading}>
-                {loading ? "A guardar..." : "Finalizar Cadastro"}
+                {loading ? "Concluindo..." : "Finalizar Cadastro"}
               </Button>
             </div>
           </div>

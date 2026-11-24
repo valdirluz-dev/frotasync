@@ -8,11 +8,13 @@ import { PrismaModule } from '../prisma/prisma.module';
 import { JwtStrategy } from './strategies/jwt.strategy';
 import { PassportModule } from '@nestjs/passport';
 import { CsrfGuard } from './guards/csrf.guard';
+import { MailModule } from '../mail/mail.module';
 
 @Module({
   imports: [
     PassportModule,
     PrismaModule,
+    MailModule,
     JwtModule.registerAsync({
       inject: [ConfigService],
       useFactory: (configService: ConfigService): JwtModuleOptions => ({

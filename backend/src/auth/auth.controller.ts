@@ -14,6 +14,14 @@ import { AuthService } from './auth.service';
 import { CadastroSchema, CadastroDto } from './schemas/cadastro.schema';
 import { ZodValidationPipe } from '../common/pipes/zod-validation.pipe';
 import { LoginSchema, LoginDto } from './schemas/login.schema';
+import {
+  RedefinirSenhaDto,
+  RedefinirSenhaSchema,
+  SolicitarRecuperacaoSenhaDto,
+  SolicitarRecuperacaoSenhaSchema,
+  VerificarCodigoRecuperacaoDto,
+  VerificarCodigoRecuperacaoSchema,
+} from './schemas/recuperacao-senha.schema';
 import { JwtAuthGuard } from './guards/jwt-auth.guard';
 import { AuthenticatedRequest } from './interfaces/authenticated-request.interface';
 import { CsrfGuard } from './guards/csrf.guard';
@@ -89,4 +97,35 @@ export class AuthController {
   me(@Req() req: AuthenticatedRequest) {
     return this.authService.getMe(req.user.id);
   }
+
+  @Post('recuperar-senha')
+  @HttpCode(HttpStatus.ACCEPTED)
+  @UseGuards(CsrfGuard)
+  solicitarRecuperacaoSenha(
+    @Body(new ZodValidationPipe(SolicitarRecuperacaoSenhaSchema))
+    body: SolicitarRecuperacaoSenhaDto,
+  ) {
+    return this.authService.solicitarRecuperacaoSenha(body);
+  }
+
+  @Post('verificar-codigo')
+  @HttpCode(HttpStatus.OK)
+  @UseGuards(CsrfGuard)
+  verificarCodigoRecuperacao(
+    @Body(new ZodValidationPipe(VerificarCodigoRecuperacaoSchema))
+    body: VerificarCodigoRecuperacaoDto,
+  ) {
+    return this.authService.verificarCodigoRecuperacao(body);
+  }
+
+  @Post('redefinir-senha')
+  @HttpCode(HttpStatus.NO_CONTENT)
+  @UseGuards(CsrfGuard)
+  redefinirSenha(
+    @Body(new ZodValidationPipe(RedefinirSenhaSchema))
+    body: RedefinirSenhaDto,
+  ) {
+    return this.authService.redefinirSenha(body);
+  }
+
 }
