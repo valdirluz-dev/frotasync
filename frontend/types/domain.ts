@@ -83,15 +83,25 @@ export type UnidadeListItem = Unidade & { totalDocumentos: number; totalTarefas:
 export type UnidadesFilters = { page?: number; size?: number; q?: string; status?: UnidadeStatus | "Todos" };
 
 export type DocumentoAnexo = { nome: string; tamanhoBytes: number; tipo?: string; url?: string; };
+export type DocumentoStatusApi =
+  | "valido"
+  | "proximo_vencimento"
+  | "expirado";
+
 export type Documento = {
   id: string;
   nome: string;
   unidadeId: string;
+  unidadeNome?: string;
   categoria: string;
+  tipo?: string | null;
   dataEmissao: string | null;
   dataValidade: string;
-  descricao?: string;
+  descricao?: string | null;
+  statusValidade?: DocumentoStatusApi;
   anexo?: DocumentoAnexo;
+  criadoEm?: string;
+  atualizadoEm?: string;
 };
 
 export type Tarefa = {

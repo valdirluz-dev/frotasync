@@ -1,12 +1,12 @@
 import { z } from "zod";
 
-const emailObrigatorio = (mensagem: string) =>
-  z.string().refine((value) => value.trim().length > 0, {
-    message: mensagem,
-  });
-
 export const loginSchema = z.object({
-  email: emailObrigatorio("Digite seu e-mail corporativo"),
+  email: z
+    .string()
+    .trim()
+    .min(1, "Digite seu e-mail corporativo")
+    .email("E-mail inválido")
+    .max(180, "E-mail deve ter no máximo 180 caracteres"),
   senha: z.string().refine((value) => value.trim().length > 0, {
     message: "Digite sua senha",
   }),
@@ -14,6 +14,7 @@ export const loginSchema = z.object({
 
 export const senhaForte = z
   .string()
+  .max(72, "A senha deve ter no máximo 72 caracteres")
   .refine((value) => value.trim().length > 0, {
     message: "Digite uma senha",
   })

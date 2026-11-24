@@ -1,4 +1,5 @@
 import { calcularStatusDocumento } from "@/lib/status";
+import { listarDocumentos } from "@/services/documentosService";
 import { mockDocumentos, mockTarefas, mockUnidades } from "@/mocks/dashboard";
 import type {
   DashboardIndicators,
@@ -110,21 +111,7 @@ export async function getDashboardIndicators(): Promise<DashboardIndicators> {
 export async function getDashboardDocuments(
   filters: DocumentFilters,
 ): Promise<Paginated<Documento>> {
-  await wait();
-  const search = normalize(filters.search);
-  const filtered = mockDocumentos.filter((document) => {
-    const matchesSearch =
-      !search || document.nome.toLocaleLowerCase("pt-BR").includes(search);
-    const matchesUnit =
-      filters.unidadeId === "todas" || document.unidadeId === filters.unidadeId;
-    const matchesCategory =
-      filters.categoria === "todas" || document.categoria === filters.categoria;
-    const matchesStatus =
-      filters.status === "Todos" ||
-      calcularStatusDocumento(document.dataValidade) === filters.status;
-    return matchesSearch && matchesUnit && matchesCategory && matchesStatus;
-  });
-  return pageItems(filtered, filters.page, filters.pageSize);
+  return listarDocumentos(filters);
 }
 
 export async function getDashboardTasks(

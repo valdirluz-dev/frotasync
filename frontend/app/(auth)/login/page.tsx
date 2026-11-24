@@ -12,6 +12,7 @@ import { AuthInput } from "@/components/ui/Authinput";
 import { Button } from "@/components/ui";
 import { loginSchema } from "@/schemas/acesso";
 import { zodErrorsByField } from "@/utils/zodErrors";
+import { ApiError, http } from "@/lib/http";
 
 export default function Login() {
   const router = useRouter();
@@ -76,20 +77,21 @@ export default function Login() {
     setIsLoading(true);
 
     try {
-      const response = await fetch("/api/auth/login", {
+      await http<{ expiresIn: number; usuario: unknown }>("/auth/login", {
         method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify(formData),
+        body: {
+          email: formData.email,
+          senha: formData.senha,
+          lembreMe: formData.lembreMe,
+        },
       });
-
-      if (!response.ok) {
-        const resposta = (await response.json()) as { message?: string };
-        alert(resposta.message ?? "E-mail ou senha incorretos.");
-        return;
-      }
 
       router.push("/dashboard");
     } catch (error) {
+      if (error instanceof ApiError) {
+        alert(error.response.message);
+        return;
+      }
       console.error("Erro inesperado no login:", error);
       alert("Ocorreu um erro ao tentar entrar. Tente novamente.");
     } finally {

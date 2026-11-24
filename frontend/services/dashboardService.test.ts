@@ -13,10 +13,7 @@ import {
   alterarStatusUnidade,
   obterIndicadoresUnidade,
 } from "./unidadesService";
-import {
-  getDashboardDocuments,
-  getDashboardTasks,
-} from "./dashboardService";
+import { getDashboardTasks } from "./dashboardService";
 
 describe("serviços de detalhe da unidade", () => {
   it("obtém indicadores calculados apenas com os dados da unidade", async () => {
@@ -64,27 +61,17 @@ describe("serviços de detalhe da unidade", () => {
     }
   });
 
-  it("filtra as listagens de documentos e tarefas por unidade", async () => {
-    const unitId = "u-002";
-    const common = {
+  it("filtra a listagem de tarefas por unidade", async () => {
+    const tasks = await getDashboardTasks({
       page: 1,
       pageSize: 10,
       search: "",
-      unidadeId: unitId,
-      status: "Todos" as const,
-    };
-    const documents = await getDashboardDocuments({
-      ...common,
-      categoria: "todas",
+      unidadeId: "u-002",
+      status: "Todos",
     });
-    const tasks = await getDashboardTasks(common);
 
-    expect(documents.items.length).toBeGreaterThan(0);
-    expect(documents.items.every((item) => item.unidadeId === unitId)).toBe(
-      true,
-    );
     expect(tasks.items.length).toBeGreaterThan(0);
-    expect(tasks.items.every((item) => item.unidadeId === unitId)).toBe(true);
+    expect(tasks.items.every((item) => item.unidadeId === "u-002")).toBe(true);
   });
 
   it("altera status da unidade e atualiza a última modificação", async () => {
@@ -92,7 +79,11 @@ describe("serviços de detalhe da unidade", () => {
     const original = mockUnidades[unitIndex];
 
     try {
-      const updated = await alterarStatusUnidade(original.id, "Ativa");
+      const updated = await alterarStatusUnidade(
+        original.id,
+        "Ativa",
+        "Administrador",
+      );
       expect(updated.status).toBe("Ativa");
       expect(updated.atualizadoEm).not.toBe(original.atualizadoEm);
       expect(mockUnidades[unitIndex].status).toBe("Ativa");

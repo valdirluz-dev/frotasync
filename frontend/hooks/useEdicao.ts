@@ -14,7 +14,6 @@ import { atualizarTarefa, obterTarefa } from "@/services/tarefasService";
 import type { DocumentoFormValues } from "@/schemas/documento";
 import type { TarefaFormValues } from "@/schemas/tarefa";
 import type { UnidadeFormValues } from "@/schemas/unidade";
-import type { DocumentoAnexo } from "@/types/domain";
 
 async function invalidateEntity(
   queryClient: ReturnType<typeof useQueryClient>,
@@ -60,7 +59,7 @@ export function useEditarDocumento() {
     mutationFn: (input: {
       id: string;
       data: DocumentoFormValues;
-      anexo?: DocumentoAnexo;
+      anexo?: File;
     }) => atualizarDocumento(input.id, input.data, input.anexo),
     onSuccess: (documento) =>
       invalidateEntity(

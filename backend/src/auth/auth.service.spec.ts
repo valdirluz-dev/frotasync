@@ -27,6 +27,7 @@ type UsuarioLoginMock = {
   id: string;
   nome: string;
   email: string;
+  cargo: string;
   papel: string;
   empresa_id: string;
   senha_hash: string;
@@ -42,6 +43,10 @@ type UsuarioCreateArgs = {
 };
 
 type TransactionMock = {
+  refresh_token: {
+    updateMany: jest.Mock<(args: unknown) => Promise<{ count: number }>>;
+    create: jest.Mock<(args: unknown) => Promise<{ id: string }>>;
+  };
   empresa: {
     create: jest.Mock<(args: EmpresaCreateArgs) => Promise<{ id: string }>>;
   };
@@ -90,6 +95,7 @@ const usuarioLoginMock: UsuarioLoginMock = {
   id: 'usuario-1',
   nome: 'Pessoa Exemplo',
   email: 'pessoa@example.com',
+  cargo: 'Gestor',
   papel: 'administrador',
   empresa_id: 'empresa-1',
   senha_hash: 'hash-bcrypt-ficticio',
@@ -97,6 +103,14 @@ const usuarioLoginMock: UsuarioLoginMock = {
 
 function createPrismaMock() {
   const tx: TransactionMock = {
+    refresh_token: {
+      updateMany: jest
+        .fn<(args: unknown) => Promise<{ count: number }>>()
+        .mockResolvedValue({ count: 1 }),
+      create: jest
+        .fn<(args: unknown) => Promise<{ id: string }>>()
+        .mockResolvedValue({ id: 'refresh-2' }),
+    },
     empresa: {
       create: jest
         .fn<(args: EmpresaCreateArgs) => Promise<{ id: string }>>()
@@ -122,6 +136,13 @@ function createPrismaMock() {
   };
 
   const prisma = {
+    refresh_token: {
+      create: jest
+        .fn<(args: unknown) => Promise<{ id: string }>>()
+        .mockResolvedValue({ id: 'refresh-1' }),
+      findUnique: jest.fn<(args: unknown) => Promise<unknown>>(),
+      updateMany: jest.fn<(args: unknown) => Promise<{ count: number }>>(),
+    },
     usuario: {
       findUnique: jest
         .fn<
@@ -453,6 +474,7 @@ describe('AuthService.login', () => {
     const resultado = await service.login({
       email: '  PESSOA@EXAMPLE.COM  ',
       senha: 'SenhaForte1!',
+      lembreMe: false,
     });
 
     expect(mocks.usuario.findUnique).toHaveBeenCalledWith({
@@ -469,15 +491,17 @@ describe('AuthService.login', () => {
       empresaId: 'empresa-1',
     });
     expect(resultado).toEqual({
-      access_token: 'mock-access-token',
-      token_type: 'Bearer',
-      expires_in: 900,
+      accessToken: 'mock-access-token',
+      refreshToken: expect.any(String),
+      expiresAt: expect.any(Date),
+      remember: false,
+      expiresIn: 900,
       usuario: {
         id: 'usuario-1',
         nome: 'Pessoa Exemplo',
         email: 'pessoa@example.com',
-        papel: 'administrador',
-        empresaId: 'empresa-1',
+        cargo: 'Gestor',
+        perfil: 'administrador',
       },
     });
     expect(resultado.usuario).not.toHaveProperty('senha_hash');
@@ -490,6 +514,7 @@ describe('AuthService.login', () => {
       .login({
         email: '  AUSENTE@EXAMPLE.COM  ',
         senha: 'SenhaForte1!',
+        lembreMe: false,
       })
       .then(
         () => {
@@ -508,7 +533,7 @@ describe('AuthService.login', () => {
     expect(error.getResponse()).toEqual(
       expect.objectContaining({
         statusCode: 401,
-        message: 'E-mail ou senha inválidos.',
+        message: 'E-mail ou senha incorretos.',
       }),
     );
     expect(comparePasswordMock).not.toHaveBeenCalled();
@@ -523,6 +548,7 @@ describe('AuthService.login', () => {
       .login({
         email: ' pessoa@example.com ',
         senha: 'SenhaIncorreta!',
+        lembreMe: false,
       })
       .then(
         () => {
@@ -545,9 +571,83 @@ describe('AuthService.login', () => {
     expect(error.getResponse()).toEqual(
       expect.objectContaining({
         statusCode: 401,
-        message: 'E-mail ou senha inválidos.',
+        message: 'E-mail ou senha incorretos.',
       }),
     );
     expect(signAsyncMock).not.toHaveBeenCalled();
+  });
+});
+
+describe('AuthService refresh e logout', () => {
+  let service: AuthService;
+  let setup: ReturnType<typeof createPrismaMock>;
+  let signAsyncMock: jest.Mock<
+    (payload: Record<string, unknown>) => Promise<string>
+  >;
+
+  beforeEach(() => {
+    setup = createPrismaMock();
+    signAsyncMock = jest
+      .fn<(payload: Record<string, unknown>) => Promise<string>>()
+      .mockResolvedValue('novo-access-token');
+    service = new AuthService(setup.prisma, {
+      signAsync: signAsyncMock,
+    } as unknown as JwtService);
+  });
+
+  it('rotaciona um refresh válido e emitindo novo access token', async () => {
+    setup.mocks.refresh_token.findUnique.mockResolvedValue({
+      id: 'refresh-1',
+      usuario_id: 'usuario-1',
+      token_hash: 'hash',
+      lembrar: false,
+      expira_em: new Date(Date.now() + 60_000),
+      revogado_em: null,
+      usuario: usuarioLoginMock,
+    });
+
+    const resultado = await service.refresh('refresh-opaco');
+
+    expect(resultado.accessToken).toBe('novo-access-token');
+    expect(resultado.refreshToken).not.toBe('refresh-opaco');
+    expect(setup.tx.refresh_token.updateMany).toHaveBeenCalled();
+    expect(setup.tx.refresh_token.create).toHaveBeenCalled();
+  });
+
+  it('rejeita refresh expirado', async () => {
+    setup.mocks.refresh_token.findUnique.mockResolvedValue({
+      usuario_id: 'usuario-1',
+      lembrar: false,
+      expira_em: new Date(Date.now() - 60_000),
+      revogado_em: null,
+      usuario: usuarioLoginMock,
+    });
+
+    await expect(service.refresh('expirado')).rejects.toBeInstanceOf(
+      UnauthorizedException,
+    );
+  });
+
+  it('rejeita refresh revogado', async () => {
+    setup.mocks.refresh_token.findUnique.mockResolvedValue({
+      usuario_id: 'usuario-1',
+      lembrar: false,
+      expira_em: new Date(Date.now() + 60_000),
+      revogado_em: new Date(),
+      usuario: usuarioLoginMock,
+    });
+
+    await expect(service.refresh('revogado')).rejects.toBeInstanceOf(
+      UnauthorizedException,
+    );
+  });
+
+  it('logout sem cookie é idempotente', async () => {
+    await expect(service.logout(null)).resolves.toBeUndefined();
+  });
+
+  it('logout revoga o refresh existente', async () => {
+    await service.logout('refresh-opaco');
+    expect(setup.mocks.refresh_token.updateMany).toHaveBeenCalled();
   });
 });

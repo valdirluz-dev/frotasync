@@ -5,11 +5,6 @@ import { isPublicRoute } from "./publicRoutes";
 describe("isPublicRoute", () => {
   it.each([
     "/login",
-    "/api/auth/login",
-    "/api/auth/register",
-    "/api/auth/password-recovery/request",
-    "/api/auth/password-recovery/verify",
-    "/api/auth/password-recovery/reset",
     "/cadastro",
     "/cadastro/Dados-Pessoais",
     "/cadastro/Dados-da-Empresa",
@@ -26,8 +21,7 @@ describe("isPublicRoute", () => {
 
   it.each([
     "/dashboard",
-    "/api/auth/logout",
-    "/api/auth/other",
+    "/api/v1/auth/me",
     "/cadastro-admin",
     "/recuperar-senha-fake",
   ])("keeps the route protected: %s", (pathname) => {

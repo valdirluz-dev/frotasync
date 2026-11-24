@@ -1,4 +1,4 @@
-import { Controller, Get, Query, Req, UseGuards } from '@nestjs/common';
+import { Controller, Get, Param, Query, Req, UseGuards } from '@nestjs/common';
 import { JwtAuthGuard } from '../auth/guards/jwt-auth.guard';
 import { UnidadesService } from './unidades.service';
 import { ZodValidationPipe } from '../common/pipes/zod-validation.pipe';
@@ -15,6 +15,14 @@ import { RolesGuard } from '../auth/guards/roles.guard';
 @Roles('colaborador', 'gestor', 'administrador')
 export class UnidadesController {
   constructor(private readonly unidadesService: UnidadesService) {}
+
+  @Get(':id')
+  obter(
+    @Param('id') id: string,
+    @Req() req: AuthenticatedRequest,
+  ) {
+    return this.unidadesService.obter(id, req.user.empresaId);
+  }
 
   @Get()
   listar(

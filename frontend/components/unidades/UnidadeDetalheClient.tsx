@@ -18,7 +18,11 @@ import { UnidadeDetailFilters } from "@/components/unidades/UnidadeDetailFilters
 import { UnidadeHeader } from "@/components/unidades/UnidadeHeader";
 import { UnidadeInfoCard } from "@/components/unidades/UnidadeInfoCard";
 import { UnidadeInativaDialog } from "@/components/unidades/UnidadeInativaDialog";
-import { useDashboardDocuments, useDashboardTasks } from "@/hooks/useDashboard";
+import {
+  useCategoriasDocumentos,
+  useDashboardDocuments,
+  useDashboardTasks,
+} from "@/hooks/useDashboard";
 import {
   useAlterarStatusUnidade,
   useUnidade,
@@ -77,6 +81,7 @@ export function UnidadeDetalheClient({ id }: { id: string }) {
 
   const unitQuery = useUnidade(id);
   const indicatorsQuery = useUnidadeIndicadores(id);
+  const categoriasQuery = useCategoriasDocumentos();
   const documentQuery = useDashboardDocuments({
     page,
     pageSize: 10,
@@ -99,7 +104,7 @@ export function UnidadeDetalheClient({ id }: { id: string }) {
     "documento" | "tarefa" | null
   >(null);
   const unidade = unitQuery.data;
-  const isAdministrator = usuario.perfil === "Administrador";
+  const isAdministrator = usuario?.perfil === "Administrador";
   const isInactive = unidade?.status === "Inativa";
   const updateQuery = useCallback(
     (updates: {
@@ -335,6 +340,7 @@ export function UnidadeDetalheClient({ id }: { id: string }) {
                 tab={activeTab}
                 query={query}
                 category={category}
+                categorias={categoriasQuery.data ?? []}
                 documentStatus={documentStatus}
                 taskStatus={taskStatus}
                 onQueryCommit={commitSearch}

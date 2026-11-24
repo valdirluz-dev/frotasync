@@ -69,6 +69,12 @@ export function DocumentosTable({
   const [viewing, setViewing] = useState<Documento | null>(null);
   const showUnit = mode === "global";
 
+  const statusLabels = {
+    valido: "Válido",
+    proximo_vencimento: "Próximo do vencimento",
+    expirado: "Expirado",
+  } as const;
+
   return (
     <div className="overflow-hidden rounded-2xl bg-white shadow-sm ring-1 ring-slate-100">
       {isLoading ? (
@@ -149,13 +155,13 @@ export function DocumentosTable({
                     </td>
                     {showUnit ? (
                       <td className="whitespace-nowrap px-3 py-3 text-xs text-slate-700">
-                        {unidadeNames?.get(document.unidadeId) ?? "—"}
+                        {document.unidadeNome ?? unidadeNames?.get(document.unidadeId) ?? "—"}
                       </td>
                     ) : null}
                     <td className="whitespace-nowrap px-3 py-3 text-xs text-slate-700">{document.categoria}</td>
                     <td className="whitespace-nowrap px-3 py-3 text-xs tabular-nums text-slate-700">{formatDate(document.dataEmissao)}</td>
                     <td className="whitespace-nowrap px-3 py-3 text-xs tabular-nums text-slate-700">{formatDate(document.dataValidade)}</td>
-                    <td className="px-3 py-3"><StatusBadge status={calcularStatusDocumento(document.dataValidade)} /></td>
+                    <td className="px-3 py-3"><StatusBadge status={document.statusValidade ? statusLabels[document.statusValidade] : calcularStatusDocumento(document.dataValidade)} /></td>
 
                   </tr>
                 );

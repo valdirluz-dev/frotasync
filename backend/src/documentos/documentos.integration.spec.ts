@@ -171,7 +171,7 @@ describe('Documentos HTTP integration', () => {
       `${baseUrl}/api/v1/unidades/${unidadeId}/documentos`,
       {
         method: 'POST',
-        headers: { 'x-test-role': 'colaborador' },
+        headers: { 'x-frotasync-client': 'web', 'x-test-role': 'colaborador' },
         body: criarFormularioDocumento(),
       },
     );
@@ -200,7 +200,7 @@ describe('Documentos HTTP integration', () => {
       `${baseUrl}/api/v1/unidades/${unidadeId}/documentos`,
       {
         method: 'POST',
-        headers: { 'x-test-role': 'colaborador' },
+        headers: { 'x-frotasync-client': 'web', 'x-test-role': 'colaborador' },
         body: criarFormularioDocumento({ mimeType: 'text/plain' }),
       },
     );
@@ -214,7 +214,7 @@ describe('Documentos HTTP integration', () => {
       `${baseUrl}/api/v1/unidades/${unidadeId}/documentos`,
       {
         method: 'POST',
-        headers: { 'x-test-role': 'colaborador' },
+        headers: { 'x-frotasync-client': 'web', 'x-test-role': 'colaborador' },
         body: criarFormularioDocumento({ incluirAnexo: false }),
       },
     );
@@ -228,7 +228,7 @@ describe('Documentos HTTP integration', () => {
       `${baseUrl}/api/v1/unidades/${unidadeId}/documentos`,
       {
         method: 'POST',
-        headers: { 'x-test-role': 'colaborador' },
+        headers: { 'x-frotasync-client': 'web', 'x-test-role': 'colaborador' },
         body: criarFormularioDocumento({
           conteudo: new Uint8Array(10 * 1024 * 1024 + 1),
         }),
@@ -244,7 +244,7 @@ describe('Documentos HTTP integration', () => {
       `${baseUrl}/api/v1/documentos/${documentoId}`,
       {
         method: 'PUT',
-        headers: { 'x-test-role': 'colaborador' },
+        headers: { 'x-frotasync-client': 'web', 'x-test-role': 'colaborador' },
         body: criarFormularioDocumento(),
       },
     );
@@ -273,7 +273,7 @@ describe('Documentos HTTP integration', () => {
       `${baseUrl}/api/v1/documentos/${documentoId}`,
       {
         method: 'PUT',
-        headers: { 'x-test-role': 'colaborador' },
+        headers: { 'x-frotasync-client': 'web', 'x-test-role': 'colaborador' },
         body: criarFormularioDocumento({ incluirAnexo: false }),
       },
     );
@@ -296,7 +296,7 @@ describe('Documentos HTTP integration', () => {
     'retorna string[] de categorias por HTTP para o perfil %s',
     async (papel) => {
       const response = await fetch(`${baseUrl}/api/v1/documentos/categorias`, {
-        headers: { 'x-test-role': papel, 'x-empresa-id': 'empresa-alheia' },
+        headers: { 'x-frotasync-client': 'web', 'x-test-role': papel, 'x-empresa-id': 'empresa-alheia' },
       });
 
       expect(response.status).toBe(200);
@@ -319,7 +319,7 @@ describe('Documentos HTTP integration', () => {
     async (papel) => {
       const response = await fetch(
         `${baseUrl}/api/v1/documentos/${documentoId}`,
-        { headers: { 'x-test-role': papel, 'x-empresa-id': 'empresa-alheia' } },
+        { headers: { 'x-frotasync-client': 'web', 'x-test-role': papel, 'x-empresa-id': 'empresa-alheia' } },
       );
 
       expect(response.status).toBe(200);
@@ -348,7 +348,7 @@ describe('Documentos HTTP integration', () => {
 
     const uuidInvalido = await fetch(
       `${baseUrl}/api/v1/documentos/nao-e-uuid`,
-      { headers: { 'x-test-role': 'colaborador' } },
+      { headers: { 'x-frotasync-client': 'web', 'x-test-role': 'colaborador' } },
     );
     expect(uuidInvalido.status).toBe(400);
     expect(documentosService.obter).not.toHaveBeenCalled();
@@ -364,7 +364,7 @@ describe('Documentos HTTP integration', () => {
 
     const response = await fetch(
       `${baseUrl}/api/v1/documentos/${documentoId}`,
-      { headers: { 'x-test-role': 'gestor' } },
+      { headers: { 'x-frotasync-client': 'web', 'x-test-role': 'gestor' } },
     );
 
     expect(response.status).toBe(404);
@@ -376,7 +376,7 @@ describe('Documentos HTTP integration', () => {
   it('serve o download binário autenticado com cabeçalhos HTTP', async () => {
     const response = await fetch(
       `${baseUrl}/api/v1/documentos/${documentoId}/anexo`,
-      { headers: { 'x-test-role': 'colaborador' } },
+      { headers: { 'x-frotasync-client': 'web', 'x-test-role': 'colaborador' } },
     );
 
     expect(response.status).toBe(200);
@@ -396,7 +396,7 @@ describe('Documentos HTTP integration', () => {
       `${baseUrl}/api/v1/documentos/${documentoId}`,
       {
         method: 'DELETE',
-        headers: { 'x-test-role': 'gestor' },
+        headers: { 'x-frotasync-client': 'web', 'x-test-role': 'gestor' },
       },
     );
 
@@ -415,7 +415,7 @@ describe('Documentos HTTP integration', () => {
         `${baseUrl}/api/v1/documentos/${documentoId}`,
         {
           method: 'DELETE',
-          headers: { 'x-test-role': papel },
+          headers: { 'x-frotasync-client': 'web', 'x-test-role': papel },
         },
       );
 

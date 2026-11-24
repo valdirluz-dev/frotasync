@@ -3,8 +3,9 @@
 import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { useState, useSyncExternalStore, type ReactNode } from "react";
-import { obterPerfilConsolidado } from "@/mocks/profile";
 import { mockNotificacoes } from "@/mocks/notificacoes";
+import { useSessao } from "@/hooks/useSessao";
+import { http } from "@/lib/http";
 import {
   getAppPreferencesSnapshot,
   getServerPreferencesSnapshot,
@@ -54,25 +55,20 @@ export function AppShell({
   ).length;
 
   // ESTADO DO PERFIL: Atualizado para consumir o perfil consolidado do profile.ts
-  const [userProfile] = useState(() => {
-    const profile = obterPerfilConsolidado();
-    const nome = profile.nome || "Maria Luiza da Silva";
-    return {
-      nome,
-      cargo: profile.cargo || "Administradora de Frotas",
-      inicial: nome.substring(0, 2).toUpperCase(),
-    };
-  });
+  const { usuario } = useSessao();
+  const nome = usuario?.nome || "";
+  const userProfile = {
+    nome,
+    cargo: usuario?.cargo || "",
+    inicial: nome.substring(0, 2).toUpperCase(),
+  };
 
   async function handleLogout() {
     setLoggingOut(true);
     setLogoutError("");
 
     try {
-      const response = await fetch("/api/auth/logout", { method: "POST" });
-      if (!response.ok) {
-        throw new Error("A solicitação de logout falhou.");
-      }
+      await http<void>("/auth/logout", { method: "POST" });
 
       router.replace("/login");
     } catch {

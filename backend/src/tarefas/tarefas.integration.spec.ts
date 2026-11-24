@@ -203,6 +203,7 @@ describe('Tarefas HTTP integration', () => {
       {
         method: 'POST',
         headers: {
+          'x-frotasync-client': 'web',
           'x-test-role': 'colaborador',
           'content-type': 'application/json',
         },
@@ -233,6 +234,7 @@ describe('Tarefas HTTP integration', () => {
       {
         method: 'POST',
         headers: {
+          'x-frotasync-client': 'web',
           'x-test-role': 'colaborador',
           'content-type': 'application/json',
         },
@@ -252,6 +254,7 @@ describe('Tarefas HTTP integration', () => {
         {
           method: 'POST',
           headers: {
+            'x-frotasync-client': 'web',
             'x-test-role': papel,
             'content-type': 'application/json',
           },
@@ -271,6 +274,7 @@ describe('Tarefas HTTP integration', () => {
     const response = await fetch(`${baseUrl}/api/v1/tarefas/${tarefaId}`, {
       method: 'PUT',
       headers: {
+        'x-frotasync-client': 'web',
         'x-test-role': 'colaborador',
         'content-type': 'application/json',
       },
@@ -296,6 +300,7 @@ describe('Tarefas HTTP integration', () => {
     const response = await fetch(`${baseUrl}/api/v1/tarefas/${tarefaId}`, {
       method: 'PUT',
       headers: {
+        'x-frotasync-client': 'web',
         'x-test-role': 'colaborador',
         'content-type': 'application/json',
       },
@@ -312,6 +317,7 @@ describe('Tarefas HTTP integration', () => {
       {
         method: 'PATCH',
         headers: {
+          'x-frotasync-client': 'web',
           'x-test-role': 'colaborador',
           'content-type': 'application/json',
         },
@@ -341,6 +347,7 @@ describe('Tarefas HTTP integration', () => {
       {
         method: 'PATCH',
         headers: {
+          'x-frotasync-client': 'web',
           'x-test-role': 'colaborador',
           'content-type': 'application/json',
         },
@@ -360,6 +367,7 @@ describe('Tarefas HTTP integration', () => {
         {
           method: 'PATCH',
           headers: {
+            'x-frotasync-client': 'web',
             'x-test-role': papel,
             'content-type': 'application/json',
           },
@@ -375,7 +383,7 @@ describe('Tarefas HTTP integration', () => {
   it('retorna 204 após exclusão pelo gestor autenticado', async () => {
     const response = await fetch(`${baseUrl}/api/v1/tarefas/${tarefaId}`, {
       method: 'DELETE',
-      headers: { 'x-test-role': 'gestor' },
+      headers: { 'x-frotasync-client': 'web', 'x-test-role': 'gestor' },
     });
 
     expect(response.status).toBe(204);
@@ -388,7 +396,7 @@ describe('Tarefas HTTP integration', () => {
     async (papel) => {
       const response = await fetch(`${baseUrl}/api/v1/tarefas/${tarefaId}`, {
         method: 'DELETE',
-        headers: { 'x-test-role': papel },
+        headers: { 'x-frotasync-client': 'web', 'x-test-role': papel },
       });
 
       expect(response.status).toBe(403);

@@ -6,6 +6,7 @@ import {
 } from '@nestjs/common';
 import { JwtService } from '@nestjs/jwt';
 import bcrypt from 'bcrypt';
+import { createHash, randomBytes } from 'crypto';
 import { Prisma } from '../../generated/prisma/client';
 import { PrismaService } from '../prisma/prisma.service';
 import { CadastroDto } from './schemas/cadastro.schema';
@@ -18,6 +19,32 @@ export class AuthService {
     private readonly jwtService: JwtService,
   ) {}
 
+  private hashRefreshToken(token: string): string {
+    return createHash('sha256').update(token).digest('hex');
+  }
+
+  private createRefreshTokenValue(): string {
+    return randomBytes(32).toString('base64url');
+  }
+
+  private refreshDuration(remember: boolean): number {
+    return (remember ? 30 : 7) * 24 * 60 * 60 * 1000;
+  }
+
+  private async createAccessToken(usuario: {
+    id: string;
+    email: string;
+    papel: string;
+    empresa_id: string;
+  }): Promise<string> {
+    return this.jwtService.signAsync({
+      sub: usuario.id,
+      email: usuario.email,
+      papel: usuario.papel,
+      empresaId: usuario.empresa_id,
+    });
+  }
+
   async login(dados: LoginDto) {
     const email = dados.email.trim().toLowerCase();
 
@@ -26,34 +53,167 @@ export class AuthService {
     });
 
     if (!usuario) {
-      throw new UnauthorizedException('E-mail ou senha inválidos.');
+      throw new UnauthorizedException('E-mail ou senha incorretos.');
     }
 
     const senhaValida = await bcrypt.compare(dados.senha, usuario.senha_hash);
 
     if (!senhaValida) {
-      throw new UnauthorizedException('E-mail ou senha inválidos.');
+      throw new UnauthorizedException('E-mail ou senha incorretos.');
     }
 
-    const payload = {
-      sub: usuario.id,
-      email: usuario.email,
-      papel: usuario.papel,
-      empresaId: usuario.empresa_id,
-    };
+    const accessToken = await this.createAccessToken(usuario);
+    const refreshToken = this.createRefreshTokenValue();
+    const expiresAt = new Date(
+      Date.now() + this.refreshDuration(dados.lembreMe),
+    );
 
-    const accessToken = await this.jwtService.signAsync(payload);
+    await this.prisma.refresh_token.create({
+      data: {
+        usuario_id: usuario.id,
+        token_hash: this.hashRefreshToken(refreshToken),
+        lembrar: dados.lembreMe,
+        expira_em: expiresAt,
+      },
+    });
 
     return {
-      access_token: accessToken,
-      token_type: 'Bearer',
-      expires_in: 900,
+      accessToken,
+      refreshToken,
+      expiresAt,
+      remember: dados.lembreMe,
+      expiresIn: 900,
       usuario: {
         id: usuario.id,
         nome: usuario.nome,
         email: usuario.email,
-        papel: usuario.papel,
+        cargo: usuario.cargo,
+        perfil: usuario.papel,
+      },
+    };
+  }
+
+  async refresh(refreshToken: string | null) {
+    if (!refreshToken) {
+      throw new UnauthorizedException('Sessão expirada ou inválida.');
+    }
+
+    const tokenHash = this.hashRefreshToken(refreshToken);
+    const existing = await this.prisma.refresh_token.findUnique({
+      where: { token_hash: tokenHash },
+      include: { usuario: true },
+    });
+
+    if (
+      !existing ||
+      existing.revogado_em ||
+      existing.expira_em.getTime() <= Date.now()
+    ) {
+      if (existing?.revogado_em) {
+        await this.prisma.refresh_token.updateMany({
+          where: {
+            usuario_id: existing.usuario_id,
+            revogado_em: null,
+          },
+          data: { revogado_em: new Date() },
+        });
+      }
+      throw new UnauthorizedException('Sessão expirada ou inválida.');
+    }
+
+    const now = new Date();
+    const expiresAt = new Date(
+      now.getTime() + this.refreshDuration(existing.lembrar),
+    );
+    const nextRefreshToken = this.createRefreshTokenValue();
+
+    await this.prisma.$transaction(async (transaction) => {
+      const revoked = await transaction.refresh_token.updateMany({
+        where: {
+          token_hash: tokenHash,
+          revogado_em: null,
+          expira_em: { gt: now },
+        },
+        data: { revogado_em: now },
+      });
+
+      if (revoked.count !== 1) {
+        throw new UnauthorizedException('Sessão expirada ou inválida.');
+      }
+
+      await transaction.refresh_token.create({
+        data: {
+          usuario_id: existing.usuario_id,
+          token_hash: this.hashRefreshToken(nextRefreshToken),
+          lembrar: existing.lembrar,
+          expira_em: expiresAt,
+        },
+      });
+    });
+
+    const accessToken = await this.createAccessToken(existing.usuario);
+
+    return {
+      accessToken,
+      refreshToken: nextRefreshToken,
+      expiresAt,
+      remember: existing.lembrar,
+    };
+  }
+
+  async logout(refreshToken: string | null): Promise<void> {
+    if (!refreshToken) {
+      return;
+    }
+
+    await this.prisma.refresh_token.updateMany({
+      where: {
+        token_hash: this.hashRefreshToken(refreshToken),
+        revogado_em: null,
+      },
+      data: { revogado_em: new Date() },
+    });
+  }
+
+  async getMe(usuarioId: string) {
+    const usuario = await this.prisma.usuario.findUnique({
+      where: { id: usuarioId },
+      include: { empresa: true },
+    });
+
+    if (!usuario || !usuario.empresa) {
+      throw new UnauthorizedException('Sessão expirada ou inválida.');
+    }
+
+    return {
+      usuario: {
+        id: usuario.id,
+        nome: usuario.nome,
+        cpf: usuario.cpf,
+        telefone: usuario.telefone,
+        cargo: usuario.cargo,
+        email: usuario.email,
+        perfil: usuario.papel,
         empresaId: usuario.empresa_id,
+        criadoEm: usuario.created_at.toISOString(),
+      },
+      empresa: {
+        id: usuario.empresa.id,
+        nomeEmpresa: usuario.empresa.nome_fantasia,
+        razaoSocial: usuario.empresa.razao_social,
+        cnpj: usuario.empresa.cnpj,
+        segmento: usuario.empresa.segmento,
+        tipoUnidade: usuario.empresa.tipo_unidade,
+        endereco: {
+          cep: usuario.empresa.cep,
+          logradouro: usuario.empresa.logradouro,
+          numero: usuario.empresa.numero,
+          complemento: usuario.empresa.complemento,
+          bairro: usuario.empresa.bairro,
+          cidade: usuario.empresa.cidade,
+          uf: usuario.empresa.uf,
+        },
+        criadoEm: usuario.empresa.created_at.toISOString(),
       },
     };
   }

@@ -1,85 +1,111 @@
-import { mockDocumentos, mockUnidades } from "@/mocks/dashboard";
-import type { Documento, DocumentoAnexo } from "@/types/domain";
-import {
-  UnidadeInativaError,
-  RecursoNaoEncontradoError,
-} from "@/lib/errors";
-import { wait } from "@/lib/mockApi";
+import { http } from "@/lib/http";
 import type { DocumentoFormValues } from "@/schemas/documento";
-import { registrarEventoHistoricoUnidade } from "@/services/historicoUnidadesService";
+import type {
+  Documento,
+  DocumentoStatus,
+  DocumentoStatusApi,
+  DocumentFilters,
+  Paginated,
+} from "@/types/domain";
 
-export async function obterDocumento(id: string): Promise<Documento | null> {
-  await wait(120);
-  return mockDocumentos.find((item) => item.id === id) ?? null;
+type DocumentoApiFilters = {
+  page: number;
+  pageSize: number;
+  q?: string;
+  unidadeId?: string;
+  categoria?: string;
+  statusValidade?: DocumentoStatusApi;
+};
+
+const statusParaApi: Record<DocumentoStatus, DocumentoStatusApi> = {
+  "Válido": "valido",
+  "Próximo do vencimento": "proximo_vencimento",
+  "Expirado": "expirado",
+};
+
+function montarFiltrosApi(filters: DocumentFilters): DocumentoApiFilters {
+  return {
+    page: filters.page,
+    pageSize: filters.pageSize,
+    q: filters.search.trim() || undefined,
+    unidadeId:
+      filters.unidadeId && filters.unidadeId !== "todas"
+        ? filters.unidadeId
+        : undefined,
+    categoria:
+      filters.categoria && filters.categoria !== "todas"
+        ? filters.categoria
+        : undefined,
+    statusValidade:
+      filters.status !== "Todos"
+        ? statusParaApi[filters.status]
+        : undefined,
+  };
+}
+
+function montarFormData(
+  data: DocumentoFormValues,
+  anexo?: File,
+): FormData {
+  const formData = new FormData();
+
+  formData.append("nome", data.nome);
+  formData.append("categoria", data.categoria);
+  formData.append("dataValidade", data.dataValidade);
+
+  if (data.dataEmissao) {
+    formData.append("dataEmissao", data.dataEmissao);
+  }
+
+  if (data.descricao?.trim()) {
+    formData.append("descricao", data.descricao.trim());
+  }
+
+  if (anexo) {
+    formData.append("anexo", anexo);
+  }
+
+  return formData;
+}
+
+export async function listarDocumentos(
+  filters: DocumentFilters,
+): Promise<Paginated<Documento>> {
+  return http<Paginated<Documento>>("/documentos", {
+    params: montarFiltrosApi(filters),
+  });
+}
+
+export async function listarCategoriasDocumentos(): Promise<string[]> {
+  return http<string[]>("/documentos/categorias");
+}
+
+export async function obterDocumento(id: string): Promise<Documento> {
+  return http<Documento>(`/documentos/${encodeURIComponent(id)}`);
+}
+
+export async function criarDocumento(
+  data: DocumentoFormValues,
+  anexo: File,
+): Promise<Documento> {
+  const { unidadeId } = data;
+
+  return http<Documento>(
+    `/unidades/${encodeURIComponent(unidadeId)}/documentos`,
+    {
+      method: "POST",
+      body: montarFormData(data, anexo),
+    },
+  );
 }
 
 export async function atualizarDocumento(
   id: string,
   data: DocumentoFormValues,
-  anexo?: DocumentoAnexo,
+  anexo?: File,
 ): Promise<Documento> {
-  await wait();
-  const index = mockDocumentos.findIndex((item) => item.id === id);
-  if (index < 0) throw new RecursoNaoEncontradoError("Documento");
-  const current = mockDocumentos[index];
-  const unidade = mockUnidades.find((item) => item.id === current.unidadeId);
-  if (!unidade) throw new RecursoNaoEncontradoError("Unidade");
-  if (unidade.status === "Inativa") throw new UnidadeInativaError();
-
-  const updated: Documento = {
-    ...current,
-    nome: data.nome.trim(),
-    categoria: data.categoria.trim(),
-    dataEmissao: data.dataEmissao?.trim() || null,
-    dataValidade: data.dataValidade,
-    descricao: data.descricao?.trim() || undefined,
-    anexo: anexo ?? current.anexo,
-  };
-  mockDocumentos[index] = updated;
-  registrarEventoHistoricoUnidade({
-    unidadeId: updated.unidadeId,
-    acao: "Atualizou o documento",
-    entidade: "Documento",
-    entidadeId: updated.id,
-    entidadeNome: updated.nome,
+  return http<Documento>(`/documentos/${encodeURIComponent(id)}`, {
+    method: "PUT",
+    body: montarFormData(data, anexo),
   });
-  return updated;
-}
-
-export async function criarDocumento(
-  data: DocumentoFormValues,
-  anexo?: DocumentoAnexo,
-): Promise<Documento> {
-  await wait();
-
-  const unidade = mockUnidades.find((item) => item.id === data.unidadeId);
-  if (!unidade) throw new RecursoNaoEncontradoError("Unidade");
-  if (unidade.status === "Inativa") throw new UnidadeInativaError();
-  if (!anexo) throw new Error("O anexo do documento é obrigatório.");
-
-  const nextSequence =
-    mockDocumentos.reduce((maximum, documento) => {
-      const matched = /^doc-(\d+)$/.exec(documento.id);
-      return Math.max(maximum, matched ? Number(matched[1]) : 0);
-    }, 0) + 1;
-
-  const documento: Documento = {
-    id: `doc-${String(nextSequence).padStart(3, "0")}`,
-    nome: data.nome.trim(),
-    unidadeId: unidade.id,
-    categoria: data.categoria.trim(),
-    dataEmissao: data.dataEmissao?.trim() || null,
-    dataValidade: data.dataValidade,
-    descricao: data.descricao?.trim() || undefined,
-    anexo,
-  };
-  mockDocumentos.push(documento);
-  registrarEventoHistoricoUnidade({
-    unidadeId: documento.unidadeId,
-    acao: "Cadastrou o documento",
-    entidade: "Documento",
-    entidadeId: documento.id,
-    entidadeNome: documento.nome,
-  });
-  return documento;
 }

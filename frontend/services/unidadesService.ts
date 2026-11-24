@@ -1,4 +1,5 @@
 import { mockDocumentos, mockTarefas, mockUnidades } from "@/mocks/dashboard";
+import { http } from "@/lib/http";
 import { normalizarCep } from "@/lib/cep";
 import { IdentificadorUnidadeDuplicadoError } from "@/lib/errors";
 import { wait } from "@/lib/mockApi";
@@ -158,13 +159,53 @@ export async function atualizarUnidade(id: string, data: UnidadeFormValues): Pro
 }
 
 import { calcularStatusDocumento } from "@/lib/status";
-import { mockUsuarioSessao } from "@/mocks/sessao";
 import { PerfilSemPermissaoError, RecursoNaoEncontradoError } from "@/lib/errors";
 import type { UnidadeIndicadores, UnidadeStatus, PerfilUsuario } from "@/types/domain";
 
-export async function obterUnidade(id: string): Promise<Unidade | null> {
-  await wait(120);
-  return mockUnidades.find((unidade) => unidade.id === id) ?? null;
+type UnidadeApiResponse = {
+  id: string;
+  nome: string;
+  codigo: string;
+  status: "ativa" | "inativa";
+  endereco: {
+    cep: string;
+    logradouro: string;
+    numero: string;
+    complemento?: string;
+    bairro: string;
+    cidade: string;
+    uf: string;
+  };
+  descricao?: string;
+  criadoEm: string;
+  atualizadoEm: string;
+  totalDocumentos?: number;
+  totalTarefas?: number;
+};
+
+export async function obterUnidade(id: string): Promise<Unidade> {
+  const unidade = await http<UnidadeApiResponse>(
+    `/unidades/${encodeURIComponent(id)}`,
+  );
+
+  return {
+    id: unidade.id,
+    nome: unidade.nome,
+    codigo: unidade.codigo,
+    status: unidade.status === "ativa" ? "Ativa" : "Inativa",
+    endereco: {
+      cep: unidade.endereco.cep,
+      logradouro: unidade.endereco.logradouro,
+      numero: unidade.endereco.numero,
+      complemento: unidade.endereco.complemento || undefined,
+      bairro: unidade.endereco.bairro,
+      cidade: unidade.endereco.cidade,
+      uf: unidade.endereco.uf as Unidade["endereco"]["uf"],
+    },
+    descricao: unidade.descricao || undefined,
+    criadoEm: unidade.criadoEm,
+    atualizadoEm: unidade.atualizadoEm,
+  };
 }
 
 export async function obterIndicadoresUnidade(
@@ -234,7 +275,7 @@ export async function obterIndicadoresUnidade(
 export async function alterarStatusUnidade(
   id: string,
   status: UnidadeStatus,
-  perfil: PerfilUsuario = mockUsuarioSessao.perfil,
+  perfil: PerfilUsuario = "Colaborador",
 ): Promise<Unidade> {
   await wait(120);
   if (perfil !== "Administrador") throw new PerfilSemPermissaoError();

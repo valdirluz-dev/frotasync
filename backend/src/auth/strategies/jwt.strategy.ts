@@ -14,7 +14,25 @@ export interface JwtPayload {
 export class JwtStrategy extends PassportStrategy(Strategy) {
   constructor(configService: ConfigService) {
     super({
-      jwtFromRequest: ExtractJwt.fromAuthHeaderAsBearerToken(),
+      jwtFromRequest: ExtractJwt.fromExtractors([
+        (request) => {
+          const cookieHeader = request?.headers?.cookie;
+          if (!cookieHeader) {
+            return null;
+          }
+          const match = cookieHeader
+            .split(';')
+            .map((part: string) => part.trim())
+            .find((part: string) =>
+              part.startsWith('frotasync_access='),
+            );
+          if (!match) {
+            return null;
+          }
+          return decodeURIComponent(match.slice(match.indexOf('=') + 1));
+        },
+        ExtractJwt.fromAuthHeaderAsBearerToken(),
+      ]),
       ignoreExpiration: false,
       secretOrKey: configService.getOrThrow<string>('JWT_SECRET'),
     });

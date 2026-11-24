@@ -5,14 +5,14 @@ import { useRouter } from "next/navigation";
 import type { SubmitHandler } from "react-hook-form";
 
 import { AppShell } from "@/components/layout/AppShell";
-import { DocumentoForm, toDocumentoAnexo } from "@/components/documentos/DocumentoForm";
+import { DocumentoForm } from "@/components/documentos/DocumentoForm";
 import { ErrorState, LoadingState } from "@/components/ui/StateViews";
 import { ConfirmDialog } from "@/components/ui/ConfirmDialog";
 import { useToast } from "@/components/ui/Toast";
 import { useCriarDocumento } from "@/hooks/useCriarDocumento";
+import { useCategoriasDocumentos } from "@/hooks/useDashboard";
 import { useUnidade } from "@/hooks/useUnidadeDetalhe";
 import { useUnidades } from "@/hooks/useUnidades";
-import { mockCategorias } from "@/mocks/dashboard";
 import type { DocumentoFormValues } from "@/schemas/documento";
 import type { Documento } from "@/types/domain";
 
@@ -26,6 +26,7 @@ export function NovoDocumentoClient({ unidadeId }: { unidadeId?: string }) {
     status: "Ativa",
   });
   const mutation = useCriarDocumento();
+  const categoriasQuery = useCategoriasDocumentos();
   const [pending, setPending] = useState<DocumentoFormValues | null>(null);
   const [dialogOpen, setDialogOpen] = useState(false);
   const creatingLocally = Boolean(unidadeId);
@@ -55,15 +56,14 @@ export function NovoDocumentoClient({ unidadeId }: { unidadeId?: string }) {
 
   async function confirm() {
     if (!pending || mutation.isPending) return;
-    const anexo = toDocumentoAnexo(pending.anexo);
-    if (!anexo) {
+    if (!pending.anexo) {
       setDialogOpen(false);
       showToast("Anexe um arquivo válido antes de cadastrar o documento.", "error");
       return;
     }
 
     try {
-      await mutation.mutateAsync({ data: pending, anexo });
+      await mutation.mutateAsync({ data: pending, anexo: pending.anexo });
       setDialogOpen(false);
       showToast("Documento cadastrado com sucesso", "success");
       router.push(backPath);
@@ -142,6 +142,25 @@ export function NovoDocumentoClient({ unidadeId }: { unidadeId?: string }) {
     );
   }
 
+  if (categoriasQuery.isPending) {
+    return (
+      <AppShell activeTab={creatingLocally ? "unidades" : "documentos"}>
+        <LoadingState label="Carregando categorias de documentos..." />
+      </AppShell>
+    );
+  }
+
+  if (categoriasQuery.isError) {
+    return (
+      <AppShell activeTab={creatingLocally ? "unidades" : "documentos"}>
+        <ErrorState
+          label="Não foi possível carregar as categorias de documentos."
+          onRetry={() => void categoriasQuery.refetch()}
+        />
+      </AppShell>
+    );
+  }
+
   const documentoVazio: Documento = {
     id: "",
     nome: "",
@@ -169,7 +188,7 @@ export function NovoDocumentoClient({ unidadeId }: { unidadeId?: string }) {
           <DocumentoForm
             documento={{ ...documentoVazio, unidadeId: selectedDefaultId }}
             unidadeNome={displayUnitName}
-            categorias={mockCategorias}
+            categorias={categoriasQuery.data ?? []}
             unidades={creatingLocally ? undefined : unidadeOptions}
             unidadeBloqueada={creatingLocally}
             mode="criar"

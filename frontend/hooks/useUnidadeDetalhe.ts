@@ -35,7 +35,11 @@ export function useAlterarStatusUnidade() {
 
   return useMutation({
     mutationFn: (input: { id: string; status: UnidadeStatus }) =>
-      alterarStatusUnidade(input.id, input.status, usuario.perfil),
+      alterarStatusUnidade(
+        input.id,
+        input.status,
+        usuario?.perfil ?? "Colaborador",
+      ),
     onSuccess: async (unidade) => {
       await Promise.all([
         queryClient.invalidateQueries({ queryKey: ["unidades"] }),

@@ -1,10 +1,7 @@
 import { NextResponse } from "next/server";
 import type { NextRequest } from "next/server";
 
-import {
-  SESSION_COOKIE_NAME,
-  verifySessionToken,
-} from "@/lib/auth/session";
+import { SESSION_COOKIE_NAME } from "@/lib/auth/session";
 import { isPublicRoute } from "@/lib/auth/publicRoutes";
 
 export async function proxy(request: NextRequest) {
@@ -15,8 +12,11 @@ export async function proxy(request: NextRequest) {
   }
 
   const session = request.cookies.get(SESSION_COOKIE_NAME);
-
-  if (!(await verifySessionToken(session?.value))) {
+  if (
+    !session?.value ||
+    !/^\d+$/.test(session.value) ||
+    Number(session.value) <= Math.floor(Date.now() / 1000)
+  ) {
     return NextResponse.redirect(new URL("/login", request.url));
   }
 
@@ -25,5 +25,5 @@ export async function proxy(request: NextRequest) {
 
 // Configuração para vigiar todas as rotas (exceto imagens e arquivos do Next.js)
 export const config = {
-  matcher: ["/((?!_next/static|_next/image|favicon.ico|.*\\..*).*)"],
+  matcher: ["/((?!api(?:/|$)|_next/static|_next/image|favicon.ico|.*\\..*).*)"],
 };

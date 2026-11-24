@@ -1,4 +1,4 @@
-import { Injectable } from '@nestjs/common';
+import { Injectable, NotFoundException } from '@nestjs/common';
 import { PrismaService } from '../prisma/prisma.service';
 import { ListarUnidadesDto } from './schemas/listar-unidades.schema';
 import { Prisma } from '../../generated/prisma/client';
@@ -106,6 +106,46 @@ export class UnidadesService {
         unidade._count?.documento ?? unidade.total_documentos ?? 0,
       totalTarefas: unidade._count?.tarefa ?? unidade.total_tarefas ?? 0,
     };
+  }
+
+  async obter(id: string, empresaId: string) {
+    const unidade = await this.prisma.unidade.findFirst({
+      where: {
+        id,
+        empresa_id: empresaId,
+      },
+      select: {
+        id: true,
+        nome: true,
+        codigo: true,
+        status: true,
+        cep: true,
+        logradouro: true,
+        numero: true,
+        complemento: true,
+        bairro: true,
+        cidade: true,
+        uf: true,
+        descricao: true,
+        created_at: true,
+        updated_at: true,
+        _count: {
+          select: {
+            documento: true,
+            tarefa: true,
+          },
+        },
+      },
+    });
+
+    if (!unidade) {
+      throw new NotFoundException({
+        message: 'Unidade não encontrada.',
+        codigo: 'RECURSO_NAO_ENCONTRADO',
+      });
+    }
+
+    return this.mapearUnidade(unidade);
   }
 
   async listar(filtros: ListarUnidadesDto, empresaId: string) {

@@ -2,6 +2,7 @@
 
 import { useQuery } from "@tanstack/react-query";
 
+import { listarCategoriasDocumentos } from "@/services/documentosService";
 import {
   getDashboardDocuments,
   getDashboardIndicators,
@@ -30,5 +31,14 @@ export function useDashboardTasks(filters: TaskFilters) {
     queryKey: ["dashboard", "tasks", filters],
     queryFn: () => getDashboardTasks(filters),
     staleTime: 30_000,
+  });
+}
+
+
+export function useCategoriasDocumentos() {
+  return useQuery({
+    queryKey: ["documentos", "categorias"],
+    queryFn: listarCategoriasDocumentos,
+    staleTime: 5 * 60_000,
   });
 }

@@ -79,9 +79,9 @@ describe("schemas de autenticação e cadastro", () => {
     ).toBe(false);
   });
 
-  it("mantém o login limitado à validação de campos obrigatórios", () => {
+  it("exige formato de e-mail válido no login", () => {
     expect(loginSchema.safeParse({ email: "gestor", senha: "x" }).success).toBe(
-      true,
+      false,
     );
     expect(loginSchema.safeParse({ email: " ", senha: "" }).success).toBe(
       false,

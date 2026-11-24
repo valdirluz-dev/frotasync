@@ -2,8 +2,7 @@ import { afterEach, describe, expect, it } from "vitest";
 
 import { mockHistoricoUnidades } from "@/mocks/historicoUnidades";
 import { usuarioLogadoAtual } from "@/mocks/authStore";
-import { mockDocumentos, mockTarefas, mockUnidades } from "@/mocks/dashboard";
-import { mockNovoDocumento } from "@/mocks/documentos";
+import { mockTarefas, mockUnidades } from "@/mocks/dashboard";
 import { mockNovaTarefa } from "@/mocks/tarefas";
 import { RecursoNaoEncontradoError } from "@/lib/errors";
 import {
@@ -12,7 +11,6 @@ import {
   registrarEventoHistoricoUnidade,
 } from "./historicoUnidadesService";
 import { criarUnidade, atualizarUnidade, alterarStatusUnidade } from "./unidadesService";
-import { criarDocumento, atualizarDocumento } from "./documentosService";
 import { criarTarefa, atualizarTarefa, alterarStatusTarefa } from "./tarefasService";
 
 const createdIds: string[] = [];
@@ -128,7 +126,7 @@ describe("historicoUnidadesService", () => {
     expect(result.items[0]?.entidadeNome).toBe("Licença Ambiental");
   });
 
-  it("registra criação e atualização confirmadas de unidade, documento e tarefa", async () => {
+  it("registra criação e atualização confirmadas de unidade e tarefa", async () => {
     let unidadeId: string | null = null;
     try {
       const unidade = await criarUnidade({
@@ -157,16 +155,6 @@ describe("historicoUnidadesService", () => {
         descricao: "",
       });
 
-      const documento = await criarDocumento(
-        { ...mockNovoDocumento, unidadeId: unidade.id },
-        { nome: "anexo.pdf", tamanhoBytes: 100, tipo: "application/pdf" },
-      );
-      await atualizarDocumento(documento.id, {
-        ...mockNovoDocumento,
-        unidadeId: unidade.id,
-        nome: "Documento atualizado",
-      });
-
       const tarefa = await criarTarefa({
         ...mockNovaTarefa,
         unidadeId: unidade.id,
@@ -177,7 +165,7 @@ describe("historicoUnidadesService", () => {
         titulo: "Tarefa atualizada",
       });
       await alterarStatusTarefa(tarefa.id, "Em andamento");
-      await alterarStatusUnidade(unidade.id, "Inativa");
+      await alterarStatusUnidade(unidade.id, "Inativa", "Administrador");
 
       const events = mockHistoricoUnidades.filter(
         (evento) => evento.unidadeId === unidade.id,
@@ -185,8 +173,6 @@ describe("historicoUnidadesService", () => {
       expect(events.map((evento) => evento.acao)).toEqual([
         "Cadastrou a unidade",
         "Atualizou os dados da unidade",
-        "Cadastrou o documento",
-        "Atualizou o documento",
         "Cadastrou a tarefa",
         "Atualizou a tarefa",
         "Alterou o status da tarefa de Pendente para Em andamento",
@@ -199,14 +185,9 @@ describe("historicoUnidadesService", () => {
       ).rejects.toBeInstanceOf(RecursoNaoEncontradoError);
       expect(
         mockHistoricoUnidades.filter((evento) => evento.unidadeId === unidade.id),
-      ).toHaveLength(8);
+      ).toHaveLength(6);
     } finally {
       if (unidadeId) {
-        for (let index = mockDocumentos.length - 1; index >= 0; index -= 1) {
-          if (mockDocumentos[index]?.unidadeId === unidadeId) {
-            mockDocumentos.splice(index, 1);
-          }
-        }
         for (let index = mockTarefas.length - 1; index >= 0; index -= 1) {
           if (mockTarefas[index]?.unidadeId === unidadeId) {
             mockTarefas.splice(index, 1);

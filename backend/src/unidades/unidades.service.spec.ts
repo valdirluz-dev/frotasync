@@ -7,6 +7,7 @@ describe('UnidadesService', () => {
     $queryRaw: jest.fn<(query: unknown) => Promise<unknown[]>>(),
     unidade: {
       findMany: jest.fn<() => Promise<unknown[]>>(),
+      findFirst: jest.fn<() => Promise<unknown | null>>(),
       count: jest.fn<() => Promise<number>>(),
     },
   };
@@ -127,6 +128,88 @@ describe('UnidadesService', () => {
     jest.clearAllMocks();
 
     service = new UnidadesService(prismaMock as unknown as PrismaService);
+  });
+
+  it('deve retornar uma unidade da empresa com endereço e totais', async () => {
+    prismaMock.unidade.findFirst.mockResolvedValue({
+      id: 'unidade-1',
+      nome: 'Matriz',
+      codigo: 'MAT',
+      status: 'ativa',
+      cep: '01001000',
+      logradouro: 'Praça da Sé',
+      numero: '100',
+      complemento: null,
+      bairro: 'Sé',
+      cidade: 'São Paulo',
+      uf: 'SP',
+      descricao: 'Matriz principal',
+      created_at: new Date('2026-01-10T12:00:00.000Z'),
+      updated_at: new Date('2026-02-10T12:00:00.000Z'),
+      _count: { documento: 25, tarefa: 32 },
+    });
+
+    const resultado = await service.obter('unidade-1', 'empresa-123');
+
+    expect(resultado).toEqual({
+      id: 'unidade-1',
+      nome: 'Matriz',
+      codigo: 'MAT',
+      status: 'ativa',
+      endereco: {
+        cep: '01001000',
+        logradouro: 'Praça da Sé',
+        numero: '100',
+        complemento: undefined,
+        bairro: 'Sé',
+        cidade: 'São Paulo',
+        uf: 'SP',
+      },
+      descricao: 'Matriz principal',
+      criadoEm: '2026-01-10T12:00:00.000Z',
+      atualizadoEm: '2026-02-10T12:00:00.000Z',
+      totalDocumentos: 25,
+      totalTarefas: 32,
+    });
+
+    expect(prismaMock.unidade.findFirst).toHaveBeenCalledWith(
+      expect.objectContaining({
+        where: {
+          id: 'unidade-1',
+          empresa_id: 'empresa-123',
+        },
+        select: expect.objectContaining({
+          _count: {
+            select: {
+              documento: true,
+              tarefa: true,
+            },
+          },
+        }),
+      }),
+    );
+  });
+
+  it('deve retornar 404 quando a unidade não existir ou não pertencer à empresa', async () => {
+    prismaMock.unidade.findFirst.mockResolvedValue(null);
+
+    await expect(
+      service.obter('unidade-1', 'empresa-123'),
+    ).rejects.toMatchObject({
+      response: {
+        message: 'Unidade não encontrada.',
+        codigo: 'RECURSO_NAO_ENCONTRADO',
+      },
+    });
+
+    expect(prismaMock.unidade.findFirst).toHaveBeenCalledWith(
+      expect.objectContaining({
+        where: {
+          id: 'unidade-1',
+          empresa_id: 'empresa-123',
+        },
+      }),
+    );
   });
 
   it('deve utilizar consultas SQL quando houver busca', async () => {

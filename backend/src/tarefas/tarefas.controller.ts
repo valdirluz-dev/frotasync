@@ -18,6 +18,7 @@ import { Roles } from '../auth/decorators/roles.decorator';
 import { AuthenticatedRequest } from '../auth/interfaces/authenticated-request.interface';
 import { JwtAuthGuard } from '../auth/guards/jwt-auth.guard';
 import { RolesGuard } from '../auth/guards/roles.guard';
+import { CsrfGuard } from '../auth/guards/csrf.guard';
 import { ZodValidationPipe } from '../common/pipes/zod-validation.pipe';
 import { TarefasService } from './tarefas.service';
 import {
@@ -40,7 +41,7 @@ import {
 } from './schemas/listar-tarefas.schema';
 
 @Controller()
-@UseGuards(JwtAuthGuard, RolesGuard)
+@UseGuards(JwtAuthGuard, RolesGuard, CsrfGuard)
 @Roles('colaborador', 'gestor', 'administrador')
 export class TarefasController {
   constructor(private readonly tarefasService: TarefasService) {}

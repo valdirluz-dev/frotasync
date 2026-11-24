@@ -5,6 +5,7 @@ import { UnidadesService } from './unidades.service';
 describe('UnidadesController', () => {
   const unidadesService = {
     listar: jest.fn(),
+    obter: jest.fn(),
   };
 
   const controller = new UnidadesController(
@@ -13,6 +14,21 @@ describe('UnidadesController', () => {
 
   it('deve ser definido', () => {
     expect(controller).toBeDefined();
+  });
+
+  it('deve repassar id e empresaId autenticado ao service no detalhe', () => {
+    const req = {
+      user: {
+        empresaId: 'empresa-123',
+      },
+    };
+
+    controller.obter('unidade-1', req as any);
+
+    expect(unidadesService.obter).toHaveBeenCalledWith(
+      'unidade-1',
+      'empresa-123',
+    );
   });
 
   it('deve repassar filtros e empresaId autenticado ao service', () => {

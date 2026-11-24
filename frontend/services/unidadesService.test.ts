@@ -1,4 +1,5 @@
-import { describe, expect, it } from "vitest";
+import { afterEach, describe, expect, it, vi } from "vitest";
+import { ApiError } from "@/lib/http";
 
 import { mockUnidades } from "@/mocks/dashboard";
 import { mockHistoricoUnidades } from "@/mocks/historicoUnidades";
@@ -107,5 +108,97 @@ describe("criarUnidade", () => {
         }
       }
     }
+  });
+});
+
+
+describe("obterUnidade", () => {
+  afterEach(() => {
+    vi.restoreAllMocks();
+  });
+
+  it("consulta a API e converte os dados para o domínio do frontend", async () => {
+    const unidadeApi = {
+      id: "550e8400-e29b-41d4-a716-446655440000",
+      nome: "Matriz Recife",
+      codigo: "MAT-001",
+      status: "ativa",
+      endereco: {
+        cep: "50000000",
+        logradouro: "Rua de Teste",
+        numero: "100",
+        complemento: null,
+        bairro: "Centro",
+        cidade: "Recife",
+        uf: "PE",
+      },
+      descricao: null,
+      criadoEm: "2026-01-10T12:00:00.000Z",
+      atualizadoEm: "2026-02-10T12:00:00.000Z",
+      totalDocumentos: 12,
+      totalTarefas: 8,
+    };
+
+    const fetchSpy = vi.spyOn(globalThis, "fetch").mockResolvedValue(
+      new Response(JSON.stringify(unidadeApi), {
+        status: 200,
+        headers: { "content-type": "application/json" },
+      }),
+    );
+
+    const { obterUnidade } = await import("./unidadesService");
+    const resultado = await obterUnidade(unidadeApi.id);
+
+    expect(fetchSpy).toHaveBeenCalledWith(
+      `/api/v1/unidades/${unidadeApi.id}`,
+      expect.objectContaining({
+        method: "GET",
+        credentials: "same-origin",
+      }),
+    );
+    expect(resultado).toEqual({
+      id: unidadeApi.id,
+      nome: "Matriz Recife",
+      codigo: "MAT-001",
+      status: "Ativa",
+      endereco: {
+        cep: "50000000",
+        logradouro: "Rua de Teste",
+        numero: "100",
+        complemento: undefined,
+        bairro: "Centro",
+        cidade: "Recife",
+        uf: "PE",
+      },
+      descricao: undefined,
+      criadoEm: "2026-01-10T12:00:00.000Z",
+      atualizadoEm: "2026-02-10T12:00:00.000Z",
+    });
+  });
+
+  it("propaga o erro 404 da API quando a unidade não é encontrada", async () => {
+    vi.spyOn(globalThis, "fetch").mockResolvedValue(
+      new Response(
+        JSON.stringify({
+          timestamp: "2026-11-23T23:00:00.000Z",
+          status: 404,
+          error: "Not Found",
+          codigo: "RECURSO_NAO_ENCONTRADO",
+          message: "Unidade não encontrada.",
+          path: "/api/v1/unidades/unidade-inexistente",
+          erros: [],
+        }),
+        {
+          status: 404,
+          headers: { "content-type": "application/json" },
+        },
+      ),
+    );
+
+    const { obterUnidade } = await import("./unidadesService");
+
+    await expect(obterUnidade("unidade-inexistente")).rejects.toBeInstanceOf(
+      ApiError,
+    );
   });
 });

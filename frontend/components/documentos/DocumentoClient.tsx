@@ -10,12 +10,13 @@ import { DocumentosTable } from "@/components/documentos/DocumentosTable";
 
 // Hooks customizados para buscar dados no backend/API
 import {
+  useCategoriasDocumentos,
   useDashboardDocuments,
   useDashboardIndicators,
 } from "@/hooks/useDashboard";
 
 // Mocks (dados estáticos) de unidades e categorias
-import { mockCategorias, mockUnidades } from "@/mocks/dashboard";
+import { mockUnidades } from "@/mocks/dashboard";
 import type { DocumentoStatus } from "@/types/domain";
 
 // Opções de status disponíveis para filtragem na tabela
@@ -41,6 +42,7 @@ export function DocumentosClient() {
   // --- CONSULTAS DE DADOS (HOOKS SWR/REACT QUERY) ---
   // Busca indicadores gerais para o cartão de estatísticas
   const indicatorQuery = useDashboardIndicators();
+  const categoriasQuery = useCategoriasDocumentos();
 
   // Busca a lista paginada e filtrada de documentos reais do backend
   const documentQuery = useDashboardDocuments({
@@ -146,7 +148,7 @@ export function DocumentosClient() {
               className="h-11 w-full appearance-none rounded-xl border border-slate-200 bg-white px-3 pr-8 text-xs text-slate-700 outline-none focus:border-indigo-400 focus:ring-2 focus:ring-indigo-100"
             >
               <option value="todas">Todas as categorias</option>
-              {mockCategorias.map((option) => (
+              {(categoriasQuery.data ?? []).map((option) => (
                 <option key={option} value={option}>{option}</option>
               ))}
             </select>

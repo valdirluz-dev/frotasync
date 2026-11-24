@@ -23,6 +23,7 @@ import { ROLES_KEY } from '../auth/decorators/roles.decorator';
 import { AuthenticatedRequest } from '../auth/interfaces/authenticated-request.interface';
 import { JwtAuthGuard } from '../auth/guards/jwt-auth.guard';
 import { RolesGuard } from '../auth/guards/roles.guard';
+import { CsrfGuard } from '../auth/guards/csrf.guard';
 import { ZodValidationPipe } from '../common/pipes/zod-validation.pipe';
 import { AnexoUploadInterceptor } from './interceptors/anexo-upload.interceptor';
 import {
@@ -534,6 +535,7 @@ describe('DocumentosController', () => {
     expect(Reflect.getMetadata(GUARDS_METADATA, DocumentosController)).toEqual([
       JwtAuthGuard,
       RolesGuard,
+      CsrfGuard,
     ]);
     expect(Reflect.getMetadata(ROLES_KEY, DocumentosController)).toEqual([
       'colaborador',

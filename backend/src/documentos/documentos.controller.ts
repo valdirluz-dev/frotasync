@@ -23,6 +23,7 @@ import { Roles } from '../auth/decorators/roles.decorator';
 import { AuthenticatedRequest } from '../auth/interfaces/authenticated-request.interface';
 import { JwtAuthGuard } from '../auth/guards/jwt-auth.guard';
 import { RolesGuard } from '../auth/guards/roles.guard';
+import { CsrfGuard } from '../auth/guards/csrf.guard';
 import { ZodValidationPipe } from '../common/pipes/zod-validation.pipe';
 import { AnexoUploadInterceptor } from './interceptors/anexo-upload.interceptor';
 import {
@@ -84,7 +85,7 @@ class NormalizarDataEmissaoVaziaPipe implements PipeTransform {
 }
 
 @Controller()
-@UseGuards(JwtAuthGuard, RolesGuard)
+@UseGuards(JwtAuthGuard, RolesGuard, CsrfGuard)
 @Roles('colaborador', 'gestor', 'administrador')
 export class DocumentosController {
   constructor(private readonly documentosService: DocumentosService) {}

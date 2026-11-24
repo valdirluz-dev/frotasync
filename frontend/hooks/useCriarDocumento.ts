@@ -4,15 +4,13 @@ import { useMutation, useQueryClient } from "@tanstack/react-query";
 
 import { criarDocumento } from "@/services/documentosService";
 import type { DocumentoFormValues } from "@/schemas/documento";
-import type { DocumentoAnexo } from "@/types/domain";
-
 export function useCriarDocumento() {
   const queryClient = useQueryClient();
 
   return useMutation({
     mutationFn: (input: {
       data: DocumentoFormValues;
-      anexo: DocumentoAnexo;
+      anexo: File;
     }) => criarDocumento(input.data, input.anexo),
     onSuccess: async (documento) => {
       await Promise.all([

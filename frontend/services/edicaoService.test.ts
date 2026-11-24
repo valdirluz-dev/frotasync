@@ -1,10 +1,8 @@
 import { describe, expect, it } from "vitest";
 
 import { atualizarUnidade } from "./unidadesService";
-import { atualizarDocumento } from "./documentosService";
 import { atualizarTarefa } from "./tarefasService";
-import { mockDocumentos, mockTarefas, mockUnidades } from "@/mocks/dashboard";
-import { UnidadeInativaError } from "@/lib/errors";
+import { mockTarefas, mockUnidades } from "@/mocks/dashboard";
 
 const unidadeValues = (unidade: (typeof mockUnidades)[number]) => ({
   nome: unidade.nome,
@@ -32,20 +30,6 @@ describe("edição", () => {
   it("recusa identificador duplicado de outra unidade", async () => {
     const original = mockUnidades[1];
     await expect(atualizarUnidade(original.id, { ...unidadeValues(original), identificador: mockUnidades[2].codigo })).rejects.toThrow("Já existe uma unidade");
-  });
-
-  it("recusa documento de unidade inativa e mantém anexo sem novo arquivo", async () => {
-    const document = mockDocumentos.find((item) => mockUnidades.find((unit) => unit.id === item.unidadeId)?.status === "Inativa")!;
-    const originalAttachment = document.anexo;
-    await expect(atualizarDocumento(document.id, {
-      nome: document.nome,
-      unidadeId: document.unidadeId,
-      categoria: document.categoria,
-      dataEmissao: document.dataEmissao ?? "2025-01-01",
-      dataValidade: document.dataValidade,
-      descricao: document.descricao ?? "",
-    })).rejects.toBeInstanceOf(UnidadeInativaError);
-    expect(document.anexo).toEqual(originalAttachment);
   });
 
   it("mantém status, início e conclusão ao atualizar tarefa", async () => {

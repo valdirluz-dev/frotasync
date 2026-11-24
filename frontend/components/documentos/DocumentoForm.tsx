@@ -13,7 +13,7 @@ import {
   type DocumentoFormInput,
   type DocumentoFormValues,
 } from "@/schemas/documento";
-import type { Documento, DocumentoAnexo } from "@/types/domain";
+import type { Documento } from "@/types/domain";
 
 function formatFileSize(bytes: number) {
   if (bytes < 1024) return `${bytes} B`;
@@ -318,8 +318,3 @@ export function DocumentoForm({
   );
 }
 
-export function toDocumentoAnexo(file?: File): DocumentoAnexo | undefined {
-  return file
-    ? { nome: file.name, tamanhoBytes: file.size, tipo: file.type }
-    : undefined;
-}
