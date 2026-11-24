@@ -1,6 +1,8 @@
-import { Injectable, NotFoundException } from '@nestjs/common';
+import { ConflictException, Injectable, NotFoundException } from '@nestjs/common';
 import { PrismaService } from '../prisma/prisma.service';
 import { ListarUnidadesDto } from './schemas/listar-unidades.schema';
+import { CriarUnidadeDto } from './schemas/criar-unidade.schema';
+import { AtualizarUnidadeDto } from './schemas/atualizar-unidade.schema';
 import { Prisma } from '../../generated/prisma/client';
 @Injectable()
 export class UnidadesService {
@@ -240,4 +242,246 @@ export class UnidadesService {
       totalPages,
     };
   }
+
+
+  private conflitoCodigoDuplicado(): ConflictException {
+    return new ConflictException({
+      message: 'Já existe uma unidade com este identificador',
+      codigo: 'IDENTIFICADOR_DUPLICADO',
+    });
+  }
+
+  private ehViolacaoCodigoDuplicado(erro: unknown): boolean {
+    let atual: unknown = erro;
+
+    for (let i = 0; i < 5 && atual instanceof Error; i++) {
+      const candidato = atual as Error & {
+        code?: string;
+        meta?: { code?: string; constraint?: string };
+        cause?: unknown;
+      };
+      const mensagem = `${candidato.message} ${candidato.meta?.constraint ?? ''}`;
+
+      if (
+        (candidato.code === '23505' ||
+          candidato.meta?.code === '23505') &&
+        /uq_unidade_empresa_codigo_ci|codigo/i.test(mensagem)
+      ) {
+        return true;
+      }
+
+      atual = candidato.cause;
+    }
+
+    return false;
+  }
+
+  private async obterUnidadeComContadores(
+    transaction: Prisma.TransactionClient,
+    id: string,
+    empresaId: string,
+  ) {
+    return transaction.unidade.findFirst({
+      where: { id, empresa_id: empresaId },
+      include: {
+        _count: {
+          select: {
+            documento: true,
+            tarefa: true,
+          },
+        },
+      },
+    });
+  }
+
+  async criar(
+    dados: CriarUnidadeDto,
+    empresaId: string,
+    usuarioId: string,
+  ) {
+    try {
+      const unidade = await this.prisma.$transaction(async (transaction) => {
+        const duplicada = await transaction.unidade.findFirst({
+          where: {
+            empresa_id: empresaId,
+            codigo: { equals: dados.codigo, mode: 'insensitive' },
+          },
+          select: { id: true },
+        });
+
+        if (duplicada) {
+          throw this.conflitoCodigoDuplicado();
+        }
+
+        const criada = await transaction.unidade.create({
+          data: {
+            ...dados,
+            empresa_id: empresaId,
+            status: 'ativa',
+          },
+        });
+
+        await transaction.historico_alteracao.create({
+          data: {
+            unidade_id: criada.id,
+            usuario_id: usuarioId,
+            entidade: 'unidade',
+            entidade_id: criada.id,
+            acao: 'criacao',
+            descricao: 'Cadastrou a unidade',
+            entidade_nome: criada.nome,
+          },
+        });
+
+        return this.obterUnidadeComContadores(
+          transaction,
+          criada.id,
+          empresaId,
+        );
+      });
+
+      if (!unidade) {
+        throw new NotFoundException('Unidade não encontrada após criação.');
+      }
+
+      return this.mapearUnidade(unidade);
+    } catch (erro) {
+      if (erro instanceof ConflictException) throw erro;
+      if (this.ehViolacaoCodigoDuplicado(erro)) {
+        throw this.conflitoCodigoDuplicado();
+      }
+      throw erro;
+    }
+  }
+
+  async atualizar(
+    id: string,
+    dados: AtualizarUnidadeDto,
+    empresaId: string,
+    usuarioId: string,
+  ) {
+    try {
+      const unidade = await this.prisma.$transaction(async (transaction) => {
+        const existente = await transaction.unidade.findFirst({
+          where: { id, empresa_id: empresaId },
+          select: { id: true },
+        });
+
+        if (!existente) {
+          throw new NotFoundException({
+            message: 'Unidade não encontrada.',
+            codigo: 'RECURSO_NAO_ENCONTRADO',
+          });
+        }
+
+        const duplicada = await transaction.unidade.findFirst({
+          where: {
+            empresa_id: empresaId,
+            codigo: { equals: dados.codigo, mode: 'insensitive' },
+            NOT: { id },
+          },
+          select: { id: true },
+        });
+
+        if (duplicada) {
+          throw this.conflitoCodigoDuplicado();
+        }
+
+        await transaction.unidade.update({
+          where: { id },
+          data: dados,
+        });
+
+        await transaction.historico_alteracao.create({
+          data: {
+            unidade_id: id,
+            usuario_id: usuarioId,
+            entidade: 'unidade',
+            entidade_id: id,
+            acao: 'edicao',
+            descricao: 'Atualizou os dados da unidade',
+            entidade_nome: dados.nome,
+          },
+        });
+
+        return this.obterUnidadeComContadores(transaction, id, empresaId);
+      });
+
+      if (!unidade) {
+        throw new NotFoundException({
+          message: 'Unidade não encontrada.',
+          codigo: 'RECURSO_NAO_ENCONTRADO',
+        });
+      }
+
+      return this.mapearUnidade(unidade);
+    } catch (erro) {
+      if (erro instanceof ConflictException || erro instanceof NotFoundException) {
+        throw erro;
+      }
+      if (this.ehViolacaoCodigoDuplicado(erro)) {
+        throw this.conflitoCodigoDuplicado();
+      }
+      throw erro;
+    }
+  }
+
+  async atualizarStatus(
+    id: string,
+    status: 'ativa' | 'inativa',
+    empresaId: string,
+    usuarioId: string,
+  ) {
+    return this.prisma.$transaction(async (transaction) => {
+      const existente = await transaction.unidade.findFirst({
+        where: { id, empresa_id: empresaId },
+        select: { id: true, nome: true, status: true },
+      });
+
+      if (!existente) {
+        throw new NotFoundException({
+          message: 'Unidade não encontrada.',
+          codigo: 'RECURSO_NAO_ENCONTRADO',
+        });
+      }
+
+      if (existente.status !== status) {
+        await transaction.unidade.update({
+          where: { id },
+          data: { status },
+        });
+
+        await transaction.historico_alteracao.create({
+          data: {
+            unidade_id: id,
+            usuario_id: usuarioId,
+            entidade: 'unidade',
+            entidade_id: id,
+            acao: status === 'ativa' ? 'ativacao' : 'inativacao',
+            descricao:
+              status === 'ativa'
+                ? 'Ativou a unidade'
+                : 'Inativou a unidade',
+            entidade_nome: existente.nome,
+          },
+        });
+      }
+
+      const unidade = await this.obterUnidadeComContadores(
+        transaction,
+        id,
+        empresaId,
+      );
+
+      if (!unidade) {
+        throw new NotFoundException({
+          message: 'Unidade não encontrada.',
+          codigo: 'RECURSO_NAO_ENCONTRADO',
+        });
+      }
+
+      return this.mapearUnidade(unidade);
+    });
+  }
+
 }

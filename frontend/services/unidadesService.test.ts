@@ -1,204 +1,438 @@
 import { afterEach, describe, expect, it, vi } from "vitest";
-import { ApiError } from "@/lib/http";
-
-import { mockUnidades } from "@/mocks/dashboard";
-import { mockHistoricoUnidades } from "@/mocks/historicoUnidades";
-import { IdentificadorUnidadeDuplicadoError } from "@/lib/errors";
+import { ApiError, http } from "@/lib/http";
 import {
+  IdentificadorUnidadeDuplicadoError,
+  PerfilSemPermissaoError,
+  RecursoNaoEncontradoError,
+} from "@/lib/errors";
+import type { Paginated } from "@/types/domain";
+import {
+  alterarStatusUnidade,
+  atualizarUnidade,
   criarUnidade,
   listarUnidades,
+  obterIndicadoresUnidade,
+  obterUnidade,
+  obterUnidadeParaEdicao,
 } from "./unidadesService";
 
+vi.mock("@/lib/http", async (importOriginal) => {
+  const actual = await importOriginal<typeof import("@/lib/http")>();
+
+  return {
+    ...actual,
+    http: vi.fn(),
+  };
+});
+
+const httpMock = vi.mocked(http);
+
+afterEach(() => {
+  vi.clearAllMocks();
+});
+
+const agora = "2026-11-24T00:00:00.000Z";
+
+const unidadeApi = {
+  id: "unidade-123",
+  nome: "Unidade Central",
+  codigo: "UC-001",
+  status: "ativa" as const,
+  endereco: {
+    cep: "50030230",
+    logradouro: "Avenida Conde da Boa Vista",
+    numero: "100",
+    complemento: "Sala 2",
+    bairro: "Boa Vista",
+    cidade: "Recife",
+    uf: "PE",
+  },
+  descricao: "Unidade principal",
+  criadoEm: agora,
+  atualizadoEm: agora,
+  totalDocumentos: 15,
+  totalTarefas: 8,
+};
+
+const unidadeApiInativa = {
+  ...unidadeApi,
+  status: "inativa" as const,
+};
+
+const dadosFormulario = {
+  nome: "  Unidade Central  ",
+  identificador: "  UC-001  ",
+  cep: "50030-230",
+  logradouro: "  Avenida Conde da Boa Vista  ",
+  numero: " 100 ",
+  complemento: " Sala 2 ",
+  bairro: " Boa Vista ",
+  cidade: " Recife ",
+  uf: "PE" as const,
+  descricao: " Unidade principal ",
+};
+
+function criarErroApi(
+  status: number,
+  message: string,
+  codigo?: string,
+): ApiError {
+  return new ApiError(status, {
+    timestamp: agora,
+    status,
+    error: status === 404 ? "Not Found" : "Error",
+    codigo,
+    message,
+    path: "/api/v1/unidades",
+    erros: [],
+  });
+}
+
 describe("listarUnidades", () => {
-  it("pagina 12 unidades por página e retorna a última página parcial", async () => {
-    const firstPage = await listarUnidades({ page: 1 });
-    const lastPage = await listarUnidades({ page: 3 });
+  it("consulta a API com paginação padrão e mapeia os dados", async () => {
+    const resposta: Paginated<typeof unidadeApi> = {
+      items: [unidadeApi],
+      page: 1,
+      pageSize: 12,
+      total: 1,
+      totalPages: 1,
+    };
 
-    expect(firstPage.pageSize).toBe(12);
-    expect(firstPage.items).toHaveLength(12);
-    expect(firstPage.total).toBe(35);
-    expect(lastPage.items).toHaveLength(11);
-    expect(lastPage.totalPages).toBe(3);
-  });
+    httpMock.mockResolvedValue(resposta);
 
-  it("busca por nome sem diferenciar acentos ou caixa", async () => {
-    const result = await listarUnidades({ q: "vitoria" });
+    const resultado = await listarUnidades();
 
-    expect(result.total).toBe(1);
-    expect(result.items[0]?.nome).toBe("Vitória de Santo Antão");
-  });
-
-  it("busca pelo identificador da unidade", async () => {
-    const result = await listarUnidades({ q: "004" });
-
-    expect(result.total).toBe(1);
-    expect(result.items[0]?.codigo).toBe("004");
-  });
-
-  it("filtra unidades por status", async () => {
-    const result = await listarUnidades({ status: "Inativa" });
-
-    expect(result.total).toBe(9);
-    expect(result.items.every((item) => item.status === "Inativa")).toBe(true);
-  });
-
-  it("combina busca, status e paginação mantendo as contagens relacionadas", async () => {
-    const result = await listarUnidades({
-      page: 2,
-      size: 2,
-      q: "a",
-      status: "Ativa",
+    expect(httpMock).toHaveBeenCalledWith("/unidades", {
+      params: { page: 1, pageSize: 12 },
     });
 
-    expect(result.page).toBe(2);
-    expect(result.pageSize).toBe(2);
-    expect(result.total).toBeGreaterThan(2);
-    expect(result.items).toHaveLength(2);
-    expect(result.items.every((item) => item.status === "Ativa")).toBe(true);
-    expect(result.items.every((item) => item.totalDocumentos >= 0)).toBe(true);
-    expect(result.items.every((item) => item.totalTarefas >= 0)).toBe(true);
+    expect(resultado).toEqual({
+      ...resposta,
+      items: [
+        {
+          id: "unidade-123",
+          nome: "Unidade Central",
+          codigo: "UC-001",
+          status: "Ativa",
+          endereco: {
+            cep: "50030230",
+            logradouro: "Avenida Conde da Boa Vista",
+            numero: "100",
+            complemento: "Sala 2",
+            bairro: "Boa Vista",
+            cidade: "Recife",
+            uf: "PE",
+          },
+          descricao: "Unidade principal",
+          criadoEm: agora,
+          atualizadoEm: agora,
+          totalDocumentos: 15,
+          totalTarefas: 8,
+        },
+      ],
+    });
+  });
+
+  it("envia busca e filtro de status para a API", async () => {
+    httpMock.mockResolvedValue({
+      items: [],
+      page: 2,
+      pageSize: 5,
+      total: 0,
+      totalPages: 0,
+    });
+
+    await listarUnidades({
+      page: 2,
+      size: 5,
+      q: "  Central  ",
+      status: "Inativa",
+    });
+
+    expect(httpMock).toHaveBeenCalledWith("/unidades", {
+      params: {
+        page: 2,
+        pageSize: 5,
+        q: "Central",
+        status: "inativa",
+      },
+    });
+  });
+
+  it("normaliza paginação inválida para valores mínimos", async () => {
+    httpMock.mockResolvedValue({
+      items: [],
+      page: 1,
+      pageSize: 1,
+      total: 0,
+      totalPages: 0,
+    });
+
+    await listarUnidades({ page: 0, size: 0 });
+
+    expect(httpMock).toHaveBeenCalledWith("/unidades", {
+      params: { page: 1, pageSize: 1 },
+    });
+  });
+
+  it("usa valores padrão de totais quando ausentes na API", async () => {
+    httpMock.mockResolvedValue({
+      items: [{ ...unidadeApi, totalDocumentos: undefined, totalTarefas: undefined }],
+      page: 1,
+      pageSize: 12,
+      total: 1,
+      totalPages: 1,
+    });
+
+    const resultado = await listarUnidades();
+
+    expect(resultado.items[0]).toMatchObject({
+      totalDocumentos: 0,
+      totalTarefas: 0,
+    });
   });
 });
 
 describe("criarUnidade", () => {
-  const values = {
-    nome: "Unidade de teste",
-    identificador: "NOVO-UNIT",
-    cep: "50000000",
-    logradouro: "Rua de Teste",
-    numero: "S/N",
-    complemento: "",
-    cidade: "Recife",
-    bairro: "Centro",
-    uf: "PE" as const,
-    descricao: "",
-  };
+  it("envia payload normalizado e mapeia a unidade retornada", async () => {
+    httpMock.mockResolvedValue(unidadeApi);
 
-  it("recusa um identificador já usado", async () => {
-    await expect(
-      criarUnidade({ ...values, identificador: "001" }),
-    ).rejects.toBeInstanceOf(IdentificadorUnidadeDuplicadoError);
-  });
+    const resultado = await criarUnidade(dadosFormulario);
 
-  it("cria unidade ativa, registra datas e adiciona ao mock compartilhado", async () => {
-    const unidade = await criarUnidade(values);
-
-    try {
-      expect(unidade.status).toBe("Ativa");
-      expect(unidade.codigo).toBe(values.identificador);
-      expect(unidade.criadoEm).toEqual(expect.any(String));
-      expect(unidade.atualizadoEm).toBe(unidade.criadoEm);
-      expect(mockUnidades).toContain(unidade);
-      expect(mockHistoricoUnidades).toContainEqual(
-        expect.objectContaining({
-          unidadeId: unidade.id,
-          entidade: "Unidade",
-          entidadeId: unidade.id,
-          entidadeNome: unidade.nome,
-        }),
-      );
-    } finally {
-      const createdIndex = mockUnidades.findIndex(
-        (item) => item.id === unidade.id,
-      );
-      if (createdIndex >= 0) mockUnidades.splice(createdIndex, 1);
-      for (let index = mockHistoricoUnidades.length - 1; index >= 0; index -= 1) {
-        if (mockHistoricoUnidades[index]?.entidadeId === unidade.id) {
-          mockHistoricoUnidades.splice(index, 1);
-        }
-      }
-    }
-  });
-});
-
-
-describe("obterUnidade", () => {
-  afterEach(() => {
-    vi.restoreAllMocks();
-  });
-
-  it("consulta a API e converte os dados para o domínio do frontend", async () => {
-    const unidadeApi = {
-      id: "550e8400-e29b-41d4-a716-446655440000",
-      nome: "Matriz Recife",
-      codigo: "MAT-001",
-      status: "ativa",
-      endereco: {
-        cep: "50000000",
-        logradouro: "Rua de Teste",
+    expect(httpMock).toHaveBeenCalledWith("/unidades", {
+      method: "POST",
+      body: {
+        nome: "Unidade Central",
+        codigo: "UC-001",
+        cep: "50030230",
+        logradouro: "Avenida Conde da Boa Vista",
         numero: "100",
-        complemento: null,
-        bairro: "Centro",
+        complemento: "Sala 2",
+        bairro: "Boa Vista",
         cidade: "Recife",
         uf: "PE",
+        descricao: "Unidade principal",
       },
-      descricao: null,
-      criadoEm: "2026-01-10T12:00:00.000Z",
-      atualizadoEm: "2026-02-10T12:00:00.000Z",
-      totalDocumentos: 12,
-      totalTarefas: 8,
-    };
+    });
 
-    const fetchSpy = vi.spyOn(globalThis, "fetch").mockResolvedValue(
-      new Response(JSON.stringify(unidadeApi), {
-        status: 200,
-        headers: { "content-type": "application/json" },
-      }),
-    );
-
-    const { obterUnidade } = await import("./unidadesService");
-    const resultado = await obterUnidade(unidadeApi.id);
-
-    expect(fetchSpy).toHaveBeenCalledWith(
-      `/api/v1/unidades/${unidadeApi.id}`,
-      expect.objectContaining({
-        method: "GET",
-        credentials: "same-origin",
-      }),
-    );
-    expect(resultado).toEqual({
-      id: unidadeApi.id,
-      nome: "Matriz Recife",
-      codigo: "MAT-001",
+    expect(resultado).toMatchObject({
+      id: "unidade-123",
+      nome: "Unidade Central",
+      codigo: "UC-001",
       status: "Ativa",
-      endereco: {
-        cep: "50000000",
-        logradouro: "Rua de Teste",
-        numero: "100",
-        complemento: undefined,
-        bairro: "Centro",
-        cidade: "Recife",
-        uf: "PE",
-      },
-      descricao: undefined,
-      criadoEm: "2026-01-10T12:00:00.000Z",
-      atualizadoEm: "2026-02-10T12:00:00.000Z",
     });
   });
 
-  it("propaga o erro 404 da API quando a unidade não é encontrada", async () => {
-    vi.spyOn(globalThis, "fetch").mockResolvedValue(
-      new Response(
-        JSON.stringify({
-          timestamp: "2026-11-23T23:00:00.000Z",
-          status: 404,
-          error: "Not Found",
-          codigo: "RECURSO_NAO_ENCONTRADO",
-          message: "Unidade não encontrada.",
-          path: "/api/v1/unidades/unidade-inexistente",
-          erros: [],
-        }),
-        {
-          status: 404,
-          headers: { "content-type": "application/json" },
+  it("converte erro 409 de identificador duplicado", async () => {
+    httpMock.mockRejectedValue(
+      criarErroApi(409, "Identificador já cadastrado", "IDENTIFICADOR_DUPLICADO"),
+    );
+
+    await expect(criarUnidade(dadosFormulario)).rejects.toBeInstanceOf(
+      IdentificadorUnidadeDuplicadoError,
+    );
+  });
+});
+
+describe("atualizarUnidade", () => {
+  it("envia PUT com identificador codificado e payload normalizado", async () => {
+    httpMock.mockResolvedValue(unidadeApi);
+
+    await atualizarUnidade("id com espaço", dadosFormulario);
+
+    expect(httpMock).toHaveBeenCalledWith(
+      "/unidades/id%20com%20espa%C3%A7o",
+      {
+        method: "PUT",
+        body: {
+          nome: "Unidade Central",
+          codigo: "UC-001",
+          cep: "50030230",
+          logradouro: "Avenida Conde da Boa Vista",
+          numero: "100",
+          complemento: "Sala 2",
+          bairro: "Boa Vista",
+          cidade: "Recife",
+          uf: "PE",
+          descricao: "Unidade principal",
         },
-      ),
+      },
+    );
+  });
+});
+
+describe("obterUnidade", () => {
+  it("consulta pelo ID e mapeia unidade ativa", async () => {
+    httpMock.mockResolvedValue(unidadeApi);
+
+    const resultado = await obterUnidade("unidade-123");
+
+    expect(httpMock).toHaveBeenCalledWith("/unidades/unidade-123");
+    expect(resultado).toMatchObject({
+      id: "unidade-123",
+      status: "Ativa",
+      endereco: { cidade: "Recife", uf: "PE" },
+    });
+  });
+
+  it("mapeia unidade inativa", async () => {
+    httpMock.mockResolvedValue(unidadeApiInativa);
+
+    await expect(obterUnidade("unidade-123")).resolves.toMatchObject({
+      status: "Inativa",
+    });
+  });
+
+  it("converte 404 em RecursoNaoEncontradoError", async () => {
+    httpMock.mockRejectedValue(criarErroApi(404, "Unidade não encontrada."));
+
+    await expect(obterUnidade("inexistente")).rejects.toBeInstanceOf(
+      RecursoNaoEncontradoError,
+    );
+  });
+});
+
+describe("obterUnidadeParaEdicao", () => {
+  it("retorna a unidade quando encontrada", async () => {
+    httpMock.mockResolvedValue(unidadeApi);
+
+    await expect(obterUnidadeParaEdicao("unidade-123")).resolves.toMatchObject({
+      id: "unidade-123",
+      nome: "Unidade Central",
+    });
+  });
+
+  it("retorna null quando a unidade não existe", async () => {
+    httpMock.mockRejectedValue(criarErroApi(404, "Unidade não encontrada."));
+
+    await expect(obterUnidadeParaEdicao("inexistente")).resolves.toBeNull();
+  });
+
+  it("propaga erros diferentes de 404", async () => {
+    const erro = criarErroApi(503, "Serviço indisponível");
+    httpMock.mockRejectedValue(erro);
+
+    await expect(obterUnidadeParaEdicao("unidade-123")).rejects.toBe(erro);
+  });
+});
+
+describe("obterIndicadoresUnidade", () => {
+  const indicadoresApi = {
+    unidadeId: "unidade-123",
+    totalPendencias: 10,
+    documentos: {
+      total: 20,
+      valido: 12,
+      proximoVencimento: 5,
+      expirado: 3,
+    },
+    tarefas: {
+      total: 15,
+      pendente: 4,
+      emAndamento: 6,
+      concluida: 5,
+    },
+    variacao: {
+      referencia: "mes_anterior" as const,
+      documentosProximosVencimento: {
+        atual: 5,
+        anterior: 4,
+        percentual: 25,
+      },
+      documentosExpirados: {
+        atual: 3,
+        anterior: 2,
+        percentual: 50,
+      },
+      tarefasConcluidas: {
+        atual: 5,
+        anterior: 4,
+        percentual: 25,
+      },
+    },
+  };
+
+  it("consulta indicadores e mapeia distribuições e variações", async () => {
+    httpMock.mockResolvedValue(indicadoresApi);
+
+    const resultado = await obterIndicadoresUnidade("unidade-123");
+
+    expect(httpMock).toHaveBeenCalledWith(
+      "/unidades/unidade-123/indicadores",
     );
 
-    const { obterUnidade } = await import("./unidadesService");
+    expect(resultado).toMatchObject({
+      documentosExpirados: 3,
+      tarefasConcluidas: 5,
+      variacaoDocumentosExpirados: 50,
+      variacaoTarefasConcluidas: 25,
+      documentos: [
+        { label: "Válido", value: 12 },
+        { label: "Próximo do vencimento", value: 5 },
+        { label: "Expirado", value: 3 },
+      ],
+      tarefas: [
+        { label: "Concluída", value: 5 },
+        { label: "Em andamento", value: 6 },
+        { label: "Pendente", value: 4 },
+      ],
+    });
+  });
 
-    await expect(obterUnidade("unidade-inexistente")).rejects.toBeInstanceOf(
-      ApiError,
+  it("retorna null quando a API responde 404", async () => {
+    httpMock.mockRejectedValue(criarErroApi(404, "Unidade não encontrada."));
+
+    await expect(obterIndicadoresUnidade("inexistente")).resolves.toBeNull();
+  });
+
+  it("propaga erros diferentes de 404", async () => {
+    const erro = criarErroApi(503, "Serviço indisponível");
+    httpMock.mockRejectedValue(erro);
+
+    await expect(obterIndicadoresUnidade("unidade-123")).rejects.toBe(erro);
+  });
+});
+
+describe("alterarStatusUnidade", () => {
+  it("envia PATCH com status inativo", async () => {
+    httpMock.mockResolvedValue(unidadeApiInativa);
+
+    const resultado = await alterarStatusUnidade(
+      "unidade-123",
+      "Inativa",
+      "Administrador",
     );
+
+    expect(httpMock).toHaveBeenCalledWith("/unidades/unidade-123/status", {
+      method: "PATCH",
+      body: { status: "inativa" },
+    });
+
+    expect(resultado.status).toBe("Inativa");
+  });
+
+  it("envia PATCH com status ativo", async () => {
+    httpMock.mockResolvedValue(unidadeApi);
+
+    const resultado = await alterarStatusUnidade(
+      "unidade-123",
+      "Ativa",
+      "Administrador",
+    );
+
+    expect(httpMock).toHaveBeenCalledWith("/unidades/unidade-123/status", {
+      method: "PATCH",
+      body: { status: "ativa" },
+    });
+
+    expect(resultado.status).toBe("Ativa");
+  });
+
+  it("converte erro 403 em PerfilSemPermissaoError", async () => {
+    httpMock.mockRejectedValue(criarErroApi(403, "Sem permissão"));
+
+    await expect(
+      alterarStatusUnidade("unidade-123", "Inativa"),
+    ).rejects.toBeInstanceOf(PerfilSemPermissaoError);
   });
 });

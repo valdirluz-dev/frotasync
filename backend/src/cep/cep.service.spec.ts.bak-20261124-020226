@@ -1,0 +1,117 @@
+import { describe, expect, it, jest, beforeEach } from '@jest/globals';
+import {
+  BadRequestException,
+  HttpException,
+  ServiceUnavailableException,
+} from '@nestjs/common';
+import { CepService } from './cep.service';
+
+describe('CepService', () => {
+  let service: CepService;
+  const originalFetch = global.fetch;
+
+  beforeEach(() => {
+    service = new CepService();
+    global.fetch = jest.fn<typeof fetch>();
+  });
+
+  afterEach(() => {
+    global.fetch = originalFetch;
+  });
+
+  const validResponse = {
+    logradouro: 'Rua Teste',
+    bairro: 'Centro',
+    localidade: 'Recife',
+    uf: 'PE',
+  };
+
+  it('rejeita CEP com formato inválido antes de consultar o provedor', async () => {
+    await expect(service.buscar('123', 'ip-1')).rejects.toThrow(
+      BadRequestException,
+    );
+    expect(global.fetch).not.toHaveBeenCalled();
+  });
+
+  it('retorna endereço para CEP válido', async () => {
+    (global.fetch as jest.Mock<typeof fetch>).mockResolvedValue(
+      new Response(JSON.stringify(validResponse), { status: 200 }),
+    );
+
+    await expect(service.buscar('50030230', 'ip-1')).resolves.toEqual({
+      logradouro: 'Rua Teste',
+      bairro: 'Centro',
+      cidade: 'Recife',
+      uf: 'PE',
+    });
+  });
+
+  it('normaliza CEP com caracteres de formatação', async () => {
+    (global.fetch as jest.Mock<typeof fetch>).mockResolvedValue(
+      new Response(JSON.stringify(validResponse), { status: 200 }),
+    );
+
+    await service.buscar('50030-230', 'ip-1');
+
+    expect(global.fetch).toHaveBeenCalledWith(
+      'https://viacep.com.br/ws/50030230/json/',
+      expect.objectContaining({ signal: expect.any(AbortSignal) }),
+    );
+  });
+
+  it('retorna 404 quando o CEP não é encontrado', async () => {
+    (global.fetch as jest.Mock<typeof fetch>).mockResolvedValue(
+      new Response(JSON.stringify({ erro: true }), { status: 200 }),
+    );
+
+    await expect(service.buscar('99999999', 'ip-1')).rejects.toThrow(
+      HttpException,
+    );
+  });
+
+  it('reutiliza cache e não consulta ViaCEP novamente', async () => {
+    (global.fetch as jest.Mock<typeof fetch>).mockResolvedValue(
+      new Response(JSON.stringify(validResponse), { status: 200 }),
+    );
+
+    await service.buscar('50030230', 'ip-1');
+    await service.buscar('50030230', 'ip-1');
+
+    expect(global.fetch).toHaveBeenCalledTimes(1);
+  });
+
+  it('retorna 503 quando ViaCEP está indisponível', async () => {
+    (global.fetch as jest.Mock<typeof fetch>).mockRejectedValue(
+      new Error('Network failure'),
+    );
+
+    await expect(service.buscar('50030230', 'ip-1')).rejects.toThrow(
+      ServiceUnavailableException,
+    );
+  });
+
+  it('retorna 503 quando ViaCEP retorna HTTP de erro', async () => {
+    (global.fetch as jest.Mock<typeof fetch>).mockResolvedValue(
+      new Response('', { status: 502 }),
+    );
+
+    await expect(service.buscar('50030230', 'ip-1')).rejects.toThrow(
+      ServiceUnavailableException,
+    );
+  });
+
+  it('limita 30 consultas não cacheadas por IP por janela', async () => {
+    (global.fetch as jest.Mock<typeof fetch>).mockResolvedValue(
+      new Response(JSON.stringify(validResponse), { status: 200 }),
+    );
+
+    for (let i = 0; i < 30; i += 1) {
+      const cep = String(10000000 + i);
+      await service.buscar(cep, 'ip-rate-limit');
+    }
+
+    await expect(service.buscar('88888888', 'ip-rate-limit')).rejects.toThrow(
+      HttpException,
+    );
+  });
+});

@@ -2,7 +2,7 @@
 
 import { useMemo, useState } from "react";
 // Componentes de Layout e Interface
-import Link from "next/link"
+import Link from "next/link";
 import { AppShell } from "@/components/layout/AppShell";
 import { Icon } from "@/components/ui/Icons";
 import { StatTrend } from "@/components/dashboard/StatTrend";
@@ -35,7 +35,9 @@ export function DocumentosClient() {
   // --- ESTADOS LOCAIS DOS FILTROS E PAGINAÇÃO ---
   const [unitId, setUnitId] = useState("todas");
   const [documentSearch, setDocumentSearch] = useState("");
-  const [documentStatus, setDocumentStatus] = useState<DocumentoStatus | "Todos">("Todos");
+  const [documentStatus, setDocumentStatus] = useState<
+    DocumentoStatus | "Todos"
+  >("Todos");
   const [category, setCategory] = useState("todas");
   const [documentPage, setDocumentPage] = useState(1);
 
@@ -43,6 +45,24 @@ export function DocumentosClient() {
   // Busca indicadores gerais para o cartão de estatísticas
   const indicatorQuery = useDashboardIndicators();
   const categoriasQuery = useCategoriasDocumentos();
+
+  const hasActiveFilters =
+    Boolean(documentSearch.trim()) ||
+    unitId !== "todas" ||
+    category !== "todas" ||
+    documentStatus !== "Todos";
+
+  const collectionQuery = useDashboardDocuments(
+    {
+      page: 1,
+      pageSize: 1,
+      search: "",
+      unidadeId: "todas",
+      categoria: "todas",
+      status: "Todos",
+    },
+    hasActiveFilters,
+  );
 
   // Busca a lista paginada e filtrada de documentos reais do backend
   const documentQuery = useDashboardDocuments({
@@ -54,14 +74,18 @@ export function DocumentosClient() {
     status: documentStatus,
   });
 
+  const isEmptyCollection = hasActiveFilters
+    ? collectionQuery.data?.total === 0
+    : documentQuery.data?.total === 0;
+
   // Mapeamentos otimizados de nomes e status de unidades para passagem direta à tabela
   const unitNames = useMemo(
     () => new Map(mockUnidades.map((unit) => [unit.id, unit.nome])),
-    []
+    [],
   );
   const unitStatuses = useMemo(
     () => new Map(mockUnidades.map((unit) => [unit.id, unit.status])),
-    []
+    [],
   );
 
   const indicators = indicatorQuery.data;
@@ -69,7 +93,6 @@ export function DocumentosClient() {
   return (
     // Estrutura principal da aplicação mantendo a aba 'documentos' ativa no menu lateral
     <AppShell activeTab="documentos">
-      
       {/* 1. CABEÇALHO DA PÁGINA */}
       <div className="mb-6 flex flex-wrap items-end justify-between gap-3">
         <h1 className="text-[32px] font-bold leading-tight tracking-[-0.04em] text-slate-900 sm:text-[40px]">
@@ -78,7 +101,6 @@ export function DocumentosClient() {
       </div>
 
       <section aria-label="Lista de documentos">
-        
         {/* 2. BLOCO DE DESTAQUE E BOTÃO DE AÇÃO */}
         <div className="mb-5 flex flex-col gap-4 xl:flex-row xl:items-center">
           <div className="min-w-0 flex-1">
@@ -92,18 +114,21 @@ export function DocumentosClient() {
           </div>
 
           {/* Botão de navegação/ação para registar um novo documento */}
-         <Link href="/documentos/novo" className="inline-flex h-10 strink-0 items-center justify-center gap-2 rounded-xl bg-indigo-600 px-4 text-xs font-semibold text-white shadow-sm hover:bg-indigo-700">
-         <Icon name="plus" className="h-4 w-4" />
-         Novo documento
-         </Link>
+          <Link
+            href="/documentos/novo"
+            className="inline-flex h-10 strink-0 items-center justify-center gap-2 rounded-xl bg-indigo-600 px-4 text-xs font-semibold text-white shadow-sm hover:bg-indigo-700">
+            <Icon name="plus" className="h-4 w-4" />
+            Novo documento
+          </Link>
         </div>
 
         {/* 3. BARRA DE FILTROS E PESQUISA */}
         <div className="grid gap-3 sm:grid-cols-2 xl:grid-cols-4">
-          
           {/* Campo de Pesquisa por Texto */}
           <label className="block min-w-0">
-            <span className="mb-1.5 block text-[10px] font-bold text-slate-700">Buscar documento</span>
+            <span className="mb-1.5 block text-[10px] font-bold text-slate-700">
+              Buscar documento
+            </span>
             <div className="flex h-11 items-center gap-2 rounded-xl border border-slate-200 bg-white px-3 focus-within:border-indigo-400 focus-within:ring-2 focus-within:ring-indigo-100">
               <Icon name="search" className="h-4 w-4 shrink-0 text-slate-400" />
               <input
@@ -120,56 +145,67 @@ export function DocumentosClient() {
 
           {/* Filtro por Unidade */}
           <label className="block min-w-0">
-            <span className="mb-1.5 block text-[10px] font-bold text-slate-700">Unidade</span>
+            <span className="mb-1.5 block text-[10px] font-bold text-slate-700">
+              Unidade
+            </span>
             <select
               value={unitId}
               onChange={(event) => {
                 setUnitId(event.target.value);
                 setDocumentPage(1); // Reseta para a 1ª página ao alterar filtro
               }}
-              className="h-11 w-full appearance-none rounded-xl border border-slate-200 bg-white px-3 pr-8 text-xs text-slate-700 outline-none focus:border-indigo-400 focus:ring-2 focus:ring-indigo-100"
-            >
+              className="h-11 w-full appearance-none rounded-xl border border-slate-200 bg-white px-3 pr-8 text-xs text-slate-700 outline-none focus:border-indigo-400 focus:ring-2 focus:ring-indigo-100">
               <option value="todas">Todas as unidades</option>
               {mockUnidades.map((unit) => (
-                <option key={unit.id} value={unit.id}>{unit.nome}</option>
+                <option key={unit.id} value={unit.id}>
+                  {unit.nome}
+                </option>
               ))}
             </select>
           </label>
 
           {/* Filtro por Categoria */}
           <label className="block min-w-0">
-            <span className="mb-1.5 block text-[10px] font-bold text-slate-700">Categoria</span>
+            <span className="mb-1.5 block text-[10px] font-bold text-slate-700">
+              Categoria
+            </span>
             <select
               value={category}
               onChange={(event) => {
                 setCategory(event.target.value);
                 setDocumentPage(1); // Reseta para a 1ª página ao alterar filtro
               }}
-              className="h-11 w-full appearance-none rounded-xl border border-slate-200 bg-white px-3 pr-8 text-xs text-slate-700 outline-none focus:border-indigo-400 focus:ring-2 focus:ring-indigo-100"
-            >
+              className="h-11 w-full appearance-none rounded-xl border border-slate-200 bg-white px-3 pr-8 text-xs text-slate-700 outline-none focus:border-indigo-400 focus:ring-2 focus:ring-indigo-100">
               <option value="todas">Todas as categorias</option>
               {(categoriasQuery.data ?? []).map((option) => (
-                <option key={option} value={option}>{option}</option>
+                <option key={option} value={option}>
+                  {option}
+                </option>
               ))}
             </select>
           </label>
 
           {/* Filtro por Status do Documento */}
           <label className="block min-w-0">
-            <span className="mb-1.5 block text-[10px] font-bold text-slate-700">Status</span>
+            <span className="mb-1.5 block text-[10px] font-bold text-slate-700">
+              Status
+            </span>
             <select
               value={documentStatus}
               onChange={(event) => {
-                setDocumentStatus(event.target.value as DocumentoStatus | "Todos");
+                setDocumentStatus(
+                  event.target.value as DocumentoStatus | "Todos",
+                );
                 setDocumentPage(1); // Reseta para a 1ª página ao alterar filtro
               }}
-              className="h-11 w-full appearance-none rounded-xl border border-slate-200 bg-white px-3 pr-8 text-xs text-slate-700 outline-none focus:border-indigo-400 focus:ring-2 focus:ring-indigo-100"
-            >
+              className="h-11 w-full appearance-none rounded-xl border border-slate-200 bg-white px-3 pr-8 text-xs text-slate-700 outline-none focus:border-indigo-400 focus:ring-2 focus:ring-indigo-100">
               <option value="Todos">Todos os status</option>
               {documentStatuses
                 .filter((status) => status !== "Todos")
                 .map((status) => (
-                  <option key={status} value={status}>{status}</option>
+                  <option key={status} value={status}>
+                    {status}
+                  </option>
                 ))}
             </select>
           </label>
@@ -190,9 +226,9 @@ export function DocumentosClient() {
             total={documentQuery.data?.total ?? 0}
             pageSize={documentQuery.data?.pageSize ?? 10}
             onPageChange={setDocumentPage}
+            isEmptyCollection={isEmptyCollection}
           />
         </div>
-
       </section>
     </AppShell>
   );

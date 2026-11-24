@@ -8,6 +8,7 @@ import { StorageModule } from './storage/storage.module';
 import { DocumentosModule } from './documentos/documentos.module';
 import { TarefasModule } from './tarefas/tarefas.module';
 import { DashboardModule } from './dashboard/dashboard.module';
+import { CepModule } from './cep/cep.module';
 
 @Module({
   imports: [
@@ -19,6 +20,7 @@ import { DashboardModule } from './dashboard/dashboard.module';
     DocumentosModule,
     TarefasModule,
     DashboardModule,
+    CepModule,
     StorageModule,
   ],
 })

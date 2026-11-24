@@ -30,6 +30,7 @@ function formatDate(value: string | null) {
 
 type DocumentosTableProps = {
   items: Documento[];
+  isEmptyCollection?: boolean;
   mode: "global" | "unidade";
   isReadOnly?: boolean;
   unidadeNames?: ReadonlyMap<string, string>;
@@ -46,6 +47,7 @@ type DocumentosTableProps = {
 
 export function DocumentosTable({
   items,
+  isEmptyCollection = false,
   mode,
   isReadOnly = false,
   unidadeNames,
@@ -111,13 +113,15 @@ export function DocumentosTable({
             <tbody>
               {table.getRowModel().rows.map(({ original: document }) => {
                 const rowIsReadOnly =
-                  isReadOnly || unidadeStatuses?.get(document.unidadeId) === "Inativa";
-                const href = mode === "unidade"
-                  ? `/unidades/${document.unidadeId}/documentos/${document.id}/editar`
-                  : `/documentos/${document.id}/editar`;
+                  isReadOnly ||
+                  unidadeStatuses?.get(document.unidadeId) === "Inativa";
+                const href =
+                  mode === "unidade"
+                    ? `/unidades/${document.unidadeId}/documentos/${document.id}/editar`
+                    : `/documentos/${document.id}/editar`;
                 return (
                   <tr key={document.id} className="hover:bg-slate-50/80">
-                                        <td className="px-3 py-3">
+                    <td className="px-3 py-3">
                       <div className="flex items-center gap-2">
                         <button
                           type="button"
@@ -128,41 +132,66 @@ export function DocumentosTable({
                         </button>
 
                         {rowIsReadOnly ? (
-                          <button type="button" disabled title="Unidade inativa" className="inline-flex cursor-not-allowed items-center gap-1 rounded-md border border-slate-200 bg-slate-100 px-2 py-1 text-[10px] font-medium text-slate-400">
+                          <button
+                            type="button"
+                            disabled
+                            title="Unidade inativa"
+                            className="inline-flex cursor-not-allowed items-center gap-1 rounded-md border border-slate-200 bg-slate-100 px-2 py-1 text-[10px] font-medium text-slate-400">
                             <Icon name="edit" className="h-3 w-3" />
-                            {mode === "unidade" ? "Editar informações" : "Editar"}
+                            {mode === "unidade"
+                              ? "Editar informações"
+                              : "Editar"}
                           </button>
                         ) : (
-                          <Link href={href} className="inline-flex items-center gap-1 rounded-md border border-slate-200 px-2 py-1 text-[10px] font-medium text-slate-500 hover:border-indigo-200 hover:text-indigo-700">
+                          <Link
+                            href={href}
+                            className="inline-flex items-center gap-1 rounded-md border border-slate-200 px-2 py-1 text-[10px] font-medium text-slate-500 hover:border-indigo-200 hover:text-indigo-700">
                             <Icon name="edit" className="h-3 w-3" />
-                            {mode === "unidade" ? "Editar informações" : "Editar"}
+                            {mode === "unidade"
+                              ? "Editar informações"
+                              : "Editar"}
                           </Link>
                         )}
                       </div>
                     </td>
                     <td className="whitespace-nowrap px-3 py-3 text-xs font-semibold text-slate-900 first:pl-4">
                       {document.anexo?.url ? (
-  <a
-    href={document.anexo.url}
-    target="_blank"
-    rel="noopener noreferrer"
-    className="text-indigo-700 hover:underline">
-    {document.nome}
-  </a>
-) : (
-  document.nome
-)}
+                        <a
+                          href={document.anexo.url}
+                          target="_blank"
+                          rel="noopener noreferrer"
+                          className="text-indigo-700 hover:underline">
+                          {document.nome}
+                        </a>
+                      ) : (
+                        document.nome
+                      )}
                     </td>
                     {showUnit ? (
                       <td className="whitespace-nowrap px-3 py-3 text-xs text-slate-700">
-                        {document.unidadeNome ?? unidadeNames?.get(document.unidadeId) ?? "—"}
+                        {document.unidadeNome ??
+                          unidadeNames?.get(document.unidadeId) ??
+                          "—"}
                       </td>
                     ) : null}
-                    <td className="whitespace-nowrap px-3 py-3 text-xs text-slate-700">{document.categoria}</td>
-                    <td className="whitespace-nowrap px-3 py-3 text-xs tabular-nums text-slate-700">{formatDate(document.dataEmissao)}</td>
-                    <td className="whitespace-nowrap px-3 py-3 text-xs tabular-nums text-slate-700">{formatDate(document.dataValidade)}</td>
-                    <td className="px-3 py-3"><StatusBadge status={document.statusValidade ? statusLabels[document.statusValidade] : calcularStatusDocumento(document.dataValidade)} /></td>
-
+                    <td className="whitespace-nowrap px-3 py-3 text-xs text-slate-700">
+                      {document.categoria}
+                    </td>
+                    <td className="whitespace-nowrap px-3 py-3 text-xs tabular-nums text-slate-700">
+                      {formatDate(document.dataEmissao)}
+                    </td>
+                    <td className="whitespace-nowrap px-3 py-3 text-xs tabular-nums text-slate-700">
+                      {formatDate(document.dataValidade)}
+                    </td>
+                    <td className="px-3 py-3">
+                      <StatusBadge
+                        status={
+                          document.statusValidade
+                            ? statusLabels[document.statusValidade]
+                            : calcularStatusDocumento(document.dataValidade)
+                        }
+                      />
+                    </td>
                   </tr>
                 );
               })}
@@ -181,9 +210,9 @@ export function DocumentosTable({
         />
       ) : null}
       <DocumentoViewerDialog
-  documento={viewing}
-  onClose={() => setViewing(null)}
-/>
+        documento={viewing}
+        onClose={() => setViewing(null)}
+      />
     </div>
   );
 }

@@ -10,7 +10,6 @@ import {
   listarHistoricoUnidade,
   registrarEventoHistoricoUnidade,
 } from "./historicoUnidadesService";
-import { criarUnidade, atualizarUnidade, alterarStatusUnidade } from "./unidadesService";
 import { criarTarefa, atualizarTarefa, alterarStatusTarefa } from "./tarefasService";
 
 const createdIds: string[] = [];
@@ -126,57 +125,42 @@ describe("historicoUnidadesService", () => {
     expect(result.items[0]?.entidadeNome).toBe("Licença Ambiental");
   });
 
-  it("registra criação e atualização confirmadas de unidade e tarefa", async () => {
-    let unidadeId: string | null = null;
-    try {
-      const unidade = await criarUnidade({
-        nome: "Unidade de auditoria",
-        identificador: `AUDIT-${Date.now()}`,
-        cep: "50000000",
-        logradouro: "Rua de Teste",
-        numero: "10",
-        complemento: "",
-        bairro: "Centro",
-        cidade: "Recife",
-        uf: "PE",
-        descricao: "",
-      });
-      unidadeId = unidade.id;
-      await atualizarUnidade(unidade.id, {
-        nome: "Unidade de auditoria atualizada",
-        identificador: unidade.codigo,
-        cep: "50000000",
-        logradouro: "Rua de Teste",
-        numero: "10",
-        complemento: "",
-        bairro: "Centro",
-        cidade: "Recife",
-        uf: "PE",
-        descricao: "",
-      });
+  it("registra criação, atualização e alteração de status de tarefa", async () => {
+    const unidade = mockUnidades.find((item) => item.status === "Ativa");
+    expect(unidade).toBeDefined();
+    if (!unidade) return;
 
+    const tarefaIdsAntes = new Set(mockTarefas.map((item) => item.id));
+
+    try {
       const tarefa = await criarTarefa({
         ...mockNovaTarefa,
         unidadeId: unidade.id,
       });
+      createdIds.push(
+        ...mockHistoricoUnidades
+          .filter((evento) => evento.unidadeId === unidade.id)
+          .map((evento) => evento.id),
+      );
+
       await atualizarTarefa(tarefa.id, {
         ...mockNovaTarefa,
         unidadeId: unidade.id,
         titulo: "Tarefa atualizada",
       });
       await alterarStatusTarefa(tarefa.id, "Em andamento");
-      await alterarStatusUnidade(unidade.id, "Inativa", "Administrador");
 
       const events = mockHistoricoUnidades.filter(
-        (evento) => evento.unidadeId === unidade.id,
+        (evento) =>
+          evento.unidadeId === unidade.id &&
+          evento.entidade === "Tarefa" &&
+          evento.entidadeId === tarefa.id,
       );
+
       expect(events.map((evento) => evento.acao)).toEqual([
-        "Cadastrou a unidade",
-        "Atualizou os dados da unidade",
         "Cadastrou a tarefa",
         "Atualizou a tarefa",
         "Alterou o status da tarefa de Pendente para Em andamento",
-        "Alterou o status da unidade de Ativa para Inativa",
       ]);
       expect(events.every((evento) => evento.usuario === usuarioLogadoAtual.nome)).toBe(true);
 
@@ -184,21 +168,14 @@ describe("historicoUnidadesService", () => {
         criarTarefa({ ...mockNovaTarefa, unidadeId: "unidade-inexistente" }),
       ).rejects.toBeInstanceOf(RecursoNaoEncontradoError);
       expect(
-        mockHistoricoUnidades.filter((evento) => evento.unidadeId === unidade.id),
-      ).toHaveLength(6);
+        mockHistoricoUnidades.filter(
+          (evento) => evento.unidadeId === unidade.id && evento.entidadeId === tarefa.id,
+        ),
+      ).toHaveLength(3);
     } finally {
-      if (unidadeId) {
-        for (let index = mockTarefas.length - 1; index >= 0; index -= 1) {
-          if (mockTarefas[index]?.unidadeId === unidadeId) {
-            mockTarefas.splice(index, 1);
-          }
-        }
-        const unitIndex = mockUnidades.findIndex((item) => item.id === unidadeId);
-        if (unitIndex >= 0) mockUnidades.splice(unitIndex, 1);
-        for (let index = mockHistoricoUnidades.length - 1; index >= 0; index -= 1) {
-          if (mockHistoricoUnidades[index]?.unidadeId === unidadeId) {
-            mockHistoricoUnidades.splice(index, 1);
-          }
+      for (let index = mockTarefas.length - 1; index >= 0; index -= 1) {
+        if (!tarefaIdsAntes.has(mockTarefas[index]!.id)) {
+          mockTarefas.splice(index, 1);
         }
       }
     }

@@ -18,11 +18,15 @@ export function useDashboardIndicators() {
   });
 }
 
-export function useDashboardDocuments(filters: DocumentFilters) {
+export function useDashboardDocuments(
+  filters: DocumentFilters,
+  enabled = true,
+) {
   return useQuery({
     queryKey: ["dashboard", "documents", filters],
     queryFn: () => getDashboardDocuments(filters),
     staleTime: 30_000,
+    enabled,
   });
 }
 
@@ -33,7 +37,6 @@ export function useDashboardTasks(filters: TaskFilters) {
     staleTime: 30_000,
   });
 }
-
 
 export function useCategoriasDocumentos() {
   return useQuery({

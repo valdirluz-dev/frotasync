@@ -1,4 +1,6 @@
-import { describe, expect, it } from "vitest";
+import { afterEach, describe, expect, it, vi } from "vitest";
+import { ApiError, http } from "@/lib/http";
+import { STATUS_COLORS } from "@/lib/statusColors";
 
 import { calcularStatusDocumento } from "@/lib/status";
 import { mockDocumentos, mockTarefas, mockUnidades } from "@/mocks/dashboard";
@@ -15,30 +17,53 @@ import {
 } from "./unidadesService";
 import { getDashboardTasks } from "./dashboardService";
 
-describe("serviços de detalhe da unidade", () => {
-  it("obtém indicadores calculados apenas com os dados da unidade", async () => {
-    const unitId = "u-001";
-    const indicadores = await obterIndicadoresUnidade(unitId);
-    const documents = mockDocumentos.filter(
-      (item) => item.unidadeId === unitId,
-    );
-    const tasks = mockTarefas.filter((item) => item.unidadeId === unitId);
+vi.mock("@/lib/http", async (importOriginal) => {
+  const actual = await importOriginal<typeof import("@/lib/http")>();
+  return { ...actual, http: vi.fn() };
+});
 
-    expect(indicadores).not.toBeNull();
-    expect(
-      indicadores?.documentos.reduce((sum, item) => sum + item.value, 0),
-    ).toBe(documents.length);
-    expect(
-      indicadores?.tarefas.reduce((sum, item) => sum + item.value, 0),
-    ).toBe(tasks.length);
-    expect(indicadores?.documentosExpirados).toBe(
-      documents.filter(
-        (item) => calcularStatusDocumento(item.dataValidade) === "Expirado",
-      ).length,
-    );
-    expect(indicadores?.tarefasConcluidas).toBe(
-      tasks.filter((item) => item.status === "Concluída").length,
-    );
+const httpMock = vi.mocked(http);
+
+afterEach(() => vi.clearAllMocks());
+
+const agora = "2026-11-24T00:00:00.000Z";
+
+function erroApi(status: number, message: string) {
+  return new ApiError(status, {
+    timestamp: agora,
+    status,
+    error: "Error",
+    message,
+    path: "/api/v1/unidades/u-001/status",
+    erros: [],
+  });
+}
+
+describe("serviços de detalhe da unidade", () => {
+  it("obtém indicadores da unidade pela API e mapeia os valores", async () => {
+    httpMock.mockResolvedValue({
+      unidadeId: "u-001",
+      totalPendencias: 8,
+      documentos: { total: 10, valido: 4, proximoVencimento: 3, expirado: 3 },
+      tarefas: { total: 6, pendente: 2, emAndamento: 1, concluida: 3 },
+      variacao: {
+        referencia: "mes_anterior",
+        documentosProximosVencimento: { atual: 3, anterior: 2, percentual: 50 },
+        documentosExpirados: { atual: 3, anterior: 1, percentual: 200 },
+        tarefasConcluidas: { atual: 3, anterior: 2, percentual: 50 },
+      },
+    });
+
+    const indicadores = await obterIndicadoresUnidade("u-001");
+
+    expect(httpMock).toHaveBeenCalledWith("/unidades/u-001/indicadores");
+    expect(indicadores?.documentos.map((item) => item.value)).toEqual([4, 3, 3]);
+    expect(indicadores?.tarefas.map((item) => item.value)).toEqual([3, 1, 2]);
+    expect(indicadores?.documentosExpirados).toBe(3);
+    expect(indicadores?.tarefasConcluidas).toBe(3);
+    expect(indicadores?.variacaoDocumentosExpirados).toBe(200);
+    expect(indicadores?.variacaoTarefasConcluidas).toBe(50);
+    expect(indicadores?.documentos[0]?.color).toBe(STATUS_COLORS.completed);
   });
 
   it("mantém dados e três status variados inclusive nas unidades inativas", () => {
@@ -74,28 +99,46 @@ describe("serviços de detalhe da unidade", () => {
     expect(tasks.items.every((item) => item.unidadeId === "u-002")).toBe(true);
   });
 
-  it("altera status da unidade e atualiza a última modificação", async () => {
-    const unitIndex = mockUnidades.findIndex((item) => item.id === "u-001");
-    const original = mockUnidades[unitIndex];
+  it("altera status da unidade pela API e mapeia o retorno", async () => {
+    httpMock.mockResolvedValue({
+      id: "u-001",
+      nome: "Unidade Recife",
+      codigo: "REC-001",
+      status: "inativa",
+      endereco: {
+        cep: "50030230", logradouro: "Rua Teste", numero: "100",
+        complemento: "", bairro: "Centro", cidade: "Recife", uf: "PE",
+      },
+      descricao: "",
+      criadoEm: agora,
+      atualizadoEm: "2026-11-24T01:00:00.000Z",
+      totalDocumentos: 0,
+      totalTarefas: 0,
+    });
 
-    try {
-      const updated = await alterarStatusUnidade(
-        original.id,
-        "Ativa",
-        "Administrador",
-      );
-      expect(updated.status).toBe("Ativa");
-      expect(updated.atualizadoEm).not.toBe(original.atualizadoEm);
-      expect(mockUnidades[unitIndex].status).toBe("Ativa");
-    } finally {
-      mockUnidades[unitIndex] = original;
-    }
+    const updated = await alterarStatusUnidade("u-001", "Inativa", "Administrador");
+
+    expect(httpMock).toHaveBeenCalledWith("/unidades/u-001/status", {
+      method: "PATCH",
+      body: { status: "inativa" },
+    });
+    expect(updated.status).toBe("Inativa");
+    expect(updated.atualizadoEm).toBe("2026-11-24T01:00:00.000Z");
   });
 
-  it("recusa alteração de status da unidade para perfil não administrador", async () => {
+  it("propaga o HTTP 403 do backend para perfil sem permissão", async () => {
+    httpMock.mockRejectedValue(
+      erroApi(403, "Somente Administrador pode alterar o status da unidade."),
+    );
+
     await expect(
       alterarStatusUnidade("u-001", "Ativa", "Colaborador"),
     ).rejects.toBeInstanceOf(PerfilSemPermissaoError);
+
+    expect(httpMock).toHaveBeenCalledWith("/unidades/u-001/status", {
+      method: "PATCH",
+      body: { status: "ativa" },
+    });
   });
 
   it("registra a conclusão e limpa dataConclusao ao reabrir a tarefa", async () => {

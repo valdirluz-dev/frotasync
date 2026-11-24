@@ -1,166 +1,24 @@
-import { mockDocumentos, mockTarefas, mockUnidades } from "@/mocks/dashboard";
-import { http } from "@/lib/http";
+import { http, ApiError } from "@/lib/http";
 import { normalizarCep } from "@/lib/cep";
-import { IdentificadorUnidadeDuplicadoError } from "@/lib/errors";
-import { wait } from "@/lib/mockApi";
+import {
+  IdentificadorUnidadeDuplicadoError,
+  RecursoNaoEncontradoError,
+  PerfilSemPermissaoError,
+} from "@/lib/errors";
 import { STATUS_COLORS } from "@/lib/statusColors";
-import { monthKey, offsetMonthKey, percentVariation } from "@/lib/month";
-import { registrarEventoHistoricoUnidade } from "@/services/historicoUnidadesService";
 import type { UnidadeFormValues } from "@/schemas/unidade";
 import type {
   Paginated,
   Unidade,
   UnidadeListItem,
   UnidadesFilters,
+  UnidadeIndicadores,
+  UnidadeStatus,
+  PerfilUsuario,
+  DashboardDistribution,
 } from "@/types/domain";
 
 const DEFAULT_PAGE_SIZE = 12;
-//const SIMULATED_LATENCY_MS = 120;
-
-function normalizeSearch(value: string): string {
-  return value
-    .normalize("NFD")
-    .replace(/[\u0300-\u036f]/g, "")
-    .toLocaleLowerCase("pt-BR")
-    .trim();
-}
-
-export async function listarUnidades({
-  page = 1,
-  size = DEFAULT_PAGE_SIZE,
-  q = "",
-  status = "Todos",
-}: UnidadesFilters = {}): Promise<Paginated<UnidadeListItem>> {
-  await wait();
-
-  const query = normalizeSearch(q);
-  const filtered = mockUnidades
-    .filter((unidade) => {
-      const matchesQuery =
-        !query ||
-        normalizeSearch(unidade.nome).includes(query) ||
-        normalizeSearch(unidade.codigo).includes(query);
-      const matchesStatus = status === "Todos" || unidade.status === status;
-      return matchesQuery && matchesStatus;
-    })
-    .map((unidade) => ({
-      ...unidade,
-      totalDocumentos: mockDocumentos.filter(
-        (documento) => documento.unidadeId === unidade.id,
-      ).length,
-      totalTarefas: mockTarefas.filter(
-        (tarefa) => tarefa.unidadeId === unidade.id,
-      ).length,
-    }));
-
-  const safeSize = Math.max(1, Math.floor(size));
-  const total = filtered.length;
-  const totalPages = Math.max(1, Math.ceil(total / safeSize));
-  const safePage = Math.min(Math.max(1, Math.floor(page)), totalPages);
-  const start = (safePage - 1) * safeSize;
-
-  return {
-    items: filtered.slice(start, start + safeSize),
-    page: safePage,
-    pageSize: safeSize,
-    total,
-    totalPages,
-  };
-}
-
-export async function criarUnidade(data: UnidadeFormValues): Promise<Unidade> {
-  await wait();
-
-  const identificador = data.identificador.trim();
-  const duplicate = mockUnidades.some(
-    (unidade) =>
-      normalizeSearch(unidade.codigo) === normalizeSearch(identificador),
-  );
-  if (duplicate) throw new IdentificadorUnidadeDuplicadoError();
-
-  const nextSequence =
-    mockUnidades.reduce((maximum, unidade) => {
-      const matched = /^u-(\d+)$/.exec(unidade.id);
-      return Math.max(maximum, matched ? Number(matched[1]) : 0);
-    }, 0) + 1;
-  const timestamp = new Date().toISOString();
-
-  const unidade: Unidade = {
-    id: `u-${String(nextSequence).padStart(3, "0")}`,
-    nome: data.nome.trim(),
-    codigo: identificador,
-    status: "Ativa",
-    endereco: {
-      logradouro: data.logradouro.trim(),
-      numero: data.numero.trim(),
-      bairro: data.bairro.trim(),
-      cidade: data.cidade.trim(),
-      uf: data.uf,
-      cep: normalizarCep(data.cep),
-      complemento: data.complemento?.trim() || undefined,
-    },
-    descricao: data.descricao?.trim() || undefined,
-    criadoEm: timestamp,
-    atualizadoEm: timestamp,
-  };
-
-  mockUnidades.push(unidade);
-  registrarEventoHistoricoUnidade({
-    unidadeId: unidade.id,
-    acao: "Cadastrou a unidade",
-    entidade: "Unidade",
-    entidadeId: unidade.id,
-    entidadeNome: unidade.nome,
-  });
-  return unidade;
-}
-
-export async function obterUnidadeParaEdicao(id: string): Promise<Unidade | null> {
-  await wait();
-  return mockUnidades.find((unidade) => unidade.id === id) ?? null;
-}
-
-export async function atualizarUnidade(id: string, data: UnidadeFormValues): Promise<Unidade> {
-  await wait();
-  const index = mockUnidades.findIndex((unidade) => unidade.id === id);
-  if (index < 0) throw new Error("Unidade não encontrada.");
-  const identificador = data.identificador.trim();
-  const duplicate = mockUnidades.some(
-    (unidade) => unidade.id !== id && normalizeSearch(unidade.codigo) === normalizeSearch(identificador),
-  );
-  if (duplicate) throw new IdentificadorUnidadeDuplicadoError();
-
-  const current = mockUnidades[index];
-  const updated: Unidade = {
-    ...current,
-    nome: data.nome.trim(),
-    codigo: identificador,
-    endereco: {
-      logradouro: data.logradouro.trim(),
-      numero: data.numero.trim(),
-      complemento: data.complemento?.trim() || undefined,
-      bairro: data.bairro.trim(),
-      cidade: data.cidade.trim(),
-      uf: data.uf,
-      cep: normalizarCep(data.cep),
-    },
-    descricao: data.descricao?.trim() || undefined,
-    atualizadoEm: new Date().toISOString(),
-  };
-  mockUnidades[index] = updated;
-  registrarEventoHistoricoUnidade({
-    unidadeId: updated.id,
-    acao: "Atualizou os dados da unidade",
-    entidade: "Unidade",
-    entidadeId: updated.id,
-    entidadeNome: updated.nome,
-  });
-  return updated;
-}
-
-import { calcularStatusDocumento } from "@/lib/status";
-import { PerfilSemPermissaoError, RecursoNaoEncontradoError } from "@/lib/errors";
-import type { UnidadeIndicadores, UnidadeStatus, PerfilUsuario } from "@/types/domain";
 
 type UnidadeApiResponse = {
   id: string;
@@ -183,11 +41,42 @@ type UnidadeApiResponse = {
   totalTarefas?: number;
 };
 
-export async function obterUnidade(id: string): Promise<Unidade> {
-  const unidade = await http<UnidadeApiResponse>(
-    `/unidades/${encodeURIComponent(id)}`,
-  );
+type IndicadoresApiResponse = {
+  unidadeId: string;
+  totalPendencias: number;
+  documentos: {
+    total: number;
+    valido: number;
+    proximoVencimento: number;
+    expirado: number;
+  };
+  tarefas: {
+    total: number;
+    pendente: number;
+    emAndamento: number;
+    concluida: number;
+  };
+  variacao: {
+    referencia: "mes_anterior";
+    documentosProximosVencimento: {
+      atual: number;
+      anterior: number;
+      percentual: number | null;
+    };
+    documentosExpirados: {
+      atual: number;
+      anterior: number;
+      percentual: number | null;
+    };
+    tarefasConcluidas: {
+      atual: number;
+      anterior: number;
+      percentual: number | null;
+    };
+  };
+};
 
+function mapearUnidadeApi(unidade: UnidadeApiResponse): Unidade {
   return {
     id: unidade.id,
     nome: unidade.nome,
@@ -208,67 +97,184 @@ export async function obterUnidade(id: string): Promise<Unidade> {
   };
 }
 
+function mapearErroApi(error: unknown): never {
+  if (!(error instanceof ApiError)) throw error;
+
+  if (
+    error.status === 409 ||
+    error.response.codigo === "IDENTIFICADOR_DUPLICADO"
+  ) {
+    throw new IdentificadorUnidadeDuplicadoError();
+  }
+
+  if (error.status === 404) {
+    throw new RecursoNaoEncontradoError("Unidade");
+  }
+
+  if (error.status === 403) {
+    throw new PerfilSemPermissaoError();
+  }
+
+  throw error;
+}
+
+async function executarApi<T>(request: () => Promise<T>): Promise<T> {
+  try {
+    return await request();
+  } catch (error) {
+    mapearErroApi(error);
+  }
+}
+
+function mapearPayload(data: UnidadeFormValues) {
+  return {
+    nome: data.nome.trim(),
+    codigo: data.identificador.trim(),
+    cep: normalizarCep(data.cep),
+    logradouro: data.logradouro.trim(),
+    numero: data.numero.trim(),
+    complemento: data.complemento?.trim() || undefined,
+    bairro: data.bairro.trim(),
+    cidade: data.cidade.trim(),
+    uf: data.uf,
+    descricao: data.descricao?.trim() || undefined,
+  };
+}
+
+export async function listarUnidades({
+  page = 1,
+  size = DEFAULT_PAGE_SIZE,
+  q = "",
+  status = "Todos",
+}: UnidadesFilters = {}): Promise<Paginated<UnidadeListItem>> {
+  const params: Record<string, string | number> = {
+    page: Math.max(1, Math.floor(page)),
+    pageSize: Math.max(1, Math.floor(size)),
+  };
+
+  if (q.trim()) params.q = q.trim();
+
+  if (status !== "Todos") {
+    params.status = status === "Ativa" ? "ativa" : "inativa";
+  }
+
+  const response = await executarApi(() =>
+    http<Paginated<UnidadeApiResponse>>("/unidades", { params }),
+  );
+
+  return {
+    ...response,
+    items: response.items.map((unidade) => ({
+      ...mapearUnidadeApi(unidade),
+      totalDocumentos: unidade.totalDocumentos ?? 0,
+      totalTarefas: unidade.totalTarefas ?? 0,
+    })),
+  };
+}
+
+export async function criarUnidade(data: UnidadeFormValues): Promise<Unidade> {
+  const response = await executarApi(() =>
+    http<UnidadeApiResponse>("/unidades", {
+      method: "POST",
+      body: mapearPayload(data),
+    }),
+  );
+
+  return mapearUnidadeApi(response);
+}
+
+export async function obterUnidadeParaEdicao(
+  id: string,
+): Promise<Unidade | null> {
+  try {
+    return await obterUnidade(id);
+  } catch (error) {
+    if (error instanceof RecursoNaoEncontradoError) return null;
+    throw error;
+  }
+}
+
+export async function atualizarUnidade(
+  id: string,
+  data: UnidadeFormValues,
+): Promise<Unidade> {
+  const response = await executarApi(() =>
+    http<UnidadeApiResponse>(`/unidades/${encodeURIComponent(id)}`, {
+      method: "PUT",
+      body: mapearPayload(data),
+    }),
+  );
+
+  return mapearUnidadeApi(response);
+}
+
+export async function obterUnidade(id: string): Promise<Unidade> {
+  const response = await executarApi(() =>
+    http<UnidadeApiResponse>(`/unidades/${encodeURIComponent(id)}`),
+  );
+
+  return mapearUnidadeApi(response);
+}
+
 export async function obterIndicadoresUnidade(
   unidadeId: string,
 ): Promise<UnidadeIndicadores | null> {
-  await wait(160);
-  if (!mockUnidades.some((unidade) => unidade.id === unidadeId)) return null;
+  let response: IndicadoresApiResponse;
 
-  const unidadeDocumentos = mockDocumentos.filter(
-    (documento) => documento.unidadeId === unidadeId,
-  );
-  const unidadeTarefas = mockTarefas.filter(
-    (tarefa) => tarefa.unidadeId === unidadeId,
-  );
-  const statusDocumentos = unidadeDocumentos.map((documento) =>
-    calcularStatusDocumento(documento.dataValidade),
-  );
-  const countDocumentStatus = (status: string) =>
-    statusDocumentos.filter((current) => current === status).length;
-  const countTasks = (status: string) =>
-    unidadeTarefas.filter((tarefa) => tarefa.status === status).length;
-  const documentsExpired = countDocumentStatus("Expirado");
-  const tasksCompleted = countTasks("Concluída");
+  try {
+    response = await http<IndicadoresApiResponse>(
+      `/unidades/${encodeURIComponent(unidadeId)}/indicadores`,
+    );
+  } catch (error) {
+    if (error instanceof ApiError && error.status === 404) return null;
+    mapearErroApi(error);
+  }
 
-  const now = new Date();
-  const currentMonth = monthKey(now.toISOString()) ?? "";
-  const previousMonth = offsetMonthKey(now, -1);
-  const expiredThisMonth = unidadeDocumentos.filter(
-    (documento, index) =>
-      statusDocumentos[index] === "Expirado" &&
-      documento.dataValidade?.slice(0, 7) === currentMonth,
-  ).length;
-  const expiredPreviousMonth = unidadeDocumentos.filter(
-    (documento, index) =>
-      statusDocumentos[index] === "Expirado" &&
-      documento.dataValidade?.slice(0, 7) === previousMonth,
-  ).length;
-  const tasksCompletedThisMonth = unidadeTarefas.filter(
-    (tarefa) =>
-      tarefa.status === "Concluída" &&
-      tarefa.dataConclusao?.slice(0, 7) === currentMonth,
-  ).length;
-  const tasksCompletedPreviousMonth = unidadeTarefas.filter(
-    (tarefa) =>
-      tarefa.status === "Concluída" &&
-      tarefa.dataConclusao?.slice(0, 7) === previousMonth,
-  ).length;
+  const documentos: DashboardDistribution[] = [
+    {
+      label: "Válido",
+      value: response.documentos.valido,
+      color: STATUS_COLORS.completed,
+    },
+    {
+      label: "Próximo do vencimento",
+      value: response.documentos.proximoVencimento,
+      color: STATUS_COLORS.due,
+    },
+    {
+      label: "Expirado",
+      value: response.documentos.expirado,
+      color: STATUS_COLORS.expired,
+    },
+  ];
+
+  const tarefas: DashboardDistribution[] = [
+    {
+      label: "Concluída",
+      value: response.tarefas.concluida,
+      color: STATUS_COLORS.completed,
+    },
+    {
+      label: "Em andamento",
+      value: response.tarefas.emAndamento,
+      color: STATUS_COLORS.due,
+    },
+    {
+      label: "Pendente",
+      value: response.tarefas.pendente,
+      color: STATUS_COLORS.pending,
+    },
+  ];
 
   return {
-    documentos: [
-      { label: "Válido", value: countDocumentStatus("Válido"), color: STATUS_COLORS.completed },
-      { label: "Próximo do vencimento", value: countDocumentStatus("Próximo do vencimento"), color: STATUS_COLORS.due },
-      { label: "Expirado", value: documentsExpired, color: STATUS_COLORS.expired },
-    ],
-    tarefas: [
-      { label: "Concluída", value: tasksCompleted, color: STATUS_COLORS.completed },
-      { label: "Em andamento", value: countTasks("Em andamento"), color: STATUS_COLORS.due },
-      { label: "Pendente", value: countTasks("Pendente"), color: STATUS_COLORS.pending },
-    ],
-    documentosExpirados: documentsExpired,
-    tarefasConcluidas: tasksCompleted,
-    variacaoDocumentosExpirados: percentVariation(expiredThisMonth, expiredPreviousMonth),
-    variacaoTarefasConcluidas: percentVariation(tasksCompletedThisMonth, tasksCompletedPreviousMonth),
+    documentos,
+    tarefas,
+    documentosExpirados: response.documentos.expirado,
+    tarefasConcluidas: response.tarefas.concluida,
+    variacaoDocumentosExpirados:
+      response.variacao.documentosExpirados.percentual,
+    variacaoTarefasConcluidas:
+      response.variacao.tarefasConcluidas.percentual,
   };
 }
 
@@ -277,26 +283,17 @@ export async function alterarStatusUnidade(
   status: UnidadeStatus,
   perfil: PerfilUsuario = "Colaborador",
 ): Promise<Unidade> {
-  await wait(120);
-  if (perfil !== "Administrador") throw new PerfilSemPermissaoError();
-  const unidadeIndex = mockUnidades.findIndex((unidade) => unidade.id === id);
-  if (unidadeIndex < 0) throw new RecursoNaoEncontradoError("Unidade");
+  // O backend é a autoridade sobre autorização; o perfil local não bloqueia a requisição.
+  void perfil;
 
-  const unidade = mockUnidades[unidadeIndex];
-  const updated: Unidade = {
-    ...unidade,
-    status,
-    atualizadoEm: new Date().toISOString(),
-  };
-  mockUnidades[unidadeIndex] = updated;
-  if (unidade.status !== status) {
-    registrarEventoHistoricoUnidade({
-      unidadeId: updated.id,
-      acao: `Alterou o status da unidade de ${unidade.status} para ${status}`,
-      entidade: "Unidade",
-      entidadeId: updated.id,
-      entidadeNome: updated.nome,
-    });
-  }
-  return updated;
+  const response = await executarApi(() =>
+    http<UnidadeApiResponse>(`/unidades/${encodeURIComponent(id)}/status`, {
+      method: "PATCH",
+      body: {
+        status: status === "Ativa" ? "ativa" : "inativa",
+      },
+    }),
+  );
+
+  return mapearUnidadeApi(response);
 }

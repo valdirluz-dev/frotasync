@@ -10,6 +10,7 @@ import { cadastroEmpresaSchema } from "@/schemas/cadastroEmpresa";
 import { useCadastro } from "@/components/auth/CadastroProvider";
 import { formatCep, formatCnpj } from "@/utils/formatters";
 import { zodErrorsByField } from "@/utils/zodErrors";
+import { buscarCep } from "@/services/cepService";
 
 export default function DadosEmpresa() {
   const router = useRouter();
@@ -20,29 +21,32 @@ export default function DadosEmpresa() {
   // Estado para armazenar os erros de validação de cada campo
   const [errors, setErrors] = useState<{ [key: string]: string }>({});
 
-  // Busca automática de endereço através da API ViaCEP com base no CEP preenchido
+  // Busca endereço através do backend com base no CEP preenchido
   const fetchAddressByCep = async (cep: string) => {
     const cleanCep = cep.replace(/\D/g, "");
     if (cleanCep.length !== 8) return;
 
     try {
-      const response = await fetch(`https://viacep.com.br/ws/${cleanCep}/json/`);
-      const data = await response.json();
+      const data = await buscarCep(cleanCep);
 
-      if (!data.erro) {
-        setFormData((prev) => ({
-          ...prev,
-          logradouro: data.logradouro || "",
-          bairro: data.bairro || "",
-          cidade: data.localidade || "",
-          estado: data.uf || "",
-        }));
-        setErrors((prev) => ({ ...prev, cep: "" }));
-      } else {
+      if (!data) {
         setErrors((prev) => ({ ...prev, cep: "CEP não encontrado." }));
+        return;
       }
-    } catch (error) {
-      console.error("Erro ao buscar CEP:", error);
+
+      setFormData((prev) => ({
+        ...prev,
+        logradouro: data.logradouro || "",
+        bairro: data.bairro || "",
+        cidade: data.cidade || "",
+        estado: data.uf || "",
+      }));
+      setErrors((prev) => ({ ...prev, cep: "" }));
+    } catch {
+      setErrors((prev) => ({
+        ...prev,
+        cep: "Não foi possível consultar o CEP. Tente novamente.",
+      }));
     }
   };
 
