@@ -4,7 +4,7 @@
 
 **Sistema de Gestão de Unidades, Documentos e Tarefas** — aplicação web frontend para acompanhar filiais, pátios, documentos de conformidade e tarefas relacionadas.
 
-O **FrotaSync** é uma aplicação **100% frontend** em **Next.js** e **TypeScript** que centraliza a gestão de **unidades** (filiais e pátios), **documentos** com status de validade calculado automaticamente e **tarefas** vinculadas a cada unidade. Regras de negócio (autenticação, unidades inativas, validade documental, fluxo de tarefas) são simuladas com **dados mockados** via **TanStack Query**, alinhados ao contrato de API futuro em [`plan/versao_1.2.0/`](plan/versao_1.2.0/).
+O **FrotaSync** é uma aplicação full stack em **Next.js**, **NestJS** e **TypeScript** que centraliza a gestão de **unidades** (filiais e pátios), **documentos** com status de validade calculado automaticamente e **tarefas** vinculadas a cada unidade. O frontend se comunica com uma API REST apoiada em **PostgreSQL** e **Prisma**, enquanto o esquema do banco é versionado com **Flyway**.
 
 Cenário: transportadora fictícia **FrotaSync**. Documentos exemplo: Licença Ambiental, Registro na ANTT, Seguro de Carga. Tarefa exemplo: *“Renovar licença do pátio de Recife”*.
 
@@ -52,102 +52,142 @@ export function calcularStatusDocumento(
 
 ## Índice
 
+- [Instalação e uso](#instalação-e-uso)
 - [Funcionalidades](#funcionalidades)
 - [Arquitetura](#arquitetura)
-- [Instalação e uso](#instalação-e-uso)
 - [Tecnologias](#tecnologias)
 - [Documentação do projeto](#documentação-do-projeto)
 - [Contribuidores e licença](#contribuidores-e-licença)
-
-## Funcionalidades
-
-- **Autenticação** — Login com e-mail e senha validados por Zod; rotas protegidas redirecionam para `/login` sem sessão válida (RNF 004).
-- **Dashboard** — Totais de unidades, documentos, tarefas pendentes e **total de pendências** (documentos a vencer/vencidos + tarefas pendentes/em andamento), com atualização automática via cache (RF 002–003).
-- **Unidades** — Listagem com pesquisa, filtros e paginação (TanStack Table); cadastro e edição; detalhamento com documentos e tarefas; unidades inativas não recebem novos vínculos (RF 004–007).
-- **Documentos** — Listas global e por unidade; cadastro em unidades ativas; status automático: Válido / Próximo do vencimento (≤15 dias) / Expirado (RF 008–011).
-- **Tarefas** — Listas global e por unidade; cadastro em unidades ativas; fluxo de status (Pendente → Em andamento → Concluída) com confirmação ao concluir (RF 012–015).
-- **UX e qualidade** — Layout responsivo, estados de carregamento/erro/vazio, componentes reutilizáveis, schemas Zod como contrato de dados (RNF 009–014).
-- **Opcionais (backlog v1.1)** — Bloqueio de exclusão de unidade com pendências; histórico de alterações; tema claro/escuro; camada de API simulada (MSW/Route Handlers); testes automatizados; deploy.
-
-
-## Funcionalidade | Status
-
-| Funcionalidade | Status |
-| --- | --- |
-| Login | Pronto |
-| Cadastro (unidades) | Pronto |
-| Documentos | Em andamento |
-| Tarefas | Pendente |
-
-## Arquitetura
-
-```text
-┌─────────────────────────────────────────────────────────────┐
-│  Next.js (App Router) + React + Tailwind CSS                │
-├─────────────────────────────────────────────────────────────┤
-│  Telas: Login · Dashboard · Unidades · Documentos · Tarefas │
-├─────────────────────────────────────────────────────────────┤
-│  TanStack Query (estado servidor) │ TanStack Table (listas) │
-│  React Hook Form + Zod (formulários e validação)            │
-├─────────────────────────────────────────────────────────────┤
-│  Camada mock (RNF 008) — substituível por API REST v1       │
-└─────────────────────────────────────────────────────────────┘
-```
-
-Referência de backend futuro (fora do escopo atual): **NestJS**, **PostgreSQL**, **JWT** — ver [`Design_de_API_v1_1.md`](plan/versao_1.2.0/Design_de_API_v1_1.md) e [`Modelagem_de_Dados_v1_1.md`](plan/versao_1.2.0/Modelagem_de_Dados_v1_1.md).
 
 ## Instalação e uso
 
 ### Pré-requisitos
 
-- **Node.js** 20 LTS ou superior
-- **npm**, **pnpm** ou **yarn**
+- **Node.js** 20.19 ou superior
+- **npm**
+- **Docker** e **Docker Compose**
 
-### Configuração
+### Configuração local
+
+A partir da raiz do projeto:
 
 ```bash
-git clone https://github.com/valdirluz-dev/frotasync.git
-cd frotasync
-npm run install:app
-cp frontend/.env.example frontend/.env.local
+cp .env.example .env
+docker compose up -d db
+```
+
+Configure `backend/.env` a partir de `backend/.env.example`, especialmente `DATABASE_URL`, `JWT_SECRET` e as configurações SMTP. Antes de iniciar a API, aplique as migrações SQL de `backend/db/migration/` com o Flyway.
+
+Instale e execute o backend:
+
+```bash
+cd backend
+npm ci
+npm run start:dev
+```
+
+Em outro terminal, instale e execute o frontend:
+
+```bash
+cd frontend
+npm ci
+cp .env.example .env.local
 npm run dev
 ```
 
-Antes de iniciar, gere uma chave com `node -e "console.log(require('node:crypto').randomBytes(32).toString('base64url'))"` e use o resultado como valor de `FROTASYNC_SESSION_SECRET` em `frontend/.env.local`. Não compartilhe nem versione essa chave.
+Acesse [http://localhost:3000](http://localhost:3000). Por padrão, o frontend usa `/api/v1` e encaminha as chamadas para `http://127.0.0.1:3001` via Next.js. O healthcheck da API está em [http://localhost:3001/health](http://localhost:3001/health).
 
-Acesse [http://localhost:3000](http://localhost:3000). Use as credenciais mock definidas na camada de usuários do projeto (exemplo do design de API: `colaborador@frotasync.com.br`).
-
-### Scripts (padrão Next.js esperado)
+### Scripts
 
 | Comando | Descrição |
 | --- | --- |
-| `npm run dev` | Servidor de desenvolvimento |
-| `npm run build` | Build de produção |
-| `npm run start` | Executa o build de produção |
-| `npm run lint` | Lint (quando configurado) |
+| `npm run dev` | Servidor de desenvolvimento do frontend |
+| `npm run build` | Build de produção do frontend |
+| `npm run start` | Executa o build de produção do frontend |
+| `npm run lint` | Executa o lint do frontend |
+| `npm test` | Executa os testes do frontend |
+| `npm run typecheck` | Gera tipos do Next.js e executa verificações TypeScript |
+
+Os scripts do backend ficam em `backend/`:
+
+| Comando | Descrição |
+| --- | --- |
+| `npm run start:dev` | Servidor de desenvolvimento da API |
+| `npm run build` | Gera o Prisma Client e compila a API |
+| `npm run lint` | Executa o lint da API |
+| `npm test` | Executa os testes da API |
+
+## Funcionalidades
+
+- **Autenticação** — Cadastro, login com e-mail e senha, atualização e encerramento de sessão, rotas protegidas, recuperação de senha, JWT e proteção CSRF.
+- **Dashboard** — Indicadores de unidades, documentos, tarefas pendentes e pendências abertas, obtidos pelo PostgreSQL e Prisma.
+- **Unidades** — Listagem com pesquisa, filtros e paginação; cadastro e edição; detalhamento; status ativo/inativo; histórico de alterações.
+- **Documentos** — Listas global e por unidade, upload de anexos, filtro por categoria, cadastro/edição/exclusão e status automático: Válido / Próximo do vencimento (≤15 dias) / Expirado.
+- **Tarefas** — Listas global e por unidade, cadastro/edição/exclusão e fluxo de status: Pendente → Em andamento → Concluída.
+- **Perfil e preferências** — Tela de perfil e configurações locais de preferência.
+- **UX e qualidade** — Layout responsivo, estados de carregamento/erro/vazio, Zod, React Hook Form, TanStack Query e TanStack Table.
+
+## Arquitetura
+
+```mermaid
+flowchart TB
+    subgraph Frontend["Frontend"]
+        FE["Next.js + React + TypeScript"]
+        FE_DETAILS["Tailwind CSS · TanStack Query · TanStack Table · React Hook Form · Zod"]
+    end
+
+    subgraph Backend["Backend"]
+        API["NestJS + TypeScript"]
+        API_DETAILS["Regras de negócio · autenticação · processamento"]
+    end
+
+    subgraph Dados["Dados e persistência"]
+        PRISMA["Prisma ORM"]
+        PRISMA_DETAILS["Acesso tipado e consultas SQL"]
+        FLYWAY["Flyway"]
+        FLYWAY_DETAILS["Versionamento do esquema"]
+        JWT["JWT / Passport"]
+        JWT_DETAILS["Autenticação e autorização"]
+        ZOD["Zod"]
+        ZOD_DETAILS["Validação dos dados"]
+        PG["PostgreSQL 17"]
+        PG_DETAILS["Unidades · empresas · usuários · documentos · tarefas"]
+    end
+
+    FE <-->|"HTTP / API REST · JSON · cookies"| API
+    API --> PRISMA
+    API --> JWT
+    API --> ZOD
+    PRISMA -->|"Prisma Client / SQL"| PG
+    FLYWAY -->|"Migrações do esquema"| PG
+    DOCKER["Docker Compose"]
+    DOCKER -.-> PG
+```
 
 ## Tecnologias
 
 | Categoria | Stack |
 | --- | --- |
-| Linguagem | JavaScript, TypeScript |
-| Framework | Next.js, React |
-| Estilização | Tailwind CSS |
+| Linguagem | TypeScript, JavaScript |
+| Frontend | Next.js, React, Tailwind CSS |
+| Backend | NestJS |
 | Formulários e validação | React Hook Form, Zod |
 | Dados e tabelas | TanStack Query, TanStack Table |
-| Persistência (atual) | Dados mockados (sem banco real) |
-| Persistência (ref. futura) | PostgreSQL, migrações Flyway |
-| API (ref. futura) | NestJS, JWT, Swagger/OpenAPI |
+| Persistência | PostgreSQL, Prisma |
+| Migrações de schema | Flyway |
+| Autenticação | JWT, cookies HTTP-only seguros |
+| Infraestrutura local | Docker Compose |
 | IDE | Visual Studio Code |
 
 ## Documentação do projeto
 
 | Documento | Descrição |
 | --- | --- |
-| [`Analise_de_Requisitos_v1_1_FrotaSync.md`](plan/versao_1.2.0/Analise_de_Requisitos_v1_1_FrotaSync.md) | Requisitos funcionais e não funcionais (v1.1) |
-| [`Estorias_de_Usuario_e_Backlog_v1_1.md`](plan/versao_1.2.0/Estorias_de_Usuario_e_Backlog_v1_1.md) | Estórias de usuário e backlog MoSCoW |
-| [`Design_de_API_v1_1.md`](plan/versao_1.2.0/Design_de_API_v1_1.md) | Contrato REST (integração futura) |
-| [`Modelagem_de_Dados_v1_1.md`](plan/versao_1.2.0/Modelagem_de_Dados_v1_1.md) | Modelagem de dados (referência PostgreSQL) |
+| [`Analise_de_Requisitos_v1_4.md`](plan/versao_final/Analise_de_Requisitos_v1_4.md) | Requisitos funcionais e não funcionais |
+| [`Estorias_de_usuario_v1_4.md`](plan/versao_final/Estorias_de_usuario_v1_4.md) | Estórias de usuário e backlog |
+| [`Design_de_API_v1_6.md`](plan/versao_final/Design_de_API_v1_6.md) | Contrato da API REST |
+| [`Modelagem_de_Dados_v1_6.md`](plan/versao_final/Modelagem_de_Dados_v1_6.md) | Modelagem PostgreSQL e arquitetura de persistência |
+| [`infra_aws_v1_5.md`](plan/versao_final/infra_aws_v1_5.md) | Infraestrutura, implantação e observabilidade |
 
 ## Contribuidores e licença
 
