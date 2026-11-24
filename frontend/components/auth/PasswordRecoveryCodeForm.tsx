@@ -8,6 +8,7 @@ import {
   PasswordRecoveryLayout,
   RecoveryNotice,
 } from "@/components/auth/PasswordRecoveryLayout";
+import { ApiError, http } from "@/lib/http";
 
 const CODE_LENGTH = 5;
 const RESET_TOKEN_KEY = "frotasync.password-reset-token";
@@ -34,24 +35,23 @@ export function PasswordRecoveryCodeForm({ email }: { email: string }) {
     setIsSubmitting(true);
 
     try {
-      const response = await fetch("/api/auth/password-recovery/verify", {
+      const result = await http<{ token: string }>("/auth/verificar-codigo", {
         method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ email, code }),
+        body: { email: email.trim(), codigo: code },
       });
-      const result = (await response.json()) as {
-        message?: string;
-        token?: string;
-      };
-      if (!response.ok || !result.token) {
-        setError(result.message ?? "Não foi possível verificar o código.");
+      if (!result.token) {
+        setError("Não foi possível verificar o código.");
         return;
       }
 
       window.sessionStorage.setItem(RESET_TOKEN_KEY, result.token);
       router.push("/recuperar-senha/passo3-senha");
-    } catch {
-      setError("Não foi possível conectar ao servidor. Tente novamente.");
+    } catch (error) {
+      setError(
+        error instanceof ApiError
+          ? error.message
+          : "Não foi possível conectar ao servidor. Tente novamente.",
+      );
     } finally {
       setIsSubmitting(false);
     }
@@ -60,20 +60,18 @@ export function PasswordRecoveryCodeForm({ email }: { email: string }) {
   async function handleResend() {
     setError("");
     try {
-      const response = await fetch("/api/auth/password-recovery/request", {
+      await http<void>("/auth/recuperar-senha", {
         method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ email }),
+        body: { email: email.trim() },
       });
-      const result = (await response.json()) as { message?: string };
-      if (!response.ok) {
-        setError(result.message ?? "Não foi possível enviar outro código.");
-        if (response.status === 429) setResendSeconds(60);
-        return;
-      }
       setResendSeconds(60);
-    } catch {
-      setError("Não foi possível conectar ao servidor. Tente novamente.");
+    } catch (error) {
+      if (error instanceof ApiError) {
+        setError(error.message);
+        if (error.status === 429) setResendSeconds(60);
+      } else {
+        setError("Não foi possível conectar ao servidor. Tente novamente.");
+      }
     }
   }
 

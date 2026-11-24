@@ -6,6 +6,7 @@ import Link from "next/link";
 
 import { Icon } from "@/components/ui/Icons";
 import { PasswordRecoveryLayout, RecoveryNotice } from "@/components/auth/PasswordRecoveryLayout";
+import { ApiError, http } from "@/lib/http";
 
 export default function Page() {
   const router = useRouter();
@@ -19,21 +20,19 @@ export default function Page() {
     setIsSubmitting(true);
 
     try {
-      const response = await fetch("/api/auth/password-recovery/request", {
+      await http<void>("/auth/recuperar-senha", {
         method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ email }),
+        body: { email: email.trim() },
       });
-      const result = (await response.json()) as { message?: string };
-      if (!response.ok) {
-        setError(result.message ?? "Não foi possível solicitar um código.");
-        return;
-      }
 
       const params = new URLSearchParams({ email: email.trim() });
       router.push(`/recuperar-senha/passo2-cod?${params.toString()}`);
-    } catch {
-      setError("Não foi possível conectar ao servidor. Tente novamente.");
+    } catch (error) {
+      setError(
+        error instanceof ApiError
+          ? error.message
+          : "Não foi possível conectar ao servidor. Tente novamente.",
+      );
     } finally {
       setIsSubmitting(false);
     }

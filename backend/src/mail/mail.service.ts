@@ -16,15 +16,22 @@ export class MailService {
     const pass = this.configService.get<string>('SMTP_PASS');
     const from = this.configService.get<string>('SMTP_FROM');
     const secureConfig = this.configService.get<string>('SMTP_SECURE');
+    const nodeEnv = this.configService.get<string>('NODE_ENV');
+
+    const authConfigured = Boolean(user || pass);
+    const authComplete = Boolean(user && pass);
+    const authValid =
+      nodeEnv === 'development'
+        ? !authConfigured || authComplete
+        : authComplete;
 
     if (
       !host ||
       !Number.isInteger(port) ||
       port < 1 ||
       port > 65535 ||
-      !user ||
-      !pass ||
-      !from
+      !from ||
+      !authValid
     ) {
       throw new ServiceUnavailableException(
         'Serviço de envio de e-mail indisponível.',
@@ -37,7 +44,7 @@ export class MailService {
       secure: secureConfig
         ? secureConfig.toLowerCase() === 'true'
         : port === 465,
-      auth: { user, pass },
+      ...(authComplete ? { auth: { user, pass } } : {}),
     });
 
     try {
@@ -52,7 +59,7 @@ export class MailService {
           '',
           'O código expira em 10 minutos.',
           'Se você não solicitou a redefinição, ignore este e-mail.',
-        ].join('\n'),
+        ].join('\\n'),
         html: `
           <div style="font-family: Arial, sans-serif; max-width: 560px; margin: 0 auto;">
             <h2>Redefinição de senha</h2>

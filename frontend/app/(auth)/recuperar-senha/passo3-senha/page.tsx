@@ -10,6 +10,7 @@ import {
 } from "@/components/auth/PasswordRecoveryLayout";
 import { redefinirSenhaSchema } from "@/schemas/acesso";
 import { zodErrorsByField } from "@/utils/zodErrors";
+import { ApiError, http } from "@/lib/http";
 
 const RESET_TOKEN_KEY = "frotasync.password-reset-token";
 
@@ -27,6 +28,11 @@ export default function Page() {
     event.preventDefault();
     setRequestError("");
     const token = window.sessionStorage.getItem(RESET_TOKEN_KEY) ?? "";
+    if (!token) {
+      router.replace("/recuperar-senha/passo1-email");
+      return;
+    }
+
     const result = redefinirSenhaSchema.safeParse({
       token,
       senha: password,
@@ -40,26 +46,19 @@ export default function Page() {
     setErrors({});
     setIsSubmitting(true);
     try {
-      const response = await fetch("/api/auth/password-recovery/reset", {
+      await http<void>("/auth/redefinir-senha", {
         method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify(result.data),
+        body: result.data,
       });
-      const responseBody = (await response.json()) as { message?: string };
-      if (!response.ok) {
-        setRequestError(
-          responseBody.message ?? "Não foi possível redefinir a senha.",
-        );
-        if (response.status === 400 && !token) {
-          router.push("/recuperar-senha/passo1-email");
-        }
-        return;
-      }
 
       window.sessionStorage.removeItem(RESET_TOKEN_KEY);
       router.push("/recuperar-senha/passo4-sucesso");
-    } catch {
-      setRequestError("Não foi possível conectar ao servidor. Tente novamente.");
+    } catch (error) {
+      setRequestError(
+        error instanceof ApiError
+          ? error.message
+          : "Não foi possível conectar ao servidor. Tente novamente.",
+      );
     } finally {
       setIsSubmitting(false);
     }

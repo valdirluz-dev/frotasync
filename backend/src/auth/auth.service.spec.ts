@@ -757,7 +757,7 @@ describe('AuthService recuperação de senha', () => {
       tentativas: 0,
       codigo_hash: 'hash-codigo',
     });
-    jest.spyOn(bcrypt, 'compare').mockResolvedValue(true);
+    jest.spyOn(bcrypt, 'compare').mockImplementation(async () => true);
 
     const resultado = await service.verificarCodigoRecuperacao({
       email: 'pessoa@example.com',
@@ -775,7 +775,7 @@ describe('AuthService recuperação de senha', () => {
       tentativas: 0,
       codigo_hash: 'hash-codigo',
     });
-    jest.spyOn(bcrypt, 'compare').mockResolvedValue(false);
+    jest.spyOn(bcrypt, 'compare').mockImplementation(async () => false);
 
     await expect(
       service.verificarCodigoRecuperacao({
